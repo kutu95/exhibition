@@ -1,0 +1,33 @@
+.badge {
+  display: inline-block;
+  border: 1px solid currentColor;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.18rem 0.44rem;
+}
+
+.pending {
+  color: #8a6a00;
+}
+
+.paid {
+  color: #1d7b33;
+}
+
+.processing {
+  color: #1f4d9b;
+}
+
+.shipped {
+  color: #6f2ca0;
+}
+
+.delivered {
+  color: #545454;
+}
+
+.cancelled,
+.refunded {
+  color: #b01818;
+}

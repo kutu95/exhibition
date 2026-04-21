@@ -1,0 +1,69 @@
+.metrics {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  margin-bottom: 1.2rem;
+}
+
+.metricCard {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem;
+}
+
+.metricCard p {
+  margin: 0;
+}
+
+.metricLabel {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: #555;
+  letter-spacing: 0.06em;
+}
+
+.metricValue {
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d8d8d8;
+  margin-bottom: 1rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+}
+
+.barRow {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.barTrack {
+  height: 12px;
+  background: #efefef;
+}
+
+.barFill {
+  height: 100%;
+  background: #111;
+}
+
+@media (min-width: 960px) {
+  .metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

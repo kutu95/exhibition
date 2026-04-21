@@ -1,0 +1,57 @@
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.grid label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.grid input,
+.grid textarea,
+.grid select {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.btn {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.42rem 0.7rem;
+}
+
+.btnAlt {
+  border: 1px solid #111;
+  background: transparent;
+  color: #111;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.42rem 0.7rem;
+}
+
+.error {
+  color: #b01818;
+  margin: 0;
+}

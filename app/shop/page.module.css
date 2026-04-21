@@ -1,0 +1,11 @@
+.intro {
+  margin-bottom: 1.6rem;
+}
+
+.note {
+  margin-top: 2rem;
+  border-top: 1px solid rgba(10, 22, 40, 0.22);
+  padding-top: 1rem;
+  max-width: 80ch;
+  color: #3d3d3d;
+}

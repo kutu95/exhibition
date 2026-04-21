@@ -1,0 +1,105 @@
+.story {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.story p {
+  margin: 0;
+  max-width: 68ch;
+  line-height: 1.85;
+}
+
+.quote {
+  margin-top: 1.6rem;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: clamp(1.6rem, 4vw, 2.45rem);
+  line-height: 1.25;
+  color: var(--color-navy);
+}
+
+.locationsGrid {
+  margin-top: 1.4rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.locationCard {
+  position: relative;
+  min-height: 245px;
+  border: 1px solid rgba(10, 22, 40, 0.22);
+  overflow: hidden;
+}
+
+.locationImage {
+  object-fit: cover;
+}
+
+.locationOverlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 1rem;
+  color: var(--color-cream);
+  background: linear-gradient(to top, rgba(10, 22, 40, 0.85), transparent);
+}
+
+.locationOverlay h3 {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+}
+
+.locationOverlay p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.installationGrid {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 1.4rem;
+}
+
+.featuredHead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+
+.allPrintsLink {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
+}
+
+.newsletter {
+  background: var(--color-navy);
+  color: var(--color-cream);
+}
+
+.newsletterWrap {
+  text-align: center;
+}
+
+.newsletterWrap p {
+  margin: 0 0 1.3rem;
+  color: var(--color-sand);
+}
+
+.newsletterCard {
+  max-width: 540px;
+  margin: 0 auto;
+  border: 1px solid rgba(245, 240, 232, 0.45);
+  padding: 1.2rem;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  text-align: left;
+}
+
+@media (min-width: 700px) {
+  .locationsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,51 @@
+.card {
+  border: 1px solid rgba(10, 22, 40, 0.22);
+}
+
+.link {
+  display: block;
+}
+
+.imageWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: rgba(10, 22, 40, 0.08);
+}
+
+.image {
+  object-fit: cover;
+  transition: filter 0.2s ease;
+}
+
+.content {
+  padding: 1rem;
+}
+
+.content h3 {
+  font-family: var(--font-heading);
+  margin: 0 0 0.2rem;
+  font-size: 1.55rem;
+  transition: text-decoration-color 0.2s ease;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+}
+
+.location {
+  margin: 0;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+.price {
+  margin: 0.65rem 0 0;
+  color: var(--color-rust);
+}
+
+.link:hover .image {
+  filter: brightness(1.06);
+}
+
+.link:hover .content h3 {
+  text-decoration-color: currentColor;
+}

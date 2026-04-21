@@ -1,0 +1,23 @@
+.grid {
+  display: grid;
+  gap: 2rem;
+}
+
+.block h2 {
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  margin: 0 0 0.6rem;
+}
+
+.block p {
+  margin: 0 0 0.9rem;
+  line-height: 1.8;
+  max-width: 70ch;
+}
+
+.signup {
+  margin-top: 1.5rem;
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  padding: 1rem;
+  max-width: 520px;
+}

@@ -1,0 +1,34 @@
+.wrap {
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filterBtn {
+  border: 1px solid rgba(10, 22, 40, 0.35);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.active {
+  background: var(--color-navy);
+  color: var(--color-cream);
+}
+
+.filterBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -1,0 +1,64 @@
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.inlineControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.inlineControls select,
+.inlineControls input,
+.notes {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+.button {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.notes {
+  width: 100%;
+  min-height: 140px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d8d8d8;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+}

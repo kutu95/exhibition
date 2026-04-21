@@ -1,0 +1,151 @@
+.adminRoot {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-family: "Inter", sans-serif;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #111111;
+  color: #fff;
+  padding: 0.9rem 1rem;
+}
+
+.menuBtn {
+  border: 1px solid #3b3b3b;
+  background: transparent;
+  color: #fff;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.35rem 0.65rem;
+}
+
+.layout {
+  display: flex;
+}
+
+.sidebar {
+  width: 220px;
+  background: #111111;
+  color: #fff;
+  min-height: 100vh;
+  position: fixed;
+  inset: 0 auto 0 0;
+  padding: 1.2rem 1rem;
+  display: none;
+}
+
+.sidebarOpen {
+  display: block;
+  z-index: 40;
+}
+
+.brand {
+  margin: 0 0 1.2rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.nav a {
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid transparent;
+  padding: 0.42rem 0.5rem;
+  font-size: 0.92rem;
+}
+
+.nav a:hover,
+.activeLink {
+  border-color: #4e4e4e;
+}
+
+.sidebarBottom {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.logoutBtn {
+  width: 100%;
+  border: 1px solid #4a4a4a;
+  border-radius: 0;
+  color: #fff;
+  background: transparent;
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  cursor: pointer;
+}
+
+.siteLink {
+  color: #d8d8d8;
+  font-size: 0.9rem;
+  border: 1px solid #4a4a4a;
+  padding: 0.45rem 0.5rem;
+}
+
+.content {
+  flex: 1;
+  padding: 1.2rem;
+}
+
+.panel {
+  border: 1px solid #d8d8d8;
+  padding: 1rem;
+  background: #fff;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d8d8d8;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.92rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.18rem 0.42rem;
+  border: 1px solid currentColor;
+}
+
+@media (min-width: 980px) {
+  .topBar {
+    display: none;
+  }
+
+  .sidebar {
+    display: block;
+    position: fixed;
+  }
+
+  .content {
+    margin-left: 220px;
+    padding: 2rem;
+  }
+}

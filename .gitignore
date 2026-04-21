@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.env*.local
+.env.production
+node_modules
+.next
+logs
+.tmp_pgdata
+.tmp_pg_socket
+.tmp_pg.log
+tsconfig.tsbuildinfo

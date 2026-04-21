@@ -1,0 +1,49 @@
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.addBtn {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+  padding: 0.45rem 0.7rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d8d8d8;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actions button,
+.actions a {
+  border: 1px solid #111;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  text-decoration: none;
+  padding: 0.3rem 0.5rem;
+}

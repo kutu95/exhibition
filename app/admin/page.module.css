@@ -1,0 +1,55 @@
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  margin-bottom: 1.2rem;
+}
+
+.card {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem;
+  background: #fff;
+}
+
+.cardLabel {
+  margin: 0 0 0.45rem;
+  font-size: 0.8rem;
+  color: #4a4a4a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cardValue {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 600;
+}
+
+.tableLink {
+  color: #1a1a1a;
+  text-decoration: underline;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d8d8d8;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.92rem;
+}
+
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

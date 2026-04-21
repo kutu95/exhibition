@@ -1,0 +1,113 @@
+.wrap {
+  display: grid;
+  gap: 2rem;
+}
+
+.gallery {
+  display: grid;
+  gap: 1rem;
+}
+
+.mainImageWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border: 1px solid rgba(10, 22, 40, 0.2);
+}
+
+.mainImage {
+  object-fit: cover;
+}
+
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.thumb {
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  background: transparent;
+  border-radius: 0;
+  position: relative;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+}
+
+.thumbImage {
+  object-fit: cover;
+}
+
+.thumbActive {
+  border-color: var(--color-rust);
+}
+
+.sidebar {
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  padding: 1.3rem;
+  align-self: start;
+}
+
+.title {
+  margin: 0.15rem 0 0.4rem;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.04;
+}
+
+.edition {
+  margin: 0 0 1.3rem;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+.variants {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.variantRow {
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.65rem;
+}
+
+.variantActive {
+  border-color: var(--color-rust);
+}
+
+.variantRow input {
+  accent-color: var(--color-rust);
+}
+
+.price {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  margin: 1.2rem 0 1rem;
+}
+
+.buyButton {
+  width: 100%;
+}
+
+.error {
+  color: var(--color-rust);
+}
+
+.description {
+  margin: 1.2rem 0 0.6rem;
+}
+
+.meta {
+  color: var(--color-rust);
+  font-size: 0.87rem;
+}
+
+@media (min-width: 950px) {
+  .wrap {
+    grid-template-columns: 60% 40%;
+    align-items: start;
+  }
+}

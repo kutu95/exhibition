@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useState } from "react";
+
+import styles from "../../app/admin/admin.module.css";
+
+const links = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/products", label: "Products" },
+  { href: "/admin/subscribers", label: "Subscribers" },
+  { href: "/admin/events", label: "Events" },
+  { href: "/admin/sales", label: "Sales" },
+];
+
+type AdminShellProps = {
+  children: ReactNode;
+};
+
+export function AdminShell({ children }: AdminShellProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await fetch("/api/admin/auth/logout", { method: "POST" });
+    router.push("/admin/login");
+  };
+
+  return (
+    <div className={styles.adminRoot}>
+      <div className={styles.topBar}>
+        <span>Georgette Admin</span>
+        <button className={styles.menuBtn} type="button" onClick={() => setMobileOpen((v) => !v)}>
+          Menu
+        </button>
+      </div>
+
+      <div className={styles.layout}>
+        <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ""}`}>
+          <p className={styles.brand}>Georgette Admin</p>
+          <nav className={styles.nav}>
+            {links.map((link) => {
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={isActive ? styles.activeLink : ""}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className={styles.sidebarBottom}>
+            <a className={styles.siteLink} href="/" target="_blank" rel="noreferrer">
+              View Site
+            </a>
+            <button className={styles.logoutBtn} type="button" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        </aside>
+
+        <section className={styles.content}>{children}</section>
+      </div>
+    </div>
+  );
+}

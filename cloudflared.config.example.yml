@@ -1,0 +1,11 @@
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /home/[your-username]/.cloudflared/YOUR_TUNNEL_ID.json
+
+ingress:
+  - hostname: exhibition.margies.app
+    service: http://127.0.0.1:3000
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      httpHostHeader: exhibition.margies.app
+  - service: http_status:404
