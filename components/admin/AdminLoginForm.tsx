@@ -8,7 +8,6 @@ import styles from "../../app/admin/login/page.module.css";
 export function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,7 +21,7 @@ export function AdminLoginForm() {
       const response = await fetch("/api/admin/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ password }),
       });
 
       if (response.status === 401) {
@@ -32,7 +31,8 @@ export function AdminLoginForm() {
       }
 
       if (!response.ok) {
-        setError("Unable to sign in.");
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(payload?.error ?? "Unable to sign in.");
         setLoading(false);
         return;
       }
@@ -48,17 +48,6 @@ export function AdminLoginForm() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className={styles.field}>
-        <label htmlFor="admin-email">Email</label>
-        <input
-          id="admin-email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="name@example.com"
-        />
-      </div>
-
       <div className={styles.field}>
         <label htmlFor="admin-password">Password</label>
         <input

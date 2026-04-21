@@ -32,6 +32,9 @@ export async function POST(request: Request) {
     if (!expectedPassword) {
       return NextResponse.json({ error: "Admin password not configured." }, { status: 500 });
     }
+    if (!process.env.ADMIN_SESSION_SECRET) {
+      return NextResponse.json({ error: "Admin session secret not configured." }, { status: 500 });
+    }
 
     const valid = comparePassword(parsed.data.password, expectedPassword);
     if (!valid) {
