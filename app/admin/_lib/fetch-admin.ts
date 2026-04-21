@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 
-const fallbackSiteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3007";
+const publicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3007";
+const internalAppOrigin =
+  process.env.INTERNAL_APP_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? "3007"}`;
 
 const getCookieHeader = async (): Promise<string> => {
   const cookieStore = await cookies();
@@ -12,8 +14,9 @@ const getCookieHeader = async (): Promise<string> => {
 
 export const fetchAdminJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const cookieHeader = await getCookieHeader();
+  const baseUrl = process.env.NODE_ENV === "production" ? internalAppOrigin : publicSiteUrl;
 
-  const response = await fetch(`${fallbackSiteUrl}${path}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     cache: "no-store",
     headers: {
@@ -23,7 +26,8 @@ export const fetchAdminJson = async <T>(path: string, init?: RequestInit): Promi
   });
 
   if (!response.ok) {
-    throw new Error(`Admin fetch failed for ${path}`);
+    const body = await response.text().catch(() => "");
+    throw new Error(`Admin fetch failed for ${path}: ${response.status} ${response.statusText} ${body}`);
   }
 
   return (await response.json()) as T;
