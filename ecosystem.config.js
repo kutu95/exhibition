@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "georgette-exhibition",
       script: ".next/standalone/server.js",
-      cwd: "/home/[your-username]/georgette-exhibition",
+      cwd: __dirname,
       instances: 1,
       autorestart: true,
       watch: false,
