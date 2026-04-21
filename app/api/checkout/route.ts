@@ -23,10 +23,23 @@ type VariantRecord = {
   variant_label: string;
   price_aud: number;
   stripe_price_id: string | null;
-  products: {
-    title: string;
-    is_available: boolean;
-  } | null;
+  products:
+    | {
+        title: string;
+        is_available: boolean;
+      }
+    | Array<{
+        title: string;
+        is_available: boolean;
+      }>
+    | null;
+};
+
+const extractProduct = (
+  products: VariantRecord["products"],
+): { title: string; is_available: boolean } | null => {
+  if (!products) return null;
+  return Array.isArray(products) ? products[0] ?? null : products;
 };
 
 export async function POST(request: Request) {
@@ -58,8 +71,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Could not prepare checkout." }, { status: 500 });
     }
 
+    const variantRows = (variants ?? []) as unknown as VariantRecord[];
     const variantMap = new Map<string, VariantRecord>(
-      ((variants ?? []) as VariantRecord[]).map((variant) => [variant.id, variant]),
+      variantRows.map((variant) => [variant.id, variant]),
     );
 
     if (variantMap.size !== variantIds.length) {
@@ -69,32 +83,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const lineItems: Array<Stripe.Checkout.SessionCreateParams.LineItem> = requestedItems.map(
-      (item) => {
-        const variant = variantMap.get(item.variant_id);
-        if (!variant || !variant.products) {
-          throw new Error("Variant map mismatch.");
-        }
+    const lineItems = requestedItems.map((item) => {
+      const variant = variantMap.get(item.variant_id);
+      const product = variant ? extractProduct(variant.products) : null;
+      if (!variant || !product) {
+        throw new Error("Variant map mismatch.");
+      }
 
-        if (variant.stripe_price_id) {
-          return {
-            price: variant.stripe_price_id,
-            quantity: item.quantity,
-          };
-        }
-
+      if (variant.stripe_price_id) {
         return {
+          price: variant.stripe_price_id,
           quantity: item.quantity,
-          price_data: {
-            currency: "aud",
-            unit_amount: variant.price_aud,
-            product_data: {
-              name: `${variant.products.title} - ${variant.variant_label}`,
-            },
-          },
         };
-      },
-    );
+      }
+
+      return {
+        quantity: item.quantity,
+        price_data: {
+          currency: "aud",
+          unit_amount: variant.price_aud,
+          product_data: {
+            name: `${product.title} - ${variant.variant_label}`,
+          },
+        },
+      };
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",

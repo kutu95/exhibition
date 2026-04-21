@@ -18,9 +18,20 @@ type VariantForOrder = {
   variant_label: string;
   price_aud: number;
   edition_size: number | null;
-  products: {
-    title: string;
-  } | null;
+  products:
+    | {
+        title: string;
+      }
+    | Array<{
+        title: string;
+      }>
+    | null;
+};
+
+const extractProductTitle = (products: VariantForOrder["products"]): string | null => {
+  if (!products) return null;
+  const product = Array.isArray(products) ? products[0] ?? null : products;
+  return product?.title ?? null;
 };
 
 const parseCheckoutMetadata = (metadataValue: string | undefined): CheckoutMetadataItem[] => {
@@ -76,8 +87,9 @@ const upsertPaidOrderFromSession = async (
     throw variantError;
   }
 
+  const variantRows = (variants ?? []) as unknown as VariantForOrder[];
   const variantMap = new Map<string, VariantForOrder>(
-    ((variants ?? []) as VariantForOrder[]).map((variant) => [variant.id, variant]),
+    variantRows.map((variant) => [variant.id, variant]),
   );
 
   if (variantMap.size !== variantIds.length) {
@@ -154,12 +166,13 @@ const upsertPaidOrderFromSession = async (
 
   const emailItems = metadataItems.map((item) => {
     const variant = variantMap.get(item.variant_id);
-    if (!variant || !variant.products) {
+    const productTitle = variant ? extractProductTitle(variant.products) : null;
+    if (!variant || !productTitle) {
       throw new Error("Variant missing while building confirmation email.");
     }
 
     return {
-      title: variant.products.title,
+      title: productTitle,
       variant_label: variant.variant_label,
       quantity: item.quantity,
       unit_price_aud: variant.price_aud,
