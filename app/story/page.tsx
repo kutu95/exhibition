@@ -7,6 +7,7 @@ import { JsonLd } from "../../components/JsonLd";
 import { ShareButtons } from "../../components/ShareButtons";
 import { buildMetadata, siteConfig } from "../../lib/metadata";
 import { buildBreadcrumb } from "../../lib/structured-data";
+import { createSupabaseServerClient } from "../../lib/supabase/server";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = buildMetadata({
@@ -17,7 +18,26 @@ export const metadata: Metadata = buildMetadata({
   ogImage: siteConfig.ogImage.story,
 });
 
-export default function StoryPage() {
+const storyContentKeys = ["story_hero_image"] as const;
+
+const fallbackStoryHeroImage = "/images/placeholder-story-hero.jpg";
+const fallbackStoryHeroAlt = "South West coastline near the SS Georgette wreck sites";
+
+export default async function StoryPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("site_content")
+    .select("content_key, content_value, media_files(alt_text, url_path)")
+    .in("content_key", [...storyContentKeys]);
+
+  const storyHeroImageRow = (data ?? []).find((row) => row.content_key === "story_hero_image");
+  const storyHeroImageMedia = Array.isArray(storyHeroImageRow?.media_files)
+    ? storyHeroImageRow.media_files[0]
+    : storyHeroImageRow?.media_files;
+  const storyHeroImageSrc =
+    storyHeroImageRow?.content_value?.trim() || storyHeroImageMedia?.url_path?.trim() || fallbackStoryHeroImage;
+  const storyHeroImageAlt = storyHeroImageMedia?.alt_text?.trim() || fallbackStoryHeroAlt;
+
   return (
     <>
       <JsonLd
@@ -28,8 +48,8 @@ export default function StoryPage() {
       />
       <section className={styles.hero}>
         <Image
-          src="/images/placeholder-story-hero.jpg"
-          alt="South West coastline near the SS Georgette wreck sites"
+          src={storyHeroImageSrc}
+          alt={storyHeroImageAlt}
           fill
           className={styles.heroImage}
           priority

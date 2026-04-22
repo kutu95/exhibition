@@ -46,6 +46,7 @@ values
     'On 12 January 1876, the steamship Georgette foundered off Redgate Beach on the south-west coast of Western Australia. Seven people drowned. A captain''s reputation was destroyed. This exhibition returns to the site — Calgardup Bay, Redgate Beach, Isaac Rock — one hundred and fifty years later.',
     'text'
   ),
+  ('story_hero_image', '', 'image'),
   ('story_intro', '', 'text'),
   ('visit_hours', '', 'text'),
   ('visit_address', '', 'text'),

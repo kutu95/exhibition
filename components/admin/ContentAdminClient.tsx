@@ -28,7 +28,7 @@ type MediaFilter = "all" | "image" | "video";
 const contentGroups: Array<{ title: string; keys: string[] }> = [
   { title: "Hero", keys: ["hero_headline", "hero_subheadline", "hero_background_image", "hero_video"] },
   { title: "Holding Page", keys: ["holding_page_body"] },
-  { title: "Story", keys: ["story_intro"] },
+  { title: "Story", keys: ["story_intro", "story_hero_image"] },
   { title: "Visit", keys: ["visit_hours", "visit_address", "visit_parking"] },
   {
     title: "Installations",
