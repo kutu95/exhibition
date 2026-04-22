@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
-import { resolveServedMediaPath } from "../../../../../lib/media-storage";
+import { resolveCanonicalMediaPath } from "../../../../../lib/media-storage";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
 
 const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
@@ -41,11 +41,10 @@ export async function POST(request: Request) {
 
   const extension = extensionByMimeType[fileField.type];
   const filename = `${randomUUID().toLowerCase()}${extension}`;
-  const videoDir = await resolveServedMediaPath("video");
-  const targetPath = path.join(videoDir, filename);
+  const targetPath = resolveCanonicalMediaPath(`video/${filename}`);
   const buffer = Buffer.from(await fileField.arrayBuffer());
 
-  await fs.mkdir(videoDir, { recursive: true });
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
   await fs.writeFile(targetPath, buffer);
 
   const urlPath = `/video/${filename}`;

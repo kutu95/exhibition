@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
-import { resolveServedMediaPath } from "../../../../../lib/media-storage";
+import { resolveCanonicalMediaPath } from "../../../../../lib/media-storage";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
 import type { MediaFile } from "../../../../../lib/supabase/types";
 
@@ -77,7 +77,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   const relativeFilePath = media.url_path.replace(/^\/+/, "");
-  const absoluteFilePath = await resolveServedMediaPath(relativeFilePath);
+  const absoluteFilePath = resolveCanonicalMediaPath(relativeFilePath);
 
   await fs.unlink(absoluteFilePath).catch((error: NodeJS.ErrnoException) => {
     if (error.code !== "ENOENT") {
