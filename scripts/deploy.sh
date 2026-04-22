@@ -35,9 +35,10 @@ if [ -d "$APP_ROOT/uploads-backup/video" ]; then
   cp -r "$APP_ROOT/uploads-backup/video/." public/video/
 fi
 
-# Keep standalone copy in sync with canonical public media
-cp -r public/images/. .next/standalone/public/images/
-cp -r public/video/. .next/standalone/public/video/
+# Use symlinks so standalone serves the canonical media directories directly
+rm -rf .next/standalone/public/images .next/standalone/public/video
+ln -s "$APP_ROOT/public/images" .next/standalone/public/images
+ln -s "$APP_ROOT/public/video" .next/standalone/public/video
 
 cp -r .next/static .next/standalone/.next/static
 
