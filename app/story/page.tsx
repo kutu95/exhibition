@@ -22,6 +22,7 @@ const storyContentKeys = ["story_hero_image"] as const;
 
 const fallbackStoryHeroImage = "/images/placeholder-story-hero.jpg";
 const fallbackStoryHeroAlt = "South West coastline near the SS Georgette wreck sites";
+const isManagedLocalMediaPath = (src: string) => src.startsWith("/images/") || src.startsWith("/video/");
 
 export default async function StoryPage() {
   const supabase = await createSupabaseServerClient();
@@ -50,6 +51,7 @@ export default async function StoryPage() {
         <Image
           src={storyHeroImageSrc}
           alt={storyHeroImageAlt}
+          unoptimized={isManagedLocalMediaPath(storyHeroImageSrc)}
           fill
           className={styles.heroImage}
           priority

@@ -91,6 +91,8 @@ const truncateFilename = (filename: string): string => {
   return `${filename.slice(0, 12)}...${filename.slice(-14)}`;
 };
 
+const isManagedLocalMediaPath = (src: string): boolean => src.startsWith("/images/") || src.startsWith("/video/");
+
 function InlineEditableField({
   value,
   placeholder,
@@ -217,7 +219,14 @@ function ContentEditBlock({
         <div className={styles.mediaEditor}>
           {linkedMedia ? (
             <div className={styles.linkedMedia}>
-              <Image src={linkedMedia.url_path} alt={linkedMedia.alt_text ?? ""} width={142} height={80} className={styles.thumb} />
+              <Image
+                src={linkedMedia.url_path}
+                alt={linkedMedia.alt_text ?? ""}
+                width={142}
+                height={80}
+                className={styles.thumb}
+                unoptimized={isManagedLocalMediaPath(linkedMedia.url_path)}
+              />
               <div>
                 <p className={styles.mediaName}>{linkedMedia.filename}</p>
                 <button
@@ -435,7 +444,14 @@ function MediaLibrary({
         {filteredFiles.map((file) => (
           <article className={styles.mediaCard} key={file.id}>
             {file.file_type === "image" ? (
-              <Image src={file.url_path} alt={file.alt_text ?? ""} width={120} height={80} className={styles.libraryThumb} />
+              <Image
+                src={file.url_path}
+                alt={file.alt_text ?? ""}
+                width={120}
+                height={80}
+                className={styles.libraryThumb}
+                unoptimized={isManagedLocalMediaPath(file.url_path)}
+              />
             ) : (
               <video className={styles.libraryThumb} src={file.url_path} muted loop playsInline />
             )}
