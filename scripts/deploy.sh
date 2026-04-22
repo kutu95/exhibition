@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-APP_ROOT="/home/bowskill/georgette-exhibition"
+APP_ROOT="$HOME/apps/exhibition"
 
 echo "→ Pulling latest code"
 git pull

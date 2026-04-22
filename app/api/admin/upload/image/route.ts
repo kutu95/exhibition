@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
+import { resolveServedMediaPath } from "../../../../../lib/media-storage";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
 
   const extension = extensionByMimeType[fileField.type];
   const filename = `${randomUUID().toLowerCase()}${extension}`;
-  const imagesDir = path.join(process.cwd(), "public", "images");
+  const imagesDir = await resolveServedMediaPath("images");
   const targetPath = path.join(imagesDir, filename);
   const buffer = Buffer.from(await fileField.arrayBuffer());
 
