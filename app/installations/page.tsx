@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { EmailSignupForm } from "../../components/EmailSignupForm";
 import { FadeInSection } from "../../components/FadeInSection";
+import { InstallationPageTracker } from "../../components/InstallationPageTracker";
 import { JsonLd } from "../../components/JsonLd";
 import { SectionDivider } from "../../components/SectionDivider";
 import { buildMetadata, siteConfig } from "../../lib/metadata";
@@ -20,6 +21,7 @@ export const metadata: Metadata = buildMetadata({
 export default function InstallationsPage() {
   return (
     <div className="section">
+      <InstallationPageTracker />
       <JsonLd
         data={buildBreadcrumb([
           { name: "Home", path: "/" },

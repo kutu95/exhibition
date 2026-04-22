@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { ReactNode } from "react";
 
 import { SiteFooter } from "../components/SiteFooter";
@@ -60,6 +61,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body>
+        <Script
+          defer
+          data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
+          src={`${process.env.NEXT_PUBLIC_PLAUSIBLE_URL}/js/script.tagged-events.js`}
+          strategy="afterInteractive"
+        />
         {!isAdminRoute ? <SiteNav /> : null}
         <main style={{ minHeight: "100vh", paddingTop: isAdminRoute ? "0" : "78px" }}>{children}</main>
         {!isAdminRoute ? <SiteFooter /> : null}

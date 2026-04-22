@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import { PlausibleEvents, trackEvent } from "@/lib/plausible";
 import styles from "./ShareButtons.module.css";
 
 type ShareButtonsProps = {
@@ -20,15 +21,27 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
   const shareText = description ? `${title} — ${description}` : title;
 
   const handleFacebook = () => {
+    trackEvent(PlausibleEvents.SHARE_CLICK, {
+      method: "facebook",
+      page: url,
+    });
     openPopup(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`);
   };
 
   const handleX = () => {
+    trackEvent(PlausibleEvents.SHARE_CLICK, {
+      method: "twitter",
+      page: url,
+    });
     const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
     openPopup(tweetUrl);
   };
 
   const handleCopy = async () => {
+    trackEvent(PlausibleEvents.SHARE_CLICK, {
+      method: "copy_link",
+      page: url,
+    });
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);

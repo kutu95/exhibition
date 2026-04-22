@@ -2,6 +2,8 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
+import { PlausibleEvents, trackEvent } from "@/lib/plausible";
+
 import styles from "./EmailSignupForm.module.css";
 
 type EmailSignupFormProps = {
@@ -55,6 +57,7 @@ export function EmailSignupForm({
       }
 
       setStatus("success");
+      trackEvent(PlausibleEvents.EMAIL_SIGNUP, { source });
     } catch (submitError) {
       console.error(submitError);
       setError("Something went wrong. Please try again.");

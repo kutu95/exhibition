@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { OrderSuccessContent } from "../../../components/OrderSuccessContent";
+import { OrderSuccessTracker } from "../../../components/OrderSuccessTracker";
 import { buildMetadata } from "../../../lib/metadata";
 
 export const metadata: Metadata = buildMetadata({
@@ -9,5 +10,10 @@ export const metadata: Metadata = buildMetadata({
 });
 
 export default function OrderSuccessPage() {
-  return <OrderSuccessContent />;
+  return (
+    <>
+      <OrderSuccessTracker />
+      <OrderSuccessContent />
+    </>
+  );
 }

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { ReactNode, useMemo, useState } from "react";
 
+import { PlausibleEvents, trackEvent } from "@/lib/plausible";
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { formatAUD } from "../lib/utils/currency";
 import styles from "./ProductDetailClient.module.css";
@@ -36,6 +37,12 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
     try {
       setIsCheckingOut(true);
       setError(null);
+
+      trackEvent(PlausibleEvents.SHOP_CHECKOUT_START, {
+        product: product.title,
+        variant: selectedVariant.variant_label,
+        price: selectedVariant.price_aud,
+      });
 
       const response = await fetch("/api/checkout", {
         method: "POST",

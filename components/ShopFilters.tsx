@@ -1,5 +1,7 @@
 "use client";
 
+import { PlausibleEvents, trackEvent } from "@/lib/plausible";
+
 import styles from "./ShopFilters.module.css";
 
 export type ProductTypeFilter = "all" | "print" | "merchandise";
@@ -37,6 +39,14 @@ export function ShopFilters({
   onTypeChange,
   onLocationChange,
 }: ShopFiltersProps) {
+  const handleFilterClick = (filterType: "product_type" | "location", filterValue: string, onClick: () => void) => {
+    trackEvent(PlausibleEvents.SHOP_FILTER_USED, {
+      filter_type: filterType,
+      filter_value: filterValue,
+    });
+    onClick();
+  };
+
   return (
     <div className={styles.wrap}>
       <div className={styles.group}>
@@ -45,7 +55,7 @@ export function ShopFilters({
             key={option.value}
             type="button"
             className={`${styles.filterBtn} ${typeFilter === option.value ? styles.active : ""}`}
-            onClick={() => onTypeChange(option.value)}
+            onClick={() => handleFilterClick("product_type", option.value, () => onTypeChange(option.value))}
           >
             {option.label}
           </button>
@@ -58,7 +68,7 @@ export function ShopFilters({
             key={option.value}
             type="button"
             className={`${styles.filterBtn} ${locationFilter === option.value ? styles.active : ""}`}
-            onClick={() => onLocationChange(option.value)}
+            onClick={() => handleFilterClick("location", option.value, () => onLocationChange(option.value))}
             disabled={typeFilter === "merchandise" && option.value !== "all"}
           >
             {option.label}
