@@ -2,7 +2,8 @@ module.exports = {
   apps: [
     {
       name: "georgette-exhibition",
-      script: ".next/standalone/server.js",
+      script: "npm",
+      args: "start",
       cwd: __dirname,
       instances: 1,
       autorestart: true,
