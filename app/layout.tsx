@@ -1,32 +1,48 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { ReactNode } from "react";
 
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
+import { buildMetadata, siteConfig } from "../lib/metadata";
 import "./globals.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3007";
+const baseMetadata = buildMetadata({});
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "SS Georgette — Margaret River Region Open Studios 2026",
-    template: "%s | SS Georgette Exhibition",
+  ...baseMetadata,
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
-  description:
-    "A fine art photography exhibition tracing the SS Georgette wreck and coastal memory in Margaret River Region Open Studios, 12-27 September 2026.",
-  openGraph: {
-    type: "website",
-    url: siteUrl,
-    title: "SS Georgette — Margaret River Region Open Studios 2026",
-    description:
-      "A fine art photography exhibition tracing the SS Georgette wreck and coastal memory in Margaret River Region Open Studios, 12-27 September 2026.",
-    images: [{ url: "/images/placeholder-og.jpg" }],
-  },
+  authors: [{ name: "John Bowskill", url: siteConfig.url }],
+  creator: "John Bowskill",
+  publisher: "John Bowskill",
+  category: "Photography Exhibition",
+  keywords: [
+    "photography exhibition",
+    "Margaret River",
+    "Western Australia",
+    "SS Georgette",
+    "shipwreck",
+    "Calgardup Bay",
+    "Redgate Beach",
+    "Isaac Rock",
+    "John Bowskill",
+    "Margaret River Region Open Studios",
+    "limited edition prints",
+    "fine art photography",
+    "1876",
+    "Grace Bussell",
+    "Sam Isaacs",
+  ],
   alternates: {
-    canonical: "/",
+    canonical: siteConfig.url,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a1628",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

@@ -1,130 +1,99 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 
 import { EmailSignupForm } from "../components/EmailSignupForm";
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://exhibition.margies.app";
+import { HeroVideo } from "../components/HeroVideo";
+import { JsonLd } from "../components/JsonLd";
+import { buildMetadata, siteConfig } from "../lib/metadata";
+import { buildExhibitionEvent } from "../lib/structured-data";
+import { createSupabaseServerClient } from "../lib/supabase/server";
+
+const baseMetadata = buildMetadata({
+  description: siteConfig.description,
+  path: "/",
+  ogImage: siteConfig.ogImage.default,
+});
 
 export const metadata: Metadata = {
-  title: "Home",
-  description:
-    "Holding page for the SS Georgette photography exhibition, 12-27 September 2026.",
-  alternates: {
-    canonical: "/",
-  },
+  ...baseMetadata,
   openGraph: {
+    ...baseMetadata.openGraph,
     type: "website",
-    url: `${siteUrl}/`,
-    title: "Where the Georgette Went Down",
-    description:
-      "A photography exhibition · 12-27 September 2026",
-    images: [{ url: "/images/placeholder-og.jpg" }],
   },
 };
 
-export default function HomePage() {
+const contentKeys = [
+  "hero_background_image",
+  "hero_video",
+  "holding_page_body",
+] as const;
+
+const fallbackHoldingBody =
+  "On 1 December 1876, the steamship Georgette foundered off Redgate Beach on the south-west coast of Western Australia. Seven people drowned when the lifeboat capsized. A captain's certificate was suspended. An Aboriginal stockman's courage was written out of the history books. One hundred and fifty years later, John Bowskill returns to the site — to the water, the rock, the sand — with a camera.";
+
+export default async function HomePage() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("site_content")
+    .select("content_key, content_value")
+    .in("content_key", [...contentKeys]);
+
+  const contentMap = new Map((data ?? []).map((row) => [row.content_key, row.content_value]) as Array<[string, string | null]>);
+
+  const heroHeadline = "The Georgette 150th";
+  const heroSubheadline = "A photography exhibition · Calgardup Bay · Redgate Beach · Isaac Rock";
+  const heroVideoSrc = contentMap.get("hero_video")?.trim() || undefined;
+  const heroPosterSrc = contentMap.get("hero_background_image")?.trim() || "/images/holding-bg.jpg";
+  const holdingPageBody = contentMap.get("holding_page_body")?.trim() || fallbackHoldingBody;
+
   return (
-    <section
-      data-holding-page="true"
-      style={{
-        minHeight: "100vh",
-        background: "var(--color-navy)",
-        color: "var(--color-cream)",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <Image
-        src="/images/holding-bg.jpg"
-        alt=""
-        fill
-        priority
-        sizes="100vw"
-        style={{ objectFit: "cover", opacity: 0.55 }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(to bottom, rgba(10,22,40,0.62) 0%, rgba(10,22,40,0.48) 50%, rgba(10,22,40,0.72) 100%)",
-        }}
-      />
+    <>
+      <JsonLd data={buildExhibitionEvent()} />
+      <section data-holding-page="true" style={{ background: "var(--color-navy)", color: "var(--color-cream)" }}>
+        <HeroVideo
+          videoSrc={heroVideoSrc}
+          posterSrc={heroPosterSrc}
+          headline={heroHeadline}
+          subheadline={heroSubheadline}
+          ctaLabel="Keep me informed"
+          ctaHref="#holding-signup"
+        />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          padding: "2rem",
-        }}
-      >
-        <div style={{ maxWidth: "560px", margin: "0 auto", width: "100%" }}>
-          <p
-            style={{
-              color: "var(--color-gold)",
-              textTransform: "uppercase",
-              letterSpacing: "0.2em",
-              fontSize: "0.7rem",
-              margin: 0,
-            }}
-          >
-            Margaret River Region Open Studios
-          </p>
-          <h1
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: "clamp(2.8rem, 7vw, 5.5rem)",
-              fontWeight: 300,
-              color: "var(--color-cream)",
-              lineHeight: 1.05,
-              margin: "0.7rem 0 0",
-            }}
-          >
-            Where the Georgette
-            <br />
-            Went Down
-          </h1>
-          <p style={{ fontSize: "1rem", color: "var(--color-sand)", marginTop: "1rem" }}>
-            A photography exhibition · 12-27 September 2026
-          </p>
-
-          <hr style={{ border: 0, height: "1px", background: "var(--color-sand)", opacity: 0.3, margin: "2rem 0" }} />
-
-          <p style={{ fontSize: "0.95rem", lineHeight: 1.7, color: "var(--color-sand)", opacity: 0.85 }}>
-            On 12 January 1876, the steamship Georgette foundered off Redgate Beach on the south-west
-            coast of Western Australia. Seven people drowned. A captain&apos;s reputation was destroyed.
-            This exhibition returns to the site — Calgardup Bay, Red Gate Beach, Isaac Rock — one hundred
-            and fifty years later.
-          </p>
-
-          <hr style={{ border: 0, height: "1px", background: "var(--color-sand)", opacity: 0.3, margin: "2rem 0" }} />
-
-          <p style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "var(--color-sand)", marginBottom: "0.9rem" }}>
-            Be first to hear about the exhibition, new print releases, and a public talk by author Marcia
-            van Zeller.
-          </p>
-
-          <div className="holding-signup">
-            <EmailSignupForm source="holding_page" buttonLabel="Keep me informed" />
-          </div>
-        </div>
-
-        <p
+        <div
           style={{
-            margin: "2rem 0 0",
-            textAlign: "center",
-            fontSize: "0.7rem",
-            color: "var(--color-sand)",
-            opacity: 0.5,
-            letterSpacing: "0.04em",
+            padding: "2.4rem 2rem 3rem",
           }}
         >
-          © 2026 · exhibition.margies.app
-        </p>
-      </div>
+          <div style={{ maxWidth: "560px", margin: "0 auto", width: "100%" }}>
+            <p style={{ fontSize: "0.95rem", lineHeight: 1.7, color: "var(--color-sand)", opacity: 0.9 }}>
+              {holdingPageBody}
+            </p>
+
+            <hr style={{ border: 0, height: "1px", background: "var(--color-sand)", opacity: 0.3, margin: "2rem 0" }} />
+
+            <p style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "var(--color-sand)", marginBottom: "0.9rem" }}>
+              Be first to hear about new print releases, exhibition details, and a special public talk by Georgette
+              historian and author Marcia van Zeller.
+            </p>
+
+            <div id="holding-signup" className="holding-signup">
+              <EmailSignupForm source="holding_page" buttonLabel="Keep me informed" />
+            </div>
+          </div>
+
+          <p
+            style={{
+              margin: "2rem 0 0",
+              textAlign: "center",
+              fontSize: "0.7rem",
+              color: "var(--color-sand)",
+              opacity: 0.5,
+              letterSpacing: "0.04em",
+            }}
+          >
+            © 2026 · exhibition.margies.app
+          </p>
+        </div>
+      </section>
 
       <style>{`
         body:has([data-holding-page="true"]) > header {
@@ -186,6 +155,6 @@ export default function HomePage() {
           margin: 0;
         }
       `}</style>
-    </section>
+    </>
   );
 }

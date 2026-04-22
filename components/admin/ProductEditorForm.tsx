@@ -227,7 +227,7 @@ export function ProductEditorForm({ mode, initialData }: ProductEditorFormProps)
               <select value={locationTag} onChange={(event) => setLocationTag(event.target.value)}>
                 <option value="">none</option>
                 <option value="Calgardup Bay">Calgardup Bay</option>
-                <option value="Red Gate Beach">Red Gate Beach</option>
+                <option value="Redgate Beach">Redgate Beach</option>
                 <option value="Isaac Rock">Isaac Rock</option>
                 <option value="SS Georgette Wreck">SS Georgette Wreck</option>
               </select>

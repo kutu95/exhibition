@@ -4,7 +4,7 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
 
-const locationOptions = ["Calgardup Bay", "Red Gate Beach", "Isaac Rock", "SS Georgette Wreck"] as const;
+const locationOptions = ["Calgardup Bay", "Redgate Beach", "Isaac Rock", "SS Georgette Wreck"] as const;
 const installationOptions = ["Cubarama", "Captain Godfrey AI", "Drift"] as const;
 
 const variantSchema = z.object({

@@ -100,6 +100,10 @@
   margin: 1.2rem 0 0.6rem;
 }
 
+.shareRow {
+  margin: 0.6rem 0;
+}
+
 .meta {
   color: var(--color-rust);
   font-size: 0.87rem;

@@ -13,7 +13,7 @@ type ShopProductBrowserProps = {
 const locationMap: Record<LocationFilter, string | null> = {
   all: null,
   "calgarta-bay": "Calgardup Bay",
-  "red-gate-beach": "Red Gate Beach",
+  "red-gate-beach": "Redgate Beach",
   "isaac-rock": "Isaac Rock",
   "ss-georgette-wreck": "SS Georgette Wreck",
 };

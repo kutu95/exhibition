@@ -1,0 +1,309 @@
+.page {
+  display: grid;
+  gap: 1rem;
+}
+
+.headerRow {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tabs button {
+  border: 1px solid #c4c4c4;
+  background: #fff;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+}
+
+.activeTab {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
+
+.groupList {
+  display: grid;
+  gap: 1rem;
+}
+
+.groupSection {
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  padding: 1rem;
+}
+
+.groupSection h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.05rem;
+}
+
+.groupGrid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.contentBlock {
+  border: 1px solid #e6e6e6;
+  padding: 0.8rem;
+  background: #fafafa;
+}
+
+.keyLabel {
+  margin: 0 0 0.55rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.78rem;
+  color: #333;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  border: 1px solid #d8d8d8;
+  padding: 0.55rem;
+  font: inherit;
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.saveButton {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  padding: 0.38rem 0.75rem;
+  cursor: pointer;
+}
+
+.saved {
+  color: #1f7a2f;
+  font-size: 0.85rem;
+}
+
+.error {
+  color: #a10000;
+  font-size: 0.85rem;
+}
+
+.note {
+  color: #555;
+  font-size: 0.85rem;
+  margin: 0.45rem 0 0;
+}
+
+.mediaEditor {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.linkedMedia {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.thumb {
+  width: 142px;
+  height: 80px;
+  object-fit: cover;
+  border: 1px solid #d8d8d8;
+}
+
+.videoPreview {
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border: 1px solid #d8d8d8;
+}
+
+.mediaName {
+  margin: 0;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.removeButton {
+  margin-top: 0.35rem;
+  border: 1px solid #b11f1f;
+  color: #b11f1f;
+  background: #fff;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+}
+
+.uploadLabel {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.86rem;
+}
+
+.uploadLabel input[type="file"] {
+  font: inherit;
+}
+
+.progress {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.progressBar {
+  width: 100%;
+}
+
+.emptyState,
+.mutedText {
+  color: #666;
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.mediaTab {
+  display: grid;
+  gap: 1rem;
+}
+
+.mediaTopRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.storageSummary {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filters button {
+  border: 1px solid #c4c4c4;
+  background: #fff;
+  padding: 0.32rem 0.56rem;
+  cursor: pointer;
+}
+
+.activeFilter {
+  border-color: #111 !important;
+  background: #111 !important;
+  color: #fff;
+}
+
+.uploadButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.uploadButtons button {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+}
+
+.mediaGrid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.mediaCard {
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 0.65rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.libraryThumb {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border: 1px solid #ddd;
+}
+
+.metaField {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+}
+
+.inlineButton {
+  border: 1px solid #ddd;
+  background: #fff;
+  text-align: left;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+  min-height: 2rem;
+}
+
+.inlineInput {
+  border: 1px solid #bbb;
+  padding: 0.3rem 0.4rem;
+  font: inherit;
+}
+
+.urlPath {
+  border: 1px dashed #bbb;
+  background: #fafafa;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  padding: 0.3rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deleteButton {
+  border: 1px solid #b11f1f;
+  color: #b11f1f;
+  background: #fff;
+  padding: 0.35rem;
+  cursor: pointer;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+}
+
+.modal {
+  width: min(460px, calc(100% - 2rem));
+  background: #fff;
+  border: 1px solid #bbb;
+  padding: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.modal label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.modal input {
+  border: 1px solid #d8d8d8;
+  padding: 0.45rem;
+  font: inherit;
+}

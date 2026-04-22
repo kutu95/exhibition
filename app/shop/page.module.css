@@ -2,6 +2,11 @@
   margin-bottom: 1.6rem;
 }
 
+.subheading {
+  margin: 0;
+  max-width: 70ch;
+}
+
 .note {
   margin-top: 2rem;
   border-top: 1px solid rgba(10, 22, 40, 0.22);

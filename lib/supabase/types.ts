@@ -1,7 +1,7 @@
 export type ProductType = "print" | "merchandise";
 export type LocationTag =
   | "Calgardup Bay"
-  | "Red Gate Beach"
+  | "Redgate Beach"
   | "Isaac Rock"
   | "SS Georgette Wreck";
 export type InstallationTag = "Cubarama" | "Captain Godfrey AI" | "Drift";
@@ -99,6 +99,31 @@ export type ExhibitionEvent = {
   ticket_url: string | null;
   is_published: boolean;
   created_at: string;
+};
+
+export type MediaFile = {
+  id: string;
+  filename: string;
+  original_filename: string;
+  file_type: "image" | "video";
+  mime_type: string;
+  file_size_bytes: number;
+  url_path: string;
+  width: number | null;
+  height: number | null;
+  duration_seconds: number | null;
+  alt_text: string | null;
+  usage_note: string | null;
+  uploaded_at: string;
+};
+
+export type SiteContent = {
+  id: string;
+  content_key: string;
+  content_value: string | null;
+  content_type: "text" | "html" | "image" | "video";
+  media_file_id: string | null;
+  updated_at: string;
 };
 
 export type ProductWithVariantsAndImages = Product & {

@@ -26,7 +26,7 @@ const typeOptions: Array<{ value: ProductTypeFilter; label: string }> = [
 const locationOptions: Array<{ value: LocationFilter; label: string }> = [
   { value: "all", label: "All Locations" },
   { value: "calgarta-bay", label: "Calgardup Bay" },
-  { value: "red-gate-beach", label: "Red Gate Beach" },
+  { value: "red-gate-beach", label: "Redgate Beach" },
   { value: "isaac-rock", label: "Isaac Rock" },
   { value: "ss-georgette-wreck", label: "SS Georgette" },
 ];

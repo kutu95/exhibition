@@ -11,16 +11,19 @@ export function OrderSuccessContent() {
 
   return (
     <section className={`section container-narrow ${styles.wrap}`}>
-      <p className="eyebrow">Order complete</p>
       <h1 className="heading-section">Thank you.</h1>
       <p className={styles.subheading}>Your order has been received.</p>
       <p>
-        You&apos;ll receive a confirmation email shortly. Prints are made to order — please allow 2–3
-        weeks for production and despatch.
+        You&apos;ll receive a confirmation email shortly with your order details.
+      </p>
+      <p>
+        All prints are made to order on archival paper and signed and numbered by John Bowskill. Please allow 2–3
+        weeks for production and despatch. If you have any questions about your order, contact us at hello@margies.app
+        and include your order number.
       </p>
       {sessionId ? <p className={styles.session}>Checkout reference: {sessionId}</p> : null}
       <Link href="/shop" className={styles.link}>
-        Return to shop →
+        Back to the photographs →
       </Link>
     </section>
   );

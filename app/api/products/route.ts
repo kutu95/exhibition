@@ -21,7 +21,7 @@ const productsQuerySchema = z.object({
 
 const locationSlugMap: Record<string, LocationTag> = {
   "calgarta-bay": "Calgardup Bay",
-  "red-gate-beach": "Red Gate Beach",
+  "red-gate-beach": "Redgate Beach",
   "isaac-rock": "Isaac Rock",
   "ss-georgette-wreck": "SS Georgette Wreck",
 };

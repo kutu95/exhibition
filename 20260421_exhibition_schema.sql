@@ -34,7 +34,7 @@ create table exhibition.products (
   product_type text not null check (product_type in ('print', 'merchandise')),
   location_tag text check (
     location_tag is null
-    or location_tag in ('Calgardup Bay', 'Red Gate Beach', 'Isaac Rock', 'SS Georgette Wreck')
+    or location_tag in ('Calgardup Bay', 'Redgate Beach', 'Isaac Rock', 'SS Georgette Wreck')
   ),
   installation_tag text check (
     installation_tag is null
@@ -276,7 +276,7 @@ using (true);
 insert into exhibition.site_content (content_key, content_value)
 values
   ('location_calgarta_bay', 'Placeholder description for Calgardup Bay.'),
-  ('location_red_gate_beach', 'Placeholder description for Red Gate Beach.'),
+  ('location_redgate_beach', 'Placeholder description for Redgate Beach.'),
   ('location_isaac_rock', 'Placeholder description for Isaac Rock.'),
   ('location_ss_georgette', 'Placeholder description for SS Georgette Wreck.'),
   ('installation_cubarama', 'Placeholder description for Cubarama installation.'),

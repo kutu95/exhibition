@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { formatAUD } from "../lib/utils/currency";
@@ -9,9 +9,10 @@ import styles from "./ProductDetailClient.module.css";
 
 type ProductDetailClientProps = {
   product: ProductWithVariantsAndImages;
+  shareButtons?: ReactNode;
 };
 
-export function ProductDetailClient({ product }: ProductDetailClientProps) {
+export function ProductDetailClient({ product, shareButtons }: ProductDetailClientProps) {
   const [activeImage, setActiveImage] = useState(product.product_images[0]?.image_url);
   const [selectedVariantId, setSelectedVariantId] = useState(product.product_variants[0]?.id ?? "");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -130,6 +131,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         {error ? <p className={styles.error}>{error}</p> : null}
 
         {product.description ? <p className={styles.description}>{product.description}</p> : null}
+        {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
         <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
       </aside>
     </section>

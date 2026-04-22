@@ -1,3 +1,12 @@
+.pageIntro {
+  margin-bottom: 2rem;
+}
+
+.pageIntro p {
+  margin: 0;
+  max-width: 72ch;
+}
+
 .sectionBlock {
   display: grid;
   gap: 1.2rem;
@@ -36,7 +45,7 @@
 
 .note {
   font-size: 0.92rem;
-  color: #3c3c3c;
+  color: var(--color-rust);
 }
 
 .closing {
@@ -51,6 +60,38 @@
 .closing a {
   border-bottom: 1px solid currentColor;
   padding-bottom: 2px;
+}
+
+.talkSection {
+  margin-top: 3rem;
+  padding: 4rem 0;
+  background: var(--color-navy);
+  color: var(--color-cream);
+}
+
+.talkInner p {
+  max-width: 80ch;
+  line-height: 1.8;
+}
+
+.talkSubheading {
+  margin: -0.4rem 0 1.2rem;
+  color: var(--color-sand);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+}
+
+.dateLine {
+  color: var(--color-gold);
+}
+
+.signupLabel {
+  margin-top: 1.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.signupWrap {
+  max-width: 560px;
 }
 
 @media (min-width: 930px) {

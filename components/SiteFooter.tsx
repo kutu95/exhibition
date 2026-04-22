@@ -39,7 +39,7 @@ export function SiteFooter() {
       </div>
 
       <div className={`container ${styles.bottom}`}>
-        <p>Photographs by [Photographer Name] · Built with care in Western Australia</p>
+        <p>Photographs by John Bowskill · Margaret River Region Open Studios 2026</p>
       </div>
     </footer>
   );
