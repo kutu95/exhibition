@@ -6,6 +6,7 @@ import { ReactNode } from "react";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
 import { buildMetadata, siteConfig } from "../lib/metadata";
+import { createSupabaseServerClient } from "../lib/supabase/server";
 import "./globals.css";
 
 const baseMetadata = buildMetadata({});
@@ -50,6 +51,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdminRoute = pathname.startsWith("/admin");
 
+  let exhibitionTitle = siteConfig.name;
+  if (!isAdminRoute) {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+      .from("site_content")
+      .select("content_value")
+      .eq("content_key", "hero_headline")
+      .maybeSingle();
+    const headline = data?.content_value?.trim();
+    if (headline) {
+      exhibitionTitle = headline;
+    }
+  }
+
   return (
     <html lang="en">
       <head>
@@ -67,9 +82,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           src={`${process.env.NEXT_PUBLIC_PLAUSIBLE_URL}/js/script.tagged-events.js`}
           strategy="afterInteractive"
         />
-        {!isAdminRoute ? <SiteNav /> : null}
+        {!isAdminRoute ? <SiteNav exhibitionTitle={exhibitionTitle} /> : null}
         <main style={{ minHeight: "100vh", paddingTop: isAdminRoute ? "0" : "78px" }}>{children}</main>
-        {!isAdminRoute ? <SiteFooter /> : null}
+        {!isAdminRoute ? <SiteFooter exhibitionTitle={exhibitionTitle} /> : null}
       </body>
     </html>
   );

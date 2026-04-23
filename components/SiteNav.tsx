@@ -13,7 +13,11 @@ const navLinks = [
   { href: "/shop", label: "Shop" },
 ];
 
-export function SiteNav() {
+type SiteNavProps = {
+  exhibitionTitle: string;
+};
+
+export function SiteNav({ exhibitionTitle }: SiteNavProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -43,7 +47,7 @@ export function SiteNav() {
     <header className={`${styles.navRoot} ${isScrolled ? styles.scrolled : ""}`}>
       <nav className={`container ${styles.nav}`} aria-label="Primary">
         <Link className={styles.logo} href="/">
-          SS Georgette Exhibition
+          {exhibitionTitle}
         </Link>
 
         <ul className={styles.desktopLinks}>

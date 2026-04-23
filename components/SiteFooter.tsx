@@ -11,12 +11,16 @@ const links = [
   { href: "/shop", label: "Shop" },
 ];
 
-export function SiteFooter() {
+type SiteFooterProps = {
+  exhibitionTitle: string;
+};
+
+export function SiteFooter({ exhibitionTitle }: SiteFooterProps) {
   return (
     <footer className={styles.footer}>
       <div className={`container ${styles.top}`}>
         <div>
-          <p className={styles.title}>SS Georgette Exhibition</p>
+          <p className={styles.title}>{exhibitionTitle}</p>
           <p className={styles.meta}>12-27 September 2026</p>
           <p className={styles.meta}>Margaret River Region Open Studios</p>
         </div>
