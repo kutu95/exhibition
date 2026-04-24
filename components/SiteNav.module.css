@@ -4,11 +4,15 @@
   z-index: 50;
   width: 100%;
   color: var(--color-cream);
-  transition: background-color 0.28s ease;
+  background: rgba(10, 22, 40, 0.82);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1px 0 rgba(245, 240, 232, 0.08);
+  transition: background-color 0.28s ease, box-shadow 0.28s ease;
 }
 
 .scrolled {
   background: var(--color-navy);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
 }
 
 .nav {
