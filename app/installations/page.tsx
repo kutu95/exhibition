@@ -7,6 +7,8 @@ import { InstallationPageTracker } from "../../components/InstallationPageTracke
 import { JsonLd } from "../../components/JsonLd";
 import { SectionDivider } from "../../components/SectionDivider";
 import { buildMetadata, siteConfig } from "../../lib/metadata";
+import { createSupabaseServerClient } from "../../lib/supabase/server";
+import { getInstallationBody } from "../../lib/utils/installation-content";
 import { buildBreadcrumb } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
@@ -18,7 +20,30 @@ export const metadata: Metadata = buildMetadata({
   ogImage: siteConfig.ogImage.installations,
 });
 
-export default function InstallationsPage() {
+const installationContentKeys = [
+  "installation_cubarama",
+  "installation_captain_godfrey_ai",
+  "installation_drift",
+] as const;
+
+export default async function InstallationsPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("site_content")
+    .select("content_key, content_value")
+    .in("content_key", [...installationContentKeys]);
+
+  const byKey = new Map(
+    (data ?? []).map((row) => [row.content_key, row.content_value] as [string, string | null]),
+  );
+
+  const cubarama = getInstallationBody(byKey.get("installation_cubarama"), "cubarama");
+  const captainGodfrey = getInstallationBody(
+    byKey.get("installation_captain_godfrey_ai"),
+    "captain_godfrey",
+  );
+  const drift = getInstallationBody(byKey.get("installation_drift"), "drift");
+
   return (
     <div className="section">
       <InstallationPageTracker />
@@ -51,17 +76,9 @@ export default function InstallationsPage() {
           <div className={styles.content}>
             <p className="eyebrow">360° Immersive Video</p>
             <h2>Cubarama</h2>
-            <p>
-              You enter a room and the room becomes the coast. Four walls of projected video — the water, the rock,
-              the sky at Calgardup Bay, Redgate Beach, Isaac Rock — surround you completely. There is no frame.
-              There is no edge. The horizon is everywhere.
-            </p>
-            <p>
-              Cubarama is a four-wall 360° video installation. The footage was shot on location at the exhibition
-              sites. Standing at the centre of the room, you are standing at the centre of the place where the
-              Georgette went down. The sound is the sound of the coast — wind, water, the particular silence of remote
-              beaches in the early morning. You can stay as long as you like.
-            </p>
+            {cubarama.paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
           </div>
         </FadeInSection>
 
@@ -80,29 +97,11 @@ export default function InstallationsPage() {
           <div className={styles.content}>
             <p className="eyebrow">Interactive AI · MetaHuman</p>
             <h2>Captain Godfrey</h2>
-            <p>
-              Captain John Godfrey will speak with you. He is standing in the weeks following the Busselton marine
-              inquiry of December 1876. His certificate of competency has been suspended for eighteen months. A
-              manslaughter charge is before the courts. Fremantle, where he lives, is a port town with a long memory.
-            </p>
-            <p>
-              Ask him about the night the Georgette went down. Ask him about the lifeboat. Ask him about William
-              Dundee, his first officer, on whose incompetence he places significant blame. Ask him about Grace
-              Bussell and Sam Isaacs. He will answer every question — in his own way, in his own register, with the
-              pride and guardedness of a man who believes absolutely that he has been made a scapegoat.
-            </p>
-            <p>
-              Captain Godfrey AI is a real-time interactive digital human — a MetaHuman figure animated live by
-              artificial intelligence. His voice was recorded and cloned from a human performer. His character is
-              built from the marine inquiry transcript, from Marcia van Zeller&apos;s historical research in Cruel
-              Capes, and from the firsthand passenger account of George Leake. He is not playing back recordings.
-              Every conversation is different.
-            </p>
-            <p className={styles.note}>
-              Voice and likeness provided by a human performer. Character informed by the Busselton marine inquiry
-              transcript (December 1876), Cruel Capes by Marcia van Zeller (Curtin University, 2014), and the letters
-              of George Leake (State Records Office of Western Australia).
-            </p>
+            {captainGodfrey.paragraphs.map((p, i) => (
+              <p key={i} className={i === captainGodfrey.noteParagraphIndex ? styles.note : undefined}>
+                {p}
+              </p>
+            ))}
           </div>
         </FadeInSection>
 
@@ -121,16 +120,9 @@ export default function InstallationsPage() {
           <div className={styles.content}>
             <p className="eyebrow">Kinect · Interactive</p>
             <h2>Drift</h2>
-            <p>
-              The photographs are on the screen. You move, and they move with you. Drift is a Kinect-driven interactive
-              display — your body becomes the interface. Step left and the images follow. Step closer and they open up.
-              Stand still and they settle.
-            </p>
-            <p>
-              The experience is not about navigation. It is about the relationship between a body and an image — the
-              way looking at a photograph is never entirely passive. In Drift, that relationship becomes physical. The
-              photographs are John Bowskill&apos;s images of the Georgette sites. The movement is yours.
-            </p>
+            {drift.paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
           </div>
         </FadeInSection>
       </div>
@@ -150,9 +142,9 @@ export default function InstallationsPage() {
             <p>
               Her work excavated the contradictions in the historical record: the eyewitness accounts that contradicted
               the press; the contested role of Sam Isaacs; the captain who was found guilty and never accepted the
-              verdict. She will give a public talk during the first week of the exhibition — drawing on her research,
-              her novel, and what fifteen years of living with this story has taught her about the gap between history
-              and truth.
+              verdict. She will give a public talk during the first week of the exhibition — drawing on her research, her
+              novel, and what fifteen years of living with this story has taught her about the gap between history and
+              truth.
             </p>
             <p className={styles.dateLine}>Date and time to be confirmed · Free entry · Venue as exhibition</p>
             <p className={styles.signupLabel}>Notify me when the talk date is confirmed</p>
