@@ -32,7 +32,14 @@ const contentGroups: Array<{ title: string; keys: string[] }> = [
   { title: "Visit", keys: ["visit_hours", "visit_address", "visit_parking"] },
   {
     title: "Installations",
-    keys: ["installation_cubarama", "installation_captain_godfrey_ai", "installation_drift"],
+    keys: [
+      "installation_cubarama",
+      "installation_cubarama_image",
+      "installation_captain_godfrey_ai",
+      "installation_captain_godfrey_image",
+      "installation_drift",
+      "installation_drift_image",
+    ],
   },
   {
     title: "Locations",

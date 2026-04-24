@@ -9,6 +9,11 @@ import { SectionDivider } from "../../components/SectionDivider";
 import { buildMetadata, siteConfig } from "../../lib/metadata";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getInstallationBody } from "../../lib/utils/installation-content";
+import {
+  isManagedLocalMediaPath,
+  resolveContentImage,
+  type SiteContentImageRow,
+} from "../../lib/utils/site-content-image";
 import { buildBreadcrumb } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
@@ -26,23 +31,61 @@ const installationContentKeys = [
   "installation_drift",
 ] as const;
 
+const installationImageKeys = [
+  "installation_cubarama_image",
+  "installation_captain_godfrey_image",
+  "installation_drift_image",
+] as const;
+
+const installationPageContentKeys = [...installationContentKeys, ...installationImageKeys] as const;
+
+const installationImageFallbacks = {
+  installation_cubarama_image: {
+    src: "/images/placeholder-installation-cubarama.jpg",
+    alt: "Cubarama installation concept",
+  },
+  installation_captain_godfrey_image: {
+    src: "/images/placeholder-installation-godfrey.jpg",
+    alt: "Captain Godfrey AI installation concept",
+  },
+  installation_drift_image: {
+    src: "/images/placeholder-installation-drift.jpg",
+    alt: "Drift Kinect installation concept",
+  },
+} as const;
+
 export default async function InstallationsPage() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("site_content")
-    .select("content_key, content_value")
-    .in("content_key", [...installationContentKeys]);
+    .select("content_key, content_value, media_files(alt_text, url_path)")
+    .in("content_key", [...installationPageContentKeys]);
 
-  const byKey = new Map(
-    (data ?? []).map((row) => [row.content_key, row.content_value] as [string, string | null]),
-  );
+  const rowByKey = new Map((data ?? []).map((row) => [row.content_key, row]));
+  const textValue = (key: (typeof installationContentKeys)[number]) => {
+    const row = rowByKey.get(key) as { content_value: string | null } | undefined;
+    return row?.content_value ?? null;
+  };
 
-  const cubarama = getInstallationBody(byKey.get("installation_cubarama"), "cubarama");
+  const cubarama = getInstallationBody(textValue("installation_cubarama"), "cubarama");
   const captainGodfrey = getInstallationBody(
-    byKey.get("installation_captain_godfrey_ai"),
+    textValue("installation_captain_godfrey_ai"),
     "captain_godfrey",
   );
-  const drift = getInstallationBody(byKey.get("installation_drift"), "drift");
+  const drift = getInstallationBody(textValue("installation_drift"), "drift");
+
+  const cubaramaImage = resolveContentImage(
+    rowByKey.get("installation_cubarama_image") as SiteContentImageRow | undefined,
+    installationImageFallbacks.installation_cubarama_image,
+  );
+  const captainGodfreyImage = resolveContentImage(
+    rowByKey.get("installation_captain_godfrey_image") as SiteContentImageRow | undefined,
+    installationImageFallbacks.installation_captain_godfrey_image,
+  );
+  const driftImage = resolveContentImage(
+    rowByKey.get("installation_drift_image") as SiteContentImageRow | undefined,
+    installationImageFallbacks.installation_drift_image,
+  );
 
   return (
     <div className="section">
@@ -66,11 +109,12 @@ export default async function InstallationsPage() {
         <FadeInSection className={styles.sectionBlock} id="cubarama">
           <div className={styles.imageWrap}>
             <Image
-              src="/images/placeholder-installation-cubarama.jpg"
-              alt="Cubarama installation concept"
+              src={cubaramaImage.src}
+              alt={cubaramaImage.alt}
               fill
               className={styles.image}
               sizes="(max-width: 929px) 100vw, 50vw"
+              unoptimized={isManagedLocalMediaPath(cubaramaImage.src)}
             />
           </div>
           <div className={styles.content}>
@@ -87,11 +131,12 @@ export default async function InstallationsPage() {
         <FadeInSection className={`${styles.sectionBlock} ${styles.reverse}`} id="captain-godfrey">
           <div className={styles.imageWrap}>
             <Image
-              src="/images/placeholder-installation-godfrey.jpg"
-              alt="Captain Godfrey AI installation concept"
+              src={captainGodfreyImage.src}
+              alt={captainGodfreyImage.alt}
               fill
               className={styles.image}
               sizes="(max-width: 929px) 100vw, 50vw"
+              unoptimized={isManagedLocalMediaPath(captainGodfreyImage.src)}
             />
           </div>
           <div className={styles.content}>
@@ -110,11 +155,12 @@ export default async function InstallationsPage() {
         <FadeInSection className={styles.sectionBlock} id="drift">
           <div className={styles.imageWrap}>
             <Image
-              src="/images/placeholder-installation-drift.jpg"
-              alt="Drift Kinect installation concept"
+              src={driftImage.src}
+              alt={driftImage.alt}
               fill
               className={styles.image}
               sizes="(max-width: 929px) 100vw, 50vw"
+              unoptimized={isManagedLocalMediaPath(driftImage.src)}
             />
           </div>
           <div className={styles.content}>
