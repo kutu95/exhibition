@@ -45,6 +45,58 @@
   margin: 0 0 1.6rem;
 }
 
+p.subheadline {
+  max-width: 58ch;
+  color: var(--color-sand);
+  margin: 0 0 0.9rem;
+}
+
+.explore {
+  max-width: 64ch;
+  margin: 0 0 1.5rem;
+  font-size: clamp(0.8rem, 1.4vw, 0.95rem);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+
+.explorePrefix {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0;
+  row-gap: 0.4rem;
+  color: var(--color-cream);
+}
+
+.exploreLead {
+  color: var(--color-sand);
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.exploreGroup {
+  white-space: nowrap;
+}
+
+.exploreLink {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(245, 240, 232, 0.35);
+  padding-bottom: 0.1rem;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.exploreLink:hover {
+  color: var(--color-cream);
+  border-bottom-color: var(--color-cream);
+}
+
+.exploreSep {
+  color: var(--color-sand);
+  user-select: none;
+}
+
 .cta {
   color: var(--color-cream);
 }

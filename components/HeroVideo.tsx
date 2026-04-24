@@ -2,6 +2,13 @@ import Link from "next/link";
 
 import styles from "./HeroVideo.module.css";
 
+const exploreLinks = [
+  { href: "/story", label: "Story" },
+  { href: "/installations", label: "Installations" },
+  { href: "/shop", label: "Photographs" },
+  { href: "/visit", label: "Visit" },
+] as const;
+
 type HeroVideoProps = {
   videoSrc?: string;
   posterSrc?: string;
@@ -41,7 +48,25 @@ export function HeroVideo({
       <div className={`container ${styles.content}`}>
         <p className="eyebrow">MARGARET RIVER REGION OPEN STUDIOS · 12–27 SEPTEMBER 2026</p>
         <h1 className="heading-display">{headline}</h1>
-        <p>{subheadline}</p>
+        <p className={styles.subheadline}>{subheadline}</p>
+        <nav className={styles.explore} aria-label="Explore the site">
+          <span className={styles.explorePrefix}>
+            <span className={styles.exploreLead}>Explore: </span>
+            {exploreLinks.map((link, index) => (
+              <span key={link.href} className={styles.exploreGroup}>
+                {index > 0 ? (
+                  <span className={styles.exploreSep} aria-hidden>
+                    {" "}
+                    ·{" "}
+                  </span>
+                ) : null}
+                <Link href={link.href} className={styles.exploreLink}>
+                  {link.label}
+                </Link>
+              </span>
+            ))}
+          </span>
+        </nav>
         <Link href={ctaHref} className={`button-outline ${styles.cta}`}>
           {ctaLabel}
         </Link>
