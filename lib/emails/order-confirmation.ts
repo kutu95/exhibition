@@ -63,7 +63,7 @@ export const sendOrderConfirmationEmail = async ({
         <p style="font-size: 16px; margin: 14px 0 0;"><strong>Total:</strong> ${formatAUD(order.total_aud)}</p>
       </div>
 
-      <p>All prints are made to order on archival paper and signed and numbered by John Bowskill. Please allow 2–3 weeks from your order date for production and despatch. You will receive a second email when your order has been shipped.</p>
+      <p>All prints are made to order on archival paper and signed and numbered by John Bowskill. Please allow 3-4 business days for production and despatch. You will receive a second email when your order has been shipped.</p>
       <p>If you have any questions, reply to this email or contact us at <a href="mailto:hello@margies.app">hello@margies.app</a> with your order number.</p>
       <p>The Georgette 150th is showing at Margaret River Region Open Studios from 12 to 27 September 2026. If you are visiting in person, prints purchased online can be collected at the exhibition — contact us to arrange this.</p>
       <p style="margin-top: 24px; color: #4b5563;">The Georgette 150th · John Bowskill · exhibition.margies.app</p>

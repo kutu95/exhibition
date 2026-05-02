@@ -13,6 +13,18 @@
   color: #4b4b4b;
 }
 
+.summary {
+  margin: 2rem auto;
+  max-width: 34rem;
+  border: 1px solid var(--color-border);
+  padding: 1.25rem;
+  text-align: left;
+}
+
+.summary p {
+  margin: 0.35rem 0;
+}
+
 .link {
   display: inline-block;
   margin-top: 1rem;

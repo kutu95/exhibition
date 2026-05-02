@@ -38,6 +38,12 @@ export type ProductVariant = {
   stock_quantity: number | null;
   is_active: boolean;
   created_at: string;
+  width_mm: number | null;
+  height_mm: number | null;
+  border_mm: number;
+  paper_type: string | null;
+  print_type: "fine_art" | "photo" | "canvas" | "metal" | null;
+  master_filename: string | null;
 };
 
 export type ProductImage = {
@@ -73,6 +79,15 @@ export type OrderItem = {
   quantity: number;
   unit_price_aud: number;
   edition_number_assigned: number | null;
+  fulfilment_status: "awaiting_file" | "file_ready" | "submitted_to_lab" | "shipped" | "delivered";
+  cloud_file_url: string | null;
+  cloud_folder_path: string | null;
+  pixel_perfect_order_ref: string | null;
+  tracking_number: string | null;
+  fulfilment_notes: string | null;
+  file_ready_at: string | null;
+  submitted_to_lab_at: string | null;
+  shipped_at: string | null;
 };
 
 export type EmailSubscriber = {

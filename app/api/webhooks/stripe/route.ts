@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+import { assignEditionsToOrder } from "../../../../lib/edition-assignment";
 import { sendOrderConfirmationEmail } from "../../../../lib/emails/order-confirmation";
 import { stripe } from "../../../../lib/stripe";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
@@ -26,6 +27,14 @@ type VariantForOrder = {
         title: string;
       }>
     | null;
+};
+
+type CreatedOrderItem = {
+  id: string;
+  variant_id: string;
+  quantity: number;
+  unit_price_aud: number;
+  edition_number_assigned: number | null;
 };
 
 const extractProductTitle = (products: VariantForOrder["products"]): string | null => {
@@ -63,11 +72,44 @@ const parseCheckoutMetadata = (metadataValue: string | undefined): CheckoutMetad
   }
 };
 
+const getCheckoutMetadataItems = (metadata: Stripe.Metadata | null): CheckoutMetadataItem[] => {
+  const multiItemMetadata = parseCheckoutMetadata(metadata?.variant_ids);
+  if (multiItemMetadata.length > 0) {
+    return multiItemMetadata;
+  }
+
+  const quantity = Number(metadata?.quantity);
+  if (
+    metadata?.variant_id &&
+    Number.isInteger(quantity) &&
+    quantity > 0
+  ) {
+    return [{ variant_id: metadata.variant_id, quantity }];
+  }
+
+  return [];
+};
+
+const getFlattenedShippingAddress = (session: Stripe.Checkout.Session) => {
+  const address = session.customer_details?.address;
+
+  if (!address) {
+    return null;
+  }
+
+  return {
+    street: address.line1 ?? "",
+    suburb: address.city ?? "",
+    state: address.state ?? "",
+    postcode: address.postal_code ?? "",
+  };
+};
+
 const upsertPaidOrderFromSession = async (
   session: Stripe.Checkout.Session,
   lineItems: Stripe.LineItem[],
 ) => {
-  const metadataItems = parseCheckoutMetadata(session.metadata?.variant_ids);
+  const metadataItems = getCheckoutMetadataItems(session.metadata);
   const variantIds = [...new Set(metadataItems.map((item) => item.variant_id))];
 
   if (variantIds.length === 0) {
@@ -96,15 +138,6 @@ const upsertPaidOrderFromSession = async (
     throw new Error("Could not resolve all variants for order creation.");
   }
 
-  const shippingAddress = session.customer_details
-    ? {
-        name: session.customer_details.name,
-        email: session.customer_details.email,
-        phone: session.customer_details.phone,
-        address: session.customer_details.address,
-      }
-    : null;
-
   const paymentIntentId =
     typeof session.payment_intent === "string" ? session.payment_intent : null;
 
@@ -124,9 +157,9 @@ const upsertPaidOrderFromSession = async (
     status: "paid" as const,
     customer_email: session.customer_details?.email ?? session.customer_email ?? "",
     customer_name: session.customer_details?.name ?? null,
-    shipping_address: shippingAddress,
+    shipping_address: getFlattenedShippingAddress(session),
     subtotal_aud: session.amount_subtotal ?? 0,
-    shipping_aud: session.total_details?.amount_shipping ?? 0,
+    shipping_aud: 0,
     total_aud: session.amount_total ?? 0,
     notes: null,
   };
@@ -153,18 +186,32 @@ const upsertPaidOrderFromSession = async (
       quantity: item.quantity,
       unit_price_aud: variant.price_aud,
       edition_number_assigned: null as number | null,
+      fulfilment_status: "awaiting_file" as const,
     };
   });
 
-  const { error: orderItemsError } = await supabaseAdmin
+  const { data: createdItems, error: orderItemsError } = await supabaseAdmin
     .from("order_items")
-    .insert(orderItemsInsert);
+    .insert(orderItemsInsert)
+    .select("id,variant_id,quantity,unit_price_aud,edition_number_assigned");
 
   if (orderItemsError) {
     throw orderItemsError;
   }
 
-  const emailItems = metadataItems.map((item) => {
+  await assignEditionsToOrder(createdOrder.id);
+
+  const itemRows = ((createdItems ?? []) as CreatedOrderItem[]);
+  const { data: assignedItems, error: assignedItemsError } = await supabaseAdmin
+    .from("order_items")
+    .select("id,variant_id,quantity,unit_price_aud,edition_number_assigned")
+    .in("id", itemRows.length ? itemRows.map((item) => item.id) : ["00000000-0000-0000-0000-000000000000"]);
+
+  if (assignedItemsError) {
+    throw assignedItemsError;
+  }
+
+  const emailItems = ((assignedItems ?? []) as CreatedOrderItem[]).map((item) => {
     const variant = variantMap.get(item.variant_id);
     const productTitle = variant ? extractProductTitle(variant.products) : null;
     if (!variant || !productTitle) {
@@ -175,8 +222,8 @@ const upsertPaidOrderFromSession = async (
       title: productTitle,
       variant_label: variant.variant_label,
       quantity: item.quantity,
-      unit_price_aud: variant.price_aud,
-      edition_number_assigned: null as number | null,
+      unit_price_aud: item.unit_price_aud,
+      edition_number_assigned: item.edition_number_assigned,
       edition_size: variant.edition_size,
     };
   });
@@ -231,7 +278,7 @@ export async function POST(request: Request) {
           .from("orders")
           .update({ status: "cancelled" })
           .eq("stripe_payment_intent_id", paymentIntent.id)
-          .eq("status", "pending");
+          .in("status", ["pending", "paid"]);
 
         if (error) {
           console.error("Failed to mark pending order as cancelled", error);

@@ -357,4 +357,127 @@ values (
   true
 );
 
+-- 1. Variant templates table — defines the standard print offerings applied to every new product
+
+CREATE TABLE IF NOT EXISTS exhibition.variant_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  variant_label text NOT NULL,
+  width_mm integer NOT NULL,
+  height_mm integer NOT NULL,
+  border_mm integer NOT NULL DEFAULT 0,
+  paper_type text NOT NULL,
+  print_type text NOT NULL CHECK (print_type IN ('fine_art', 'photo', 'canvas', 'metal')),
+  base_price_aud integer NOT NULL CHECK (base_price_aud >= 0),
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO exhibition.variant_templates
+  (variant_label, width_mm, height_mm, border_mm, paper_type, print_type, base_price_aud, sort_order)
+VALUES
+  ('A2 / Hahnemühle Photo Rag', 420, 594, 0, 'Hahnemühle Photo Rag 308gsm', 'fine_art', 45000, 1),
+  ('A1 / Hahnemühle Photo Rag', 594, 841, 0, 'Hahnemühle Photo Rag 308gsm', 'fine_art', 65000, 2);
+
+-- 2. Add structured print dimension columns to product_variants
+
+ALTER TABLE exhibition.product_variants
+  ADD COLUMN IF NOT EXISTS width_mm integer,
+  ADD COLUMN IF NOT EXISTS height_mm integer,
+  ADD COLUMN IF NOT EXISTS border_mm integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS paper_type text,
+  ADD COLUMN IF NOT EXISTS print_type text CHECK (
+    print_type IS NULL OR print_type IN ('fine_art', 'photo', 'canvas', 'metal')
+  ),
+  ADD COLUMN IF NOT EXISTS master_filename text;
+
+-- 3. Add print fulfilment tracking columns to order_items
+
+ALTER TABLE exhibition.order_items
+  ADD COLUMN IF NOT EXISTS fulfilment_status text NOT NULL DEFAULT 'awaiting_file' CHECK (
+    fulfilment_status IN (
+      'awaiting_file',
+      'file_ready',
+      'submitted_to_lab',
+      'shipped',
+      'delivered'
+    )
+  ),
+  ADD COLUMN IF NOT EXISTS cloud_file_url text,
+  ADD COLUMN IF NOT EXISTS cloud_folder_path text,
+  ADD COLUMN IF NOT EXISTS pixel_perfect_order_ref text,
+  ADD COLUMN IF NOT EXISTS tracking_number text,
+  ADD COLUMN IF NOT EXISTS fulfilment_notes text,
+  ADD COLUMN IF NOT EXISTS file_ready_at timestamptz,
+  ADD COLUMN IF NOT EXISTS submitted_to_lab_at timestamptz,
+  ADD COLUMN IF NOT EXISTS shipped_at timestamptz;
+
+-- 4. Fulfilment event log
+
+CREATE TABLE IF NOT EXISTS exhibition.fulfilment_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_item_id uuid NOT NULL REFERENCES exhibition.order_items(id) ON DELETE CASCADE,
+  event_type text NOT NULL,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fulfilment_events_order_item
+  ON exhibition.fulfilment_events(order_item_id);
+
+ALTER TABLE exhibition.fulfilment_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY fulfilment_events_service_role_all
+  ON exhibition.fulfilment_events
+  FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- 5. Edition number locking — prevents two simultaneous orders grabbing the same edition number
+
+CREATE TABLE IF NOT EXISTS exhibition.edition_locks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  variant_id uuid NOT NULL REFERENCES exhibition.product_variants(id) ON DELETE CASCADE,
+  edition_number integer NOT NULL,
+  order_item_id uuid REFERENCES exhibition.order_items(id) ON DELETE SET NULL,
+  locked_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (variant_id, edition_number)
+);
+
+ALTER TABLE exhibition.edition_locks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY edition_locks_service_role_all
+  ON exhibition.edition_locks
+  FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- 6. Update existing seed variant data with structured fields
+
+UPDATE exhibition.product_variants pv
+SET
+  width_mm        = CASE WHEN pv.variant_label = 'A2 / Hahnemuhle Photo Rag' THEN 420
+                         WHEN pv.variant_label = 'A1 / Hahnemuhle Photo Rag' THEN 594 END,
+  height_mm       = CASE WHEN pv.variant_label = 'A2 / Hahnemuhle Photo Rag' THEN 594
+                         WHEN pv.variant_label = 'A1 / Hahnemuhle Photo Rag' THEN 841 END,
+  paper_type      = 'Hahnemühle Photo Rag 308gsm',
+  print_type      = 'fine_art',
+  master_filename = 'isaac_rock_no_3.tif'
+WHERE pv.variant_label IN (
+  'A2 / Hahnemuhle Photo Rag',
+  'A1 / Hahnemuhle Photo Rag'
+);
+
+-- 7. RLS policy for variant_templates — public read
+
+ALTER TABLE exhibition.variant_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY variant_templates_public_select
+  ON exhibition.variant_templates
+  FOR SELECT TO anon
+  USING (true);
+
+CREATE POLICY variant_templates_service_role_all
+  ON exhibition.variant_templates
+  FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
 commit;
