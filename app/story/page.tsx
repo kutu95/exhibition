@@ -20,24 +20,29 @@ export const metadata: Metadata = buildMetadata({
 
 const storyContentKeys = ["story_hero_image"] as const;
 
-const fallbackStoryHeroImage = "/images/placeholder-story-hero.jpg";
-const fallbackStoryHeroAlt = "South West coastline near the SS Georgette wreck sites";
 const isManagedLocalMediaPath = (src: string) => src.startsWith("/images/") || src.startsWith("/video/");
 
 export default async function StoryPage() {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("site_content")
-    .select("content_key, content_value, media_files(alt_text, url_path)")
+    .select("content_key, content_value")
     .in("content_key", [...storyContentKeys]);
 
+  if (error) {
+    throw new Error(`Failed to load story site content: ${error.message}`);
+  }
+
   const storyHeroImageRow = (data ?? []).find((row) => row.content_key === "story_hero_image");
-  const storyHeroImageMedia = Array.isArray(storyHeroImageRow?.media_files)
-    ? storyHeroImageRow.media_files[0]
-    : storyHeroImageRow?.media_files;
-  const storyHeroImageSrc =
-    storyHeroImageRow?.content_value?.trim() || storyHeroImageMedia?.url_path?.trim() || fallbackStoryHeroImage;
-  const storyHeroImageAlt = storyHeroImageMedia?.alt_text?.trim() || fallbackStoryHeroAlt;
+  const storyHeroImageSrc = storyHeroImageRow?.content_value?.trim();
+  const storyHeroImageAlt = "";
+
+  if (!storyHeroImageSrc) {
+    const returnedKeys = (data ?? []).map((row) => row.content_key).join(", ") || "none";
+    throw new Error(
+      `Missing required site content image: story_hero_image. Returned site_content keys: ${returnedKeys}`,
+    );
+  }
 
   return (
     <>

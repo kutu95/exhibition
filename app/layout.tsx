@@ -50,6 +50,9 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdminRoute = pathname.startsWith("/admin");
+  const isStripeBypassEnabled = ["1", "true", "yes", "on"].includes(
+    (process.env.CHECKOUT_BYPASS_STRIPE ?? "").trim().toLowerCase(),
+  );
 
   let exhibitionTitle = siteConfig.name;
   if (!isAdminRoute) {
@@ -82,6 +85,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           src={`${process.env.NEXT_PUBLIC_PLAUSIBLE_URL}/js/script.tagged-events.js`}
           strategy="afterInteractive"
         />
+        {isStripeBypassEnabled ? (
+          <div
+            style={{
+              background: "#7a1400",
+              color: "#fff",
+              padding: "0.55rem 0.9rem",
+              textAlign: "center",
+              fontSize: "0.92rem",
+              letterSpacing: "0.01em",
+            }}
+          >
+            Stripe bypass is ON. Checkout creates paid test orders directly (no Stripe charge).
+          </div>
+        ) : null}
         {!isAdminRoute ? <SiteNav exhibitionTitle={exhibitionTitle} /> : null}
         <main style={{ minHeight: "100vh", paddingTop: isAdminRoute ? "0" : "78px" }}>{children}</main>
         {!isAdminRoute ? <SiteFooter exhibitionTitle={exhibitionTitle} /> : null}

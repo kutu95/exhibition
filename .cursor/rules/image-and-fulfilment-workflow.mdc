@@ -1,0 +1,24 @@
+---
+description: Image registration, web JPEGs, checkout, and print fulfilment worker flow
+globs: worker/**/*,**/fulfilment*,**/register-photo*,**/product-registration.ts,**/ProductEditorForm.tsx,**/RegisterPhotoClient.tsx
+alwaysApply: false
+---
+
+# Image & fulfilment workflow
+
+**Full reference:** [docs/image-and-fulfilment-workflow.md](docs/image-and-fulfilment-workflow.md)
+
+## Preparation
+
+- **Master TIFF** in `MASTER_FILES_DIR` → variants get `master_filename`
+- **Web JPEG** in `public/images/` (generate via `generate_web_image.py` or upload) → `product_images`
+- **Register Photo:** `/admin/register-photo` copies **variant_templates** into `product_variants` + Stripe
+
+## Order → print
+
+1. Stripe webhook → `order_items.fulfilment_status = awaiting_file`
+2. **`worker/fulfilment_worker.py`** polls `/api/fulfilment/queue`, builds sized Adobe RGB JPEG from master + variant mm/DPI
+3. Upload to Drive (or `LOCAL_OUTPUT_DIR`) → PATCH `file_ready`
+4. Admin **`/admin/fulfilment`** → Pixel Perfect ref → `submitted_to_lab` → `shipped`
+
+Print dimensions come from **product_variants** on the order, not templates at fulfilment time.

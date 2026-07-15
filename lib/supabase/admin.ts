@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { DEFAULT_DB_TIMEOUT_MS } from "../db-errors";
+import { fetchWithTimeout } from "../fetch-with-timeout";
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -15,6 +18,9 @@ export const supabaseAdmin = supabaseUrl && serviceRoleKey
       },
       db: {
         schema: "exhibition",
+      },
+      global: {
+        fetch: (input, init) => fetchWithTimeout(input, init, DEFAULT_DB_TIMEOUT_MS),
       },
     })
   : (new Proxy(

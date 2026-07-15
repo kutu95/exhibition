@@ -1,10 +1,7 @@
 export type ProductType = "print" | "merchandise";
-export type LocationTag =
-  | "Calgardup Bay"
-  | "Redgate Beach"
-  | "Isaac Rock"
-  | "SS Georgette Wreck";
+export type LocationTag = string;
 export type InstallationTag = "Cubarama" | "Captain Godfrey AI" | "Drift";
+export type PhotoTypeTag = "Still camera" | "Drone" | "Underwater";
 export type OrderStatus =
   | "pending"
   | "paid"
@@ -22,6 +19,7 @@ export type Product = {
   product_type: ProductType;
   location_tag: LocationTag | null;
   installation_tag: InstallationTag | null;
+  photo_type_tag: PhotoTypeTag | null;
   is_available: boolean;
   is_featured: boolean;
   created_at: string;
@@ -42,8 +40,27 @@ export type ProductVariant = {
   height_mm: number | null;
   border_mm: number;
   paper_type: string | null;
-  print_type: "fine_art" | "photo" | "canvas" | "metal" | null;
+  print_type: string | null;
   master_filename: string | null;
+  source_print_profile_id: string | null;
+  destination_print_profile_id: string | null;
+  tier_label: string | null;
+  finish: string | null;
+  is_framed: boolean;
+  frame_type: string | null;
+  print_dpi: number;
+  lab_cost_aud: number | null;
+  suggested_retail_min_aud: number | null;
+  suggested_retail_max_aud: number | null;
+  turnaround_days_min: number | null;
+  turnaround_days_max: number | null;
+  shipping_class: string | null;
+  fulfilment_notes: string | null;
+  aspect_ratio: string | null;
+  canvas_wrap_mm: number | null;
+  wrap_style: string | null;
+  front_face_width_mm: number | null;
+  front_face_height_mm: number | null;
 };
 
 export type ProductImage = {
@@ -130,6 +147,57 @@ export type MediaFile = {
   alt_text: string | null;
   usage_note: string | null;
   uploaded_at: string;
+};
+
+export type PrintProfile = {
+  id: string;
+  display_name: string;
+  profile_role: "source" | "destination";
+  colour_space: string | null;
+  paper_type: string | null;
+  print_type: string | null;
+  filename: string;
+  original_filename: string;
+  file_size_bytes: number;
+  storage_path: string;
+  checksum_sha256: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type VariantTemplate = {
+  id: string;
+  variant_label: string;
+  width_mm: number;
+  height_mm: number;
+  border_mm: number;
+  paper_type: string;
+  print_type: string;
+  base_price_aud: number;
+  sort_order: number;
+  is_active: boolean;
+  source_print_profile_id: string | null;
+  destination_print_profile_id: string | null;
+  tier_label: string | null;
+  finish: string | null;
+  is_framed: boolean;
+  frame_type: string | null;
+  print_dpi: number;
+  lab_cost_aud: number | null;
+  suggested_retail_min_aud: number | null;
+  suggested_retail_max_aud: number | null;
+  turnaround_days_min: number | null;
+  turnaround_days_max: number | null;
+  shipping_class: string | null;
+  fulfilment_notes: string | null;
+  aspect_ratio: string | null;
+  canvas_wrap_mm: number | null;
+  wrap_style: string | null;
+  front_face_width_mm: number | null;
+  front_face_height_mm: number | null;
+  edition_size: number | null;
+  created_at: string;
 };
 
 export type SiteContent = {

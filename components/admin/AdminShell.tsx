@@ -9,7 +9,11 @@ import styles from "../../app/admin/admin.module.css";
 const links = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/fulfilment", label: "Fulfilment" },
+  { href: "/admin/import-wizard", label: "Import Wizard" },
+  { href: "/admin/register-photo", label: "Register Photo" },
   { href: "/admin/products", label: "Products" },
+  { href: "/admin/print-profiles", label: "Print Templates" },
   { href: "/admin/content", label: "Content" },
   { href: "/admin/content?tab=media", label: "Media" },
   { href: "/admin/subscribers", label: "Subscribers" },
@@ -26,6 +30,10 @@ export function AdminShell({ children }: AdminShellProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
 
   const handleLogout = async () => {
     await fetch("/api/admin/auth/logout", { method: "POST" });
@@ -74,7 +82,7 @@ export function AdminShell({ children }: AdminShellProps) {
           </nav>
 
           <div className={styles.sidebarBottom}>
-            <a className={styles.siteLink} href="https://exhibition.margies.app" target="_blank" rel="noreferrer">
+            <a className={styles.siteLink} href="/" target="_blank" rel="noreferrer">
               View Site
             </a>
             <button className={styles.logoutBtn} type="button" onClick={handleLogout}>

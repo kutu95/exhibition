@@ -15,7 +15,7 @@ export const metadata: Metadata = buildMetadata({
 });
 
 type PageProps = {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; manual_order?: string }>;
 };
 
 type SuccessOrderRow = {
@@ -55,20 +55,50 @@ const getOrderForSession = async (sessionId: string): Promise<SuccessOrderRow | 
   return rows[0] ?? null;
 };
 
+const getOrderForManualOrderNumber = async (orderNumber: string): Promise<SuccessOrderRow | null> => {
+  const { rows } = await queryPostgres<SuccessOrderRow>(
+    `
+      select
+        o.order_number,
+        o.total_aud,
+        json_build_object(
+          'photo_title', p.title,
+          'variant_label', pv.variant_label,
+          'edition_number_assigned', oi.edition_number_assigned,
+          'edition_size', pv.edition_size
+        ) as item
+      from exhibition.orders o
+      join exhibition.order_items oi on oi.order_id = o.id
+      join exhibition.product_variants pv on pv.id = oi.variant_id
+      join exhibition.products p on p.id = pv.product_id
+      where o.order_number = $1
+      order by oi.id asc
+      limit 1
+    `,
+    [orderNumber],
+  );
+
+  return rows[0] ?? null;
+};
+
 export default async function OrderSuccessPage({ searchParams }: PageProps) {
-  const { session_id: sessionId } = await searchParams;
+  const { session_id: sessionId, manual_order: manualOrder } = await searchParams;
 
-  if (!sessionId) {
+  if (!sessionId && !manualOrder) {
     redirect("/shop");
   }
 
-  try {
-    await stripe.checkout.sessions.retrieve(sessionId);
-  } catch {
-    redirect("/shop");
-  }
-
-  const order = await getOrderForSession(sessionId);
+  const order = manualOrder
+    ? await getOrderForManualOrderNumber(manualOrder)
+    : await (async () => {
+        if (!sessionId) return null;
+        try {
+          await stripe.checkout.sessions.retrieve(sessionId);
+        } catch {
+          return null;
+        }
+        return getOrderForSession(sessionId);
+      })();
   if (!order) {
     redirect("/shop");
   }

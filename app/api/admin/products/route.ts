@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../lib/admin-auth";
+import { handleRouteError } from "../../../../lib/api-route-errors";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
+import { isValidProductImageUrl } from "../../../../lib/utils/site-content-image";
 
-const locationOptions = ["Calgardup Bay", "Redgate Beach", "Isaac Rock", "SS Georgette Wreck"] as const;
-const installationOptions = ["Cubarama", "Captain Godfrey AI", "Drift"] as const;
+const photoTypeOptions = ["Still camera", "Drone", "Underwater"] as const;
 
 const variantSchema = z.object({
   id: z.string().uuid().optional(),
@@ -14,12 +15,38 @@ const variantSchema = z.object({
   edition_size: z.number().int().positive().nullable(),
   stock_quantity: z.number().int().nonnegative().nullable(),
   stripe_price_id: z.string().nullable(),
+  width_mm: z.number().int().positive().nullable(),
+  height_mm: z.number().int().positive().nullable(),
+  border_mm: z.number().int().nonnegative(),
+  paper_type: z.string().nullable(),
+  print_type: z.string().nullable(),
+  print_dpi: z.number().int().positive().nullable(),
+  source_print_profile_id: z.string().uuid().nullable(),
+  destination_print_profile_id: z.string().uuid().nullable(),
+  tier_label: z.string().nullable(),
+  finish: z.string().nullable(),
+  is_framed: z.boolean(),
+  frame_type: z.string().nullable(),
+  lab_cost_aud: z.number().int().nonnegative().nullable(),
+  suggested_retail_min_aud: z.number().int().nonnegative().nullable(),
+  suggested_retail_max_aud: z.number().int().nonnegative().nullable(),
+  turnaround_days_min: z.number().int().positive().nullable(),
+  turnaround_days_max: z.number().int().positive().nullable(),
+  shipping_class: z.string().nullable(),
+  fulfilment_notes: z.string().nullable(),
+  aspect_ratio: z.string().nullable(),
+  canvas_wrap_mm: z.number().int().nonnegative().nullable(),
+  wrap_style: z.string().nullable(),
+  front_face_width_mm: z.number().int().positive().nullable(),
+  front_face_height_mm: z.number().int().positive().nullable(),
   is_active: z.boolean(),
 });
 
 const imageSchema = z.object({
   id: z.string().uuid().optional(),
-  image_url: z.string().url(),
+  image_url: z.string().min(1).refine(isValidProductImageUrl, {
+    message: "Image URL must be an absolute http(s) URL or a local /images/ path.",
+  }),
   alt_text: z.string().nullable(),
   sort_order: z.number().int(),
   is_primary: z.boolean(),
@@ -30,8 +57,9 @@ const productSchema = z.object({
   slug: z.string().min(1),
   description: z.string().nullable(),
   product_type: z.enum(["print", "merchandise"]),
-  location_tag: z.enum(locationOptions).nullable(),
-  installation_tag: z.enum(installationOptions).nullable(),
+  location_tag: z.string().nullable(),
+  installation_tag: z.string().nullable(),
+  photo_type_tag: z.enum(photoTypeOptions).nullable(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
   variants: z.array(variantSchema).min(1),
@@ -44,40 +72,44 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: products, error: productsError } = await supabaseAdmin
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
+  try {
+    const { data: products, error: productsError } = await supabaseAdmin
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (productsError) {
-    return NextResponse.json({ error: productsError.message }, { status: 500 });
-  }
-
-  const productIds = (products ?? []).map((product) => product.id);
-  const variantsCountMap = new Map<string, number>();
-
-  if (productIds.length > 0) {
-    const { data: variants, error: variantsError } = await supabaseAdmin
-      .from("product_variants")
-      .select("product_id")
-      .in("product_id", productIds);
-
-    if (variantsError) {
-      return NextResponse.json({ error: variantsError.message }, { status: 500 });
+    if (productsError) {
+      return NextResponse.json({ error: productsError.message }, { status: 500 });
     }
 
-    (variants ?? []).forEach((variant) => {
-      const current = variantsCountMap.get(variant.product_id) ?? 0;
-      variantsCountMap.set(variant.product_id, current + 1);
-    });
-  }
+    const productIds = (products ?? []).map((product) => product.id);
+    const variantsCountMap = new Map<string, number>();
 
-  return NextResponse.json(
-    (products ?? []).map((product) => ({
-      ...product,
-      variants_count: variantsCountMap.get(product.id) ?? 0,
-    })),
-  );
+    if (productIds.length > 0) {
+      const { data: variants, error: variantsError } = await supabaseAdmin
+        .from("product_variants")
+        .select("product_id")
+        .in("product_id", productIds);
+
+      if (variantsError) {
+        return NextResponse.json({ error: variantsError.message }, { status: 500 });
+      }
+
+      (variants ?? []).forEach((variant) => {
+        const current = variantsCountMap.get(variant.product_id) ?? 0;
+        variantsCountMap.set(variant.product_id, current + 1);
+      });
+    }
+
+    return NextResponse.json(
+      (products ?? []).map((product) => ({
+        ...product,
+        variants_count: variantsCountMap.get(product.id) ?? 0,
+      })),
+    );
+  } catch (error) {
+    return handleRouteError(error, "Admin products list failed");
+  }
 }
 
 export async function POST(request: Request) {
@@ -103,6 +135,7 @@ export async function POST(request: Request) {
       product_type: payload.product_type,
       location_tag: payload.location_tag,
       installation_tag: payload.installation_tag,
+      photo_type_tag: payload.photo_type_tag,
       is_available: payload.is_available,
       is_featured: payload.is_featured,
     })
@@ -122,6 +155,30 @@ export async function POST(request: Request) {
     edition_size: variant.edition_size,
     stock_quantity: variant.stock_quantity,
     stripe_price_id: variant.stripe_price_id,
+    width_mm: variant.width_mm,
+    height_mm: variant.height_mm,
+    border_mm: variant.border_mm,
+    paper_type: variant.paper_type,
+    print_type: variant.print_type,
+    print_dpi: variant.print_dpi,
+    source_print_profile_id: variant.source_print_profile_id,
+    destination_print_profile_id: variant.destination_print_profile_id,
+    tier_label: variant.tier_label,
+    finish: variant.finish,
+    is_framed: variant.is_framed,
+    frame_type: variant.frame_type,
+    lab_cost_aud: variant.lab_cost_aud,
+    suggested_retail_min_aud: variant.suggested_retail_min_aud,
+    suggested_retail_max_aud: variant.suggested_retail_max_aud,
+    turnaround_days_min: variant.turnaround_days_min,
+    turnaround_days_max: variant.turnaround_days_max,
+    shipping_class: variant.shipping_class,
+    fulfilment_notes: variant.fulfilment_notes,
+    aspect_ratio: variant.aspect_ratio,
+    canvas_wrap_mm: variant.canvas_wrap_mm,
+    wrap_style: variant.wrap_style,
+    front_face_width_mm: variant.front_face_width_mm,
+    front_face_height_mm: variant.front_face_height_mm,
     is_active: variant.is_active,
   }));
 

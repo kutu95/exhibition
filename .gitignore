@@ -10,3 +10,6 @@ logs
 .tmp_pg_socket
 .tmp_pg.log
 tsconfig.tsbuildinfo
+.DS_Store
+**/__pycache__/
+worker/.venv/

@@ -134,6 +134,61 @@
   border: 1px solid currentColor;
 }
 
+.statusPanel {
+  border: 1px solid #d8d8d8;
+  padding: 1.25rem 1rem;
+  max-width: 36rem;
+}
+
+.statusPanel h1 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.statusMessage {
+  margin: 0.75rem 0 1rem;
+  color: #444;
+  line-height: 1.5;
+}
+
+.statusHint {
+  margin: 0 0 1rem;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.retryButton {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.loadingPulse {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  background: #111;
+  animation: adminPulse 1s ease-in-out infinite;
+}
+
+@keyframes adminPulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
 @media (min-width: 980px) {
   .topBar {
     display: none;

@@ -4,26 +4,42 @@ export function isManagedLocalMediaPath(src: string): boolean {
   return src.startsWith("/images/") || src.startsWith("/video/");
 }
 
+/** Absolute http(s) URLs or managed local media paths used by product images. */
+export function isValidProductImageUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (isManagedLocalMediaPath(trimmed)) return true;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 type ImageMedia = Pick<MediaFile, "alt_text" | "url_path">;
 
 export type SiteContentImageRow = {
   content_value: string | null;
-  media_files: ImageMedia | ImageMedia[] | null;
+  media_files?: ImageMedia | ImageMedia[] | null;
 };
 
 /**
- * Resolves image src/alt for a site_content row of type image, matching story/holding behaviour.
- * Prefers content_value (URL path) then linked media url_path.
+ * Resolves a required site_content image. Missing values are configuration errors.
  */
 export function resolveContentImage(
   row: SiteContentImageRow | undefined,
-  fallback: { src: string; alt: string },
+  key: string,
 ): { src: string; alt: string } {
-  if (!row) {
-    return fallback;
+  const media = Array.isArray(row?.media_files) ? row.media_files[0] : row?.media_files;
+  const src = row?.content_value?.trim() || media?.url_path?.trim();
+
+  if (!src) {
+    throw new Error(
+      `Missing required site content image: ${key}. Set it in Admin → Content → Installations (or the matching content group).`,
+    );
   }
-  const media = Array.isArray(row.media_files) ? row.media_files[0] : row.media_files;
-  const src = row.content_value?.trim() || media?.url_path?.trim() || fallback.src;
-  const alt = media?.alt_text?.trim() || fallback.alt;
+
+  const alt = media?.alt_text?.trim() || "";
   return { src, alt };
 }

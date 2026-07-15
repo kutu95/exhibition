@@ -1,0 +1,368 @@
+.wrap {
+  display: grid;
+  gap: 1rem;
+  max-width: 920px;
+  padding-bottom: 5rem;
+}
+
+.steps {
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stepItem {
+  border: 1px solid #d8d8d8;
+  color: #666;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  padding: 0.45rem 0.5rem;
+}
+
+.stepItemCurrent {
+  border-color: #111;
+  box-shadow: inset 3px 0 0 #111;
+  color: #111;
+  font-weight: 600;
+}
+
+.stepItemDone {
+  border-color: #176b2c;
+  color: #176b2c;
+}
+
+.panel {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem 1rem 1.1rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+}
+
+.panel h3 {
+  font-size: 1rem;
+  margin: 1rem 0 0.4rem;
+}
+
+.explain {
+  color: #444;
+  line-height: 1.55;
+  margin: 0 0 0.85rem;
+}
+
+.explain ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.checklist {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+}
+
+.checkboxRow {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.checkboxRow input {
+  margin-top: 0.2rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.form label,
+.modeOption {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.form input,
+.form select,
+.form textarea {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+.modeList {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.modeOption {
+  border: 1px solid #d8d8d8;
+  cursor: pointer;
+  padding: 0.7rem;
+}
+
+.modeOptionActive {
+  border-color: #111;
+  box-shadow: inset 3px 0 0 #111;
+}
+
+.modeOption label {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.modeOption strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.fileList {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.fileButton,
+.fileButtonActive {
+  align-items: start;
+  background: transparent;
+  border: 1px solid #d8d8d8;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.15rem;
+  grid-template-columns: 7.5rem 1fr;
+  padding: 0.65rem;
+  text-align: left;
+}
+
+.fileButtonActive {
+  border-color: #111;
+  box-shadow: inset 3px 0 0 #111;
+}
+
+.fileMeta {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.thumb,
+.thumbLarge,
+.thumbPlaceholder {
+  background: #eee;
+  color: #777;
+  display: grid;
+  font-size: 0.7rem;
+  height: 5.5rem;
+  object-fit: cover;
+  place-items: center;
+  width: 6.5rem;
+}
+
+.thumbLarge {
+  height: 12rem;
+  width: 16rem;
+}
+
+.thumbPlaceholder {
+  border: 1px dashed #ccc;
+  text-align: center;
+}
+
+.selectedPreview {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.fileButton span,
+.fileButtonActive span,
+.fileMeta span {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+}
+
+.button,
+.secondaryButton {
+  border: 1px solid #111;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+  width: fit-content;
+}
+
+.button {
+  background: #111;
+  color: #fff;
+}
+
+.secondaryButton {
+  background: transparent;
+  color: #111;
+}
+
+.button:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.footer {
+  background: #fff;
+  border-top: 1px solid #d8d8d8;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+  left: 0;
+  padding: 0.75rem 1rem;
+  position: sticky;
+  z-index: 2;
+}
+
+.footerHint {
+  color: #666;
+  flex: 1 1 12rem;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.muted {
+  color: #666;
+}
+
+.error {
+  color: #a40000;
+  margin: 0.5rem 0 0;
+}
+
+.success {
+  color: #176b2c;
+  margin: 0.5rem 0 0;
+}
+
+.blocker {
+  background: #fff8f6;
+  border: 1px solid #e8b4a8;
+  color: #7a2e1f;
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.8rem;
+}
+
+.summary {
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  margin: 0.75rem 0 0;
+  width: 100%;
+}
+
+.summary th,
+.summary td {
+  border-bottom: 1px solid #ececec;
+  padding: 0.45rem 0.35rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.summary th {
+  color: #555;
+  font-weight: 500;
+  width: 11rem;
+}
+
+.templateList {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.templateActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.templateOption {
+  border: 1px solid #e1e1e1;
+  padding: 0;
+}
+
+.templateSummary {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.6rem;
+}
+
+.templateSummary span,
+.templateDetails {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.templateDetails {
+  border-top: 1px solid #eee;
+  padding: 0 0.6rem 0.6rem 2.1rem;
+}
+
+.priceField {
+  margin-left: auto;
+  min-width: 150px;
+}
+
+.priceField input {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  width: 100%;
+}
+
+.doneLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.doneLinks a {
+  border: 1px solid #111;
+  color: inherit;
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+}

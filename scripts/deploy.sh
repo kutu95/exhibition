@@ -18,11 +18,15 @@ fi
 echo "→ Installing dependencies"
 npm ci
 
+echo "→ Installing worker dependencies"
+python3 -m venv worker/.venv
+worker/.venv/bin/pip install -r worker/requirements.txt
+
 echo "→ Building Next.js"
 npm run build
 
 # Preserve uploaded media in the canonical location
-mkdir -p public/images public/video
+mkdir -p public/images public/video storage/icc logs
 if [ -d "$APP_ROOT/uploads-backup/images" ]; then
   cp -r "$APP_ROOT/uploads-backup/images/." public/images/
 fi

@@ -29,6 +29,15 @@ to service_role
 using (true)
 with check (true);
 
+drop policy if exists media_files_public_select on exhibition.media_files;
+create policy media_files_public_select
+on exhibition.media_files
+for select
+to anon, authenticated
+using (true);
+
+grant select on exhibition.media_files to anon, authenticated;
+
 alter table exhibition.site_content
   add column if not exists content_type text not null default 'text';
 

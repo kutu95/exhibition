@@ -1,4 +1,5 @@
 import { fetchAdminJson } from "../_lib/fetch-admin";
+import { formatDateTime } from "../../../lib/utils/dates";
 import styles from "./page.module.css";
 
 type Subscriber = {
@@ -46,8 +47,8 @@ export default async function AdminSubscribersPage() {
                 <td>{subscriber.first_name ?? "—"}</td>
                 <td>{subscriber.source ?? "—"}</td>
                 <td>{subscriber.is_confirmed ? "Yes" : "No"}</td>
-                <td>{new Date(subscriber.subscribed_at).toLocaleString()}</td>
-                <td>{subscriber.unsubscribed_at ? new Date(subscriber.unsubscribed_at).toLocaleString() : "—"}</td>
+                <td>{formatDateTime(subscriber.subscribed_at)}</td>
+                <td>{subscriber.unsubscribed_at ? formatDateTime(subscriber.unsubscribed_at) : "—"}</td>
               </tr>
             ))}
           </tbody>

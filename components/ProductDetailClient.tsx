@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { ReactNode, useMemo, useState } from "react";
 
-import { PlausibleEvents, trackEvent } from "@/lib/plausible";
+import { PlausibleEvents, trackEvent } from "../lib/plausible";
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { formatAUD } from "../lib/utils/currency";
 import styles from "./ProductDetailClient.module.css";
@@ -14,7 +14,8 @@ type ProductDetailClientProps = {
 };
 
 export function ProductDetailClient({ product, shareButtons }: ProductDetailClientProps) {
-  const [activeImage, setActiveImage] = useState(product.product_images[0]?.image_url);
+  const primaryImage = product.product_images[0]?.image_url ?? "";
+  const [activeImage, setActiveImage] = useState(primaryImage);
   const [selectedVariantId, setSelectedVariantId] = useState(product.product_variants[0]?.id ?? "");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +31,10 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       .filter((size): size is number => typeof size === "number");
     return sizes.length > 0 ? Math.max(...sizes) : null;
   }, [product.product_variants]);
+
+  if (!primaryImage) {
+    throw new Error(`Missing product image for product: ${product.slug}`);
+  }
 
   const handleCheckout = async () => {
     if (!selectedVariant) return;
@@ -73,9 +78,10 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       <div className={styles.gallery}>
         <div className={styles.mainImageWrap}>
           <Image
-            src={activeImage ?? "/images/placeholder-product.jpg"}
+            src={activeImage}
             alt={product.title}
             fill
+            priority
             className={styles.mainImage}
             sizes="(max-width: 950px) 100vw, 60vw"
           />

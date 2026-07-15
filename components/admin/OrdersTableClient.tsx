@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { formatAUD } from "../../lib/utils/currency";
+import { formatDateTime } from "../../lib/utils/dates";
 import { StatusBadge } from "./StatusBadge";
 import styles from "./OrdersTableClient.module.css";
 
@@ -89,7 +90,7 @@ export function OrdersTableClient({ orders }: OrdersTableClientProps) {
                 </td>
                 <td>{order.items_count}</td>
                 <td>{formatAUD(order.total_aud ?? 0)}</td>
-                <td>{new Date(order.created_at).toLocaleString()}</td>
+                <td>{formatDateTime(order.created_at)}</td>
               </tr>
             ))}
           </tbody>

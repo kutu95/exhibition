@@ -1,0 +1,30 @@
+# Reference Supabase config for the shared LAN stack (192.168.0.146:54321).
+# Merge [api] schemas into ~/apps/cashbook/supabase/config.toml on that host (NOT ~/supabase-local).
+# Studio admin: http://192.168.0.146:54323 — then: supabase stop && supabase start (from cashbook dir)
+#
+# See docs/supabase-infrastructure.md and scripts/repair-shared-supabase.sh
+
+[api]
+enabled = true
+port = 54321
+# All app schemas on this Postgres instance must be listed here.
+schemas = ["public", "graphql_public", "tryon_schema", "exhibition"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[auth]
+enabled = true
+
+[storage]
+enabled = true
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323

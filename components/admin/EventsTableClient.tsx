@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { formatDateTime } from "../../lib/utils/dates";
 import styles from "./EventsTableClient.module.css";
 
 type EventListItem = {
@@ -50,7 +51,7 @@ export function EventsTableClient({ events }: EventsTableClientProps) {
               <tr key={event.id}>
                 <td>{event.title}</td>
                 <td>{event.speaker_name ?? "—"}</td>
-                <td>{new Date(event.event_date).toLocaleString()}</td>
+                <td>{formatDateTime(event.event_date)}</td>
                 <td>{event.is_published ? "Yes" : "No"}</td>
                 <td>
                   <div className={styles.actions}>

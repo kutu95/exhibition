@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { z } from "zod";
 
+import { assignEditionsToOrder } from "../../../lib/edition-assignment";
 import { stripe } from "../../../lib/stripe";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 
@@ -40,6 +41,11 @@ const extractProduct = (
 ): { title: string; is_available: boolean } | null => {
   if (!products) return null;
   return Array.isArray(products) ? products[0] ?? null : products;
+};
+
+const isStripeBypassEnabled = (): boolean => {
+  const value = process.env.CHECKOUT_BYPASS_STRIPE?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes" || value === "on";
 };
 
 export async function POST(request: Request) {
@@ -81,6 +87,69 @@ export async function POST(request: Request) {
         { error: "One or more variants are unavailable." },
         { status: 400 },
       );
+    }
+
+    if (isStripeBypassEnabled()) {
+      const subtotal = requestedItems.reduce((sum, item) => {
+        const variant = variantMap.get(item.variant_id);
+        return sum + (variant ? variant.price_aud * item.quantity : 0);
+      }, 0);
+
+      const { data: createdOrder, error: orderError } = await supabaseAdmin
+        .from("orders")
+        .insert({
+          stripe_payment_intent_id: null,
+          stripe_checkout_session_id: null,
+          status: "paid",
+          customer_email: "stripe-bypass@exhibition.local",
+          customer_name: "Stripe bypass test order",
+          shipping_address: null,
+          subtotal_aud: subtotal,
+          shipping_aud: 0,
+          total_aud: subtotal,
+          notes: "Order created with CHECKOUT_BYPASS_STRIPE enabled.",
+        })
+        .select("id,order_number")
+        .single();
+
+      if (orderError || !createdOrder) {
+        console.error("Bypass order creation failed", orderError);
+        return NextResponse.json({ error: "Could not create bypass order." }, { status: 500 });
+      }
+
+      const orderItemsInsert = requestedItems.map((item) => {
+        const variant = variantMap.get(item.variant_id);
+        if (!variant) {
+          throw new Error("Variant map mismatch.");
+        }
+
+        return {
+          order_id: createdOrder.id,
+          variant_id: item.variant_id,
+          quantity: item.quantity,
+          unit_price_aud: variant.price_aud,
+          edition_number_assigned: null as number | null,
+          fulfilment_status: "awaiting_file" as const,
+          fulfilment_notes: "Created via global Stripe bypass setting.",
+        };
+      });
+
+      const { error: itemError } = await supabaseAdmin
+        .from("order_items")
+        .insert(orderItemsInsert);
+
+      if (itemError) {
+        console.error("Bypass order item creation failed", itemError);
+        await supabaseAdmin.from("orders").delete().eq("id", createdOrder.id);
+        return NextResponse.json({ error: "Could not create bypass order items." }, { status: 500 });
+      }
+
+      await assignEditionsToOrder(createdOrder.id);
+
+      return NextResponse.json({
+        url: `${siteUrl}/order/success?manual_order=${encodeURIComponent(createdOrder.order_number)}`,
+        bypass: true,
+      });
     }
 
     const lineItems = requestedItems.map((item) => {

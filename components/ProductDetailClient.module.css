@@ -10,12 +10,16 @@
 
 .mainImageWrap {
   position: relative;
-  aspect-ratio: 4 / 3;
+  width: 100%;
+  /* Tall enough for portrait masters; landscape letterboxes within the same frame */
+  height: min(70vh, 52rem);
+  min-height: 22rem;
   border: 1px solid rgba(10, 22, 40, 0.2);
+  background: rgba(10, 22, 40, 0.04);
 }
 
 .mainImage {
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .thumbs {

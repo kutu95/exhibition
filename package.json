@@ -2,11 +2,14 @@
   "name": "exhibition",
   "version": "1.0.0",
   "scripts": {
-    "dev": "next dev --webpack -p 3007",
+    "dev": "next dev -p 3007",
+    "dev:all": "bash scripts/dev-with-worker.sh",
     "build": "next build",
     "start": "next start -p 3007",
+    "worker": "worker/.venv/bin/python worker/fulfilment_worker.py",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:check": "node scripts/check-database.mjs"
   },
   "keywords": [],
   "author": "",

@@ -1,6 +1,10 @@
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
+import { DEFAULT_DB_TIMEOUT_MS, withTimeout } from "./db-errors";
+
 let pool: Pool | null = null;
+
+const CONNECT_TIMEOUT_MS = 10_000;
 
 const getDatabaseUrl = (): string => {
   if (process.env.DATABASE_URL) {
@@ -25,6 +29,7 @@ export const getPostgresPool = (): Pool => {
   if (!pool) {
     pool = new Pool({
       connectionString: getDatabaseUrl(),
+      connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
     });
   }
 
@@ -34,13 +39,22 @@ export const getPostgresPool = (): Pool => {
 export const queryPostgres = <T extends QueryResultRow = QueryResultRow>(
   text: string,
   params: unknown[] = [],
-) => getPostgresPool().query<T>(text, params);
+) =>
+  withTimeout(
+    getPostgresPool().query<T>(text, params),
+    DEFAULT_DB_TIMEOUT_MS,
+    "postgres query",
+  );
 
 export const withTransaction = async <T>(
   callback: (client: PoolClient) => Promise<T>,
   options: { isolationLevel?: "serializable" } = {},
 ): Promise<T> => {
-  const client = await getPostgresPool().connect();
+  const client = await withTimeout(
+    getPostgresPool().connect(),
+    CONNECT_TIMEOUT_MS,
+    "postgres connect",
+  );
 
   try {
     await client.query(

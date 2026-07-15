@@ -10,7 +10,12 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product }: ProductCardProps) {
-  const primaryImage = product.product_images[0]?.image_url ?? "/images/placeholder-product.jpg";
+  const primaryImage = product.product_images[0]?.image_url;
+
+  if (!primaryImage) {
+    throw new Error(`Missing product image for product: ${product.slug}`);
+  }
+
   const lowestCents =
     product.product_variants.length > 0
       ? Math.min(...product.product_variants.map((variant) => variant.price_aud))

@@ -39,27 +39,16 @@ const installationImageKeys = [
 
 const installationPageContentKeys = [...installationContentKeys, ...installationImageKeys] as const;
 
-const installationImageFallbacks = {
-  installation_cubarama_image: {
-    src: "/images/placeholder-installation-cubarama.jpg",
-    alt: "Cubarama installation concept",
-  },
-  installation_captain_godfrey_image: {
-    src: "/images/placeholder-installation-godfrey.jpg",
-    alt: "Captain Godfrey AI installation concept",
-  },
-  installation_drift_image: {
-    src: "/images/placeholder-installation-drift.jpg",
-    alt: "Drift Kinect installation concept",
-  },
-} as const;
-
 export default async function InstallationsPage() {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("site_content")
     .select("content_key, content_value, media_files(alt_text, url_path)")
     .in("content_key", [...installationPageContentKeys]);
+
+  if (error) {
+    throw new Error(`Failed to load installation site content: ${error.message}`);
+  }
 
   const rowByKey = new Map((data ?? []).map((row) => [row.content_key, row]));
   const textValue = (key: (typeof installationContentKeys)[number]) => {
@@ -76,15 +65,15 @@ export default async function InstallationsPage() {
 
   const cubaramaImage = resolveContentImage(
     rowByKey.get("installation_cubarama_image") as SiteContentImageRow | undefined,
-    installationImageFallbacks.installation_cubarama_image,
+    "installation_cubarama_image",
   );
   const captainGodfreyImage = resolveContentImage(
     rowByKey.get("installation_captain_godfrey_image") as SiteContentImageRow | undefined,
-    installationImageFallbacks.installation_captain_godfrey_image,
+    "installation_captain_godfrey_image",
   );
   const driftImage = resolveContentImage(
     rowByKey.get("installation_drift_image") as SiteContentImageRow | undefined,
-    installationImageFallbacks.installation_drift_image,
+    "installation_drift_image",
   );
 
   return (

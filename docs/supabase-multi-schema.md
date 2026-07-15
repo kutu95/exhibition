@@ -1,5 +1,7 @@
 # Supabase: expose an app schema (single database, multiple apps)
 
+For the shared LAN stack at `192.168.0.146:54321`, host layout, and `PGRST002` repair, see [supabase-infrastructure.md](./supabase-infrastructure.md).
+
 When one PostgreSQL database hosts several apps, each app should use its **own schema** (for example `exhibition`). PostgREST must list every schema you want available through the Supabase REST API; otherwise clients see errors like “schema not configured”.
 
 This doc is the checklist to reuse for **each new app/schema** on your stack.

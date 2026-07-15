@@ -32,13 +32,14 @@ create table exhibition.products (
   title text not null,
   description text,
   product_type text not null check (product_type in ('print', 'merchandise')),
-  location_tag text check (
-    location_tag is null
-    or location_tag in ('Calgardup Bay', 'Redgate Beach', 'Isaac Rock', 'SS Georgette Wreck')
-  ),
+  location_tag text,
   installation_tag text check (
     installation_tag is null
     or installation_tag in ('Cubarama', 'Captain Godfrey AI', 'Drift')
+  ),
+  photo_type_tag text check (
+    photo_type_tag is null
+    or photo_type_tag in ('Still camera', 'Drone', 'Underwater')
   ),
   is_available boolean not null default true,
   is_featured boolean not null default false,
@@ -217,31 +218,31 @@ alter table exhibition.site_content enable row level security;
 create policy products_public_select
 on exhibition.products
 for select
-to anon
+to anon, authenticated
 using (true);
 
 create policy product_variants_public_select
 on exhibition.product_variants
 for select
-to anon
+to anon, authenticated
 using (true);
 
 create policy product_images_public_select
 on exhibition.product_images
 for select
-to anon
+to anon, authenticated
 using (true);
 
 create policy events_public_select
 on exhibition.events
 for select
-to anon
+to anon, authenticated
 using (true);
 
 create policy site_content_public_select
 on exhibition.site_content
 for select
-to anon
+to anon, authenticated
 using (true);
 
 -- Orders and order_items restricted to service_role.
@@ -282,53 +283,6 @@ values
   ('installation_cubarama', 'Placeholder description for Cubarama installation.'),
   ('installation_captain_godfrey_ai', 'Placeholder description for Captain Godfrey AI installation.'),
   ('installation_drift', 'Placeholder description for Drift installation.');
-
-with inserted_product as (
-  insert into exhibition.products (
-    slug,
-    title,
-    description,
-    product_type,
-    location_tag,
-    installation_tag,
-    is_available,
-    is_featured
-  )
-  values (
-    'isaac-rock-no-3',
-    'Isaac Rock No. 3',
-    'Limited-edition fine art print from the Isaac Rock series.',
-    'print',
-    'Isaac Rock',
-    null,
-    true,
-    true
-  )
-  returning id
-)
-insert into exhibition.product_variants (
-  product_id,
-  variant_label,
-  price_aud,
-  edition_size,
-  stripe_price_id,
-  stock_quantity,
-  is_active
-)
-select
-  ip.id,
-  v.variant_label,
-  v.price_aud,
-  10,
-  null,
-  null,
-  true
-from inserted_product ip
-cross join (
-  values
-    ('A2 / Hahnemuhle Photo Rag', 45000),
-    ('A1 / Hahnemuhle Photo Rag', 65000)
-) as v(variant_label, price_aud);
 
 insert into exhibition.events (
   slug,

@@ -19,5 +19,22 @@ module.exports = {
       out_file: "./logs/pm2-out.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
+    {
+      name: "georgette-exhibition-worker",
+      script: "worker/fulfilment_worker.py",
+      interpreter: "worker/.venv/bin/python",
+      cwd: __dirname,
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "512M",
+      env: {
+        APP_ROOT: __dirname,
+        WORKER_TEMP_DIR: "/tmp/exhibition-worker",
+      },
+      error_file: "./logs/worker-error.log",
+      out_file: "./logs/worker-out.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
   ],
 };

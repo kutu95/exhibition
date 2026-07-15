@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { formatDateTime } from "../../lib/utils/dates";
 import { fetchAdminJson } from "./_lib/fetch-admin";
 import styles from "./page.module.css";
 
@@ -71,7 +72,7 @@ export default async function AdminDashboardPage() {
                 <td>{order.customer_name ?? "—"}</td>
                 <td>{order.status}</td>
                 <td>{formatAud(order.total_aud ?? 0)}</td>
-                <td>{new Date(order.created_at).toLocaleString()}</td>
+                <td>{formatDateTime(order.created_at)}</td>
               </tr>
             ))}
           </tbody>

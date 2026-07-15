@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChangeEvent, useMemo, useState } from "react";
 
 import type { MediaFile, SiteContent } from "../../lib/supabase/types";
+import { formatDateTime } from "../../lib/utils/dates";
 import styles from "./ContentAdminClient.module.css";
 
 type SiteContentWithMedia = SiteContent & {
@@ -467,7 +468,7 @@ function MediaLibrary({
               {truncateFilename(file.filename)}
             </p>
             <p className={styles.mutedText}>{formatFileSize(file.file_size_bytes)}</p>
-            <p className={styles.mutedText}>{new Date(file.uploaded_at).toLocaleString()}</p>
+            <p className={styles.mutedText}>{formatDateTime(file.uploaded_at)}</p>
 
             <div className={styles.metaField}>
               <span>Alt text</span>

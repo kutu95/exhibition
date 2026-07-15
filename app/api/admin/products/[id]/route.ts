@@ -1,11 +1,15 @@
+import fs from "node:fs/promises";
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
+import { resolveCanonicalMediaPath } from "../../../../../lib/media-storage";
+import { stripe } from "../../../../../lib/stripe";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
+import { isValidProductImageUrl } from "../../../../../lib/utils/site-content-image";
 
-const locationOptions = ["Calgardup Bay", "Redgate Beach", "Isaac Rock", "SS Georgette Wreck"] as const;
-const installationOptions = ["Cubarama", "Captain Godfrey AI", "Drift"] as const;
+const photoTypeOptions = ["Still camera", "Drone", "Underwater"] as const;
 
 const variantSchema = z.object({
   id: z.string().uuid().optional(),
@@ -14,12 +18,38 @@ const variantSchema = z.object({
   edition_size: z.number().int().positive().nullable(),
   stock_quantity: z.number().int().nonnegative().nullable(),
   stripe_price_id: z.string().nullable(),
+  width_mm: z.number().int().positive().nullable(),
+  height_mm: z.number().int().positive().nullable(),
+  border_mm: z.number().int().nonnegative(),
+  paper_type: z.string().nullable(),
+  print_type: z.string().nullable(),
+  print_dpi: z.number().int().positive().nullable(),
+  source_print_profile_id: z.string().uuid().nullable(),
+  destination_print_profile_id: z.string().uuid().nullable(),
+  tier_label: z.string().nullable(),
+  finish: z.string().nullable(),
+  is_framed: z.boolean(),
+  frame_type: z.string().nullable(),
+  lab_cost_aud: z.number().int().nonnegative().nullable(),
+  suggested_retail_min_aud: z.number().int().nonnegative().nullable(),
+  suggested_retail_max_aud: z.number().int().nonnegative().nullable(),
+  turnaround_days_min: z.number().int().positive().nullable(),
+  turnaround_days_max: z.number().int().positive().nullable(),
+  shipping_class: z.string().nullable(),
+  fulfilment_notes: z.string().nullable(),
+  aspect_ratio: z.string().nullable(),
+  canvas_wrap_mm: z.number().int().nonnegative().nullable(),
+  wrap_style: z.string().nullable(),
+  front_face_width_mm: z.number().int().positive().nullable(),
+  front_face_height_mm: z.number().int().positive().nullable(),
   is_active: z.boolean(),
 });
 
 const imageSchema = z.object({
   id: z.string().uuid().optional(),
-  image_url: z.string().url(),
+  image_url: z.string().min(1).refine(isValidProductImageUrl, {
+    message: "Image URL must be an absolute http(s) URL or a local /images/ path.",
+  }),
   alt_text: z.string().nullable(),
   sort_order: z.number().int(),
   is_primary: z.boolean(),
@@ -30,8 +60,9 @@ const productUpdateSchema = z.object({
   slug: z.string().min(1),
   description: z.string().nullable(),
   product_type: z.enum(["print", "merchandise"]),
-  location_tag: z.enum(locationOptions).nullable(),
-  installation_tag: z.enum(installationOptions).nullable(),
+  location_tag: z.string().nullable(),
+  installation_tag: z.string().nullable(),
+  photo_type_tag: z.enum(photoTypeOptions).nullable(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
   variants: z.array(variantSchema).min(1),
@@ -40,6 +71,113 @@ const productUpdateSchema = z.object({
 
 type RouteContext = {
   params: Promise<{ id: string }>;
+};
+
+type VariantStripeRow = {
+  id: string;
+  stripe_price_id: string | null;
+};
+
+type ProductImageRow = {
+  id: string;
+  image_url: string;
+};
+
+const getImageUrlPath = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("/images/")) return trimmed;
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.pathname.startsWith("/images/") ? parsed.pathname : null;
+  } catch {
+    return null;
+  }
+};
+
+const archiveStripeCatalogue = async (variants: VariantStripeRow[]) => {
+  const archivedProductIds = new Set<string>();
+
+  for (const variant of variants) {
+    if (!variant.stripe_price_id) continue;
+
+    const price = await stripe.prices.retrieve(variant.stripe_price_id);
+    await stripe.prices.update(variant.stripe_price_id, { active: false });
+
+    const stripeProductId = typeof price.product === "string" ? price.product : price.product.id;
+    if (!archivedProductIds.has(stripeProductId)) {
+      await stripe.products.update(stripeProductId, { active: false });
+      archivedProductIds.add(stripeProductId);
+    }
+  }
+
+  return {
+    archived_prices: variants.filter((variant) => variant.stripe_price_id).length,
+    archived_products: archivedProductIds.size,
+  };
+};
+
+const deleteProductImageFiles = async (images: ProductImageRow[]) => {
+  const urlPaths = Array.from(new Set(images.flatMap((image) => {
+    const urlPath = getImageUrlPath(image.image_url);
+    return urlPath ? [urlPath] : [];
+  })));
+
+  let deletedFiles = 0;
+  let deletedMediaRows = 0;
+
+  for (const urlPath of urlPaths) {
+    const { data: media, error: mediaError } = await supabaseAdmin
+      .from("media_files")
+      .select("id,url_path")
+      .eq("url_path", urlPath)
+      .maybeSingle();
+
+    if (mediaError) {
+      throw new Error(mediaError.message);
+    }
+
+    if (media) {
+      const { data: siteContentReferences, error: siteContentError } = await supabaseAdmin
+        .from("site_content")
+        .select("id")
+        .eq("media_file_id", media.id)
+        .limit(1);
+
+      if (siteContentError) {
+        throw new Error(siteContentError.message);
+      }
+
+      if ((siteContentReferences ?? []).length > 0) {
+        continue;
+      }
+
+      const { error: deleteMediaError } = await supabaseAdmin
+        .from("media_files")
+        .delete()
+        .eq("id", media.id);
+
+      if (deleteMediaError) {
+        throw new Error(deleteMediaError.message);
+      }
+      deletedMediaRows += 1;
+    }
+
+    const absoluteFilePath = resolveCanonicalMediaPath(urlPath);
+    await fs.unlink(absoluteFilePath).then(
+      () => {
+        deletedFiles += 1;
+      },
+      (error: NodeJS.ErrnoException) => {
+        if (error.code !== "ENOENT") {
+          throw error;
+        }
+      },
+    );
+  }
+
+  return { deleted_files: deletedFiles, deleted_media_rows: deletedMediaRows };
 };
 
 export async function GET(request: Request, context: RouteContext) {
@@ -121,6 +259,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       product_type: payload.product_type,
       location_tag: payload.location_tag,
       installation_tag: payload.installation_tag,
+      photo_type_tag: payload.photo_type_tag,
       is_available: payload.is_available,
       is_featured: payload.is_featured,
     })
@@ -178,6 +317,30 @@ export async function PATCH(request: Request, context: RouteContext) {
           edition_size: variant.edition_size,
           stock_quantity: variant.stock_quantity,
           stripe_price_id: variant.stripe_price_id,
+          width_mm: variant.width_mm,
+          height_mm: variant.height_mm,
+          border_mm: variant.border_mm,
+          paper_type: variant.paper_type,
+          print_type: variant.print_type,
+          print_dpi: variant.print_dpi,
+          source_print_profile_id: variant.source_print_profile_id,
+          destination_print_profile_id: variant.destination_print_profile_id,
+          tier_label: variant.tier_label,
+          finish: variant.finish,
+          is_framed: variant.is_framed,
+          frame_type: variant.frame_type,
+          lab_cost_aud: variant.lab_cost_aud,
+          suggested_retail_min_aud: variant.suggested_retail_min_aud,
+          suggested_retail_max_aud: variant.suggested_retail_max_aud,
+          turnaround_days_min: variant.turnaround_days_min,
+          turnaround_days_max: variant.turnaround_days_max,
+          shipping_class: variant.shipping_class,
+          fulfilment_notes: variant.fulfilment_notes,
+          aspect_ratio: variant.aspect_ratio,
+          canvas_wrap_mm: variant.canvas_wrap_mm,
+          wrap_style: variant.wrap_style,
+          front_face_width_mm: variant.front_face_width_mm,
+          front_face_height_mm: variant.front_face_height_mm,
           is_active: variant.is_active,
         })),
         { onConflict: "id" },
@@ -196,6 +359,30 @@ export async function PATCH(request: Request, context: RouteContext) {
         edition_size: variant.edition_size,
         stock_quantity: variant.stock_quantity,
         stripe_price_id: variant.stripe_price_id,
+        width_mm: variant.width_mm,
+        height_mm: variant.height_mm,
+        border_mm: variant.border_mm,
+        paper_type: variant.paper_type,
+        print_type: variant.print_type,
+        print_dpi: variant.print_dpi,
+        source_print_profile_id: variant.source_print_profile_id,
+        destination_print_profile_id: variant.destination_print_profile_id,
+        tier_label: variant.tier_label,
+        finish: variant.finish,
+        is_framed: variant.is_framed,
+        frame_type: variant.frame_type,
+        lab_cost_aud: variant.lab_cost_aud,
+        suggested_retail_min_aud: variant.suggested_retail_min_aud,
+        suggested_retail_max_aud: variant.suggested_retail_max_aud,
+        turnaround_days_min: variant.turnaround_days_min,
+        turnaround_days_max: variant.turnaround_days_max,
+        shipping_class: variant.shipping_class,
+        fulfilment_notes: variant.fulfilment_notes,
+        aspect_ratio: variant.aspect_ratio,
+        canvas_wrap_mm: variant.canvas_wrap_mm,
+        wrap_style: variant.wrap_style,
+        front_face_width_mm: variant.front_face_width_mm,
+        front_face_height_mm: variant.front_face_height_mm,
         is_active: variant.is_active,
       })),
     );
@@ -253,4 +440,119 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   return NextResponse.json({ success: true });
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const isAuthed = await verifyAdminSession(request);
+  if (!isAuthed) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+
+  const { data: product, error: productError } = await supabaseAdmin
+    .from("products")
+    .select("id,title")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (productError) {
+    return NextResponse.json({ error: productError.message }, { status: 500 });
+  }
+  if (!product) {
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
+  }
+
+  const [{ data: variants, error: variantsError }, { data: images, error: imagesError }] =
+    await Promise.all([
+      supabaseAdmin.from("product_variants").select("id,stripe_price_id").eq("product_id", id),
+      supabaseAdmin.from("product_images").select("id,image_url").eq("product_id", id),
+    ]);
+
+  if (variantsError || imagesError) {
+    return NextResponse.json(
+      { error: variantsError?.message ?? imagesError?.message ?? "Failed to load product assets." },
+      { status: 500 },
+    );
+  }
+
+  const variantRows = (variants ?? []) as VariantStripeRow[];
+  const imageRows = (images ?? []) as ProductImageRow[];
+  const variantIds = variantRows.map((variant) => variant.id);
+
+  const { data: orderReferences, error: orderReferenceError } = variantIds.length > 0
+    ? await supabaseAdmin
+        .from("order_items")
+        .select("id")
+        .in("variant_id", variantIds)
+        .limit(1)
+    : { data: [], error: null };
+
+  if (orderReferenceError) {
+    return NextResponse.json({ error: orderReferenceError.message }, { status: 500 });
+  }
+
+  let stripeArchiveResult: { archived_prices: number; archived_products: number };
+  try {
+    stripeArchiveResult = await archiveStripeCatalogue(variantRows);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to archive Stripe catalogue entries.";
+    return NextResponse.json({ error: `Stripe archival failed: ${message}` }, { status: 502 });
+  }
+
+  if ((orderReferences ?? []).length > 0) {
+    const [{ error: productArchiveError }, { error: variantArchiveError }] = await Promise.all([
+      supabaseAdmin
+        .from("products")
+        .update({ is_available: false, is_featured: false })
+        .eq("id", id),
+      supabaseAdmin
+        .from("product_variants")
+        .update({ is_active: false, stock_quantity: 0 })
+        .eq("product_id", id),
+    ]);
+
+    if (productArchiveError || variantArchiveError) {
+      return NextResponse.json(
+        { error: productArchiveError?.message ?? variantArchiveError?.message ?? "Failed to archive product." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      action: "archived",
+      ...stripeArchiveResult,
+    });
+  }
+
+  const { error: deleteProductError } = await supabaseAdmin
+    .from("products")
+    .delete()
+    .eq("id", id);
+
+  if (deleteProductError) {
+    return NextResponse.json({ error: deleteProductError.message }, { status: 500 });
+  }
+
+  try {
+    const fileDeleteResult = await deleteProductImageFiles(imageRows);
+    return NextResponse.json({
+      success: true,
+      action: "deleted",
+      ...stripeArchiveResult,
+      ...fileDeleteResult,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete product image files.";
+    return NextResponse.json(
+      {
+        success: true,
+        action: "deleted",
+        warning: `Product was deleted, but image cleanup failed: ${message}`,
+        ...stripeArchiveResult,
+      },
+      { status: 207 },
+    );
+  }
 }

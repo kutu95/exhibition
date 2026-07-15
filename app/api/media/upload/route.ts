@@ -88,3 +88,87 @@ export async function POST(request: Request) {
     media_file_id: data.id,
   });
 }
+
+const getUrlPath = (value: unknown): string | null => {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed.startsWith("/images/")) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.pathname.startsWith("/images/") ? parsed.pathname : null;
+  } catch {
+    return null;
+  }
+};
+
+export async function DELETE(request: Request) {
+  if (!verifyBearerApiKey(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const urlPath = getUrlPath(body.url_path ?? body.url);
+
+  if (!urlPath) {
+    return NextResponse.json({ error: "Image url_path is required." }, { status: 400 });
+  }
+
+  const { data: media, error: mediaError } = await supabaseAdmin
+    .from("media_files")
+    .select("id, url_path, usage_note")
+    .eq("url_path", urlPath)
+    .maybeSingle();
+
+  if (mediaError) {
+    return NextResponse.json({ error: mediaError.message }, { status: 500 });
+  }
+
+  if (!media) {
+    return NextResponse.json({ ok: true, deleted: false });
+  }
+
+  if (!media.usage_note?.startsWith("Photolab upload for ")) {
+    return NextResponse.json({ error: "Media file is not a Photolab upload." }, { status: 409 });
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  const absoluteUrl = new URL(urlPath, siteUrl).toString();
+  const { data: references, error: referencesError } = await supabaseAdmin
+    .from("product_images")
+    .select("id")
+    .in("image_url", [urlPath, absoluteUrl])
+    .limit(1);
+
+  if (referencesError) {
+    return NextResponse.json({ error: referencesError.message }, { status: 500 });
+  }
+
+  if ((references ?? []).length > 0) {
+    return NextResponse.json({ error: "Media file is linked to a product." }, { status: 409 });
+  }
+
+  const targetPath = resolveCanonicalMediaPath(urlPath);
+  await fs.unlink(targetPath).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") {
+      throw error;
+    }
+  });
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("media_files")
+    .delete()
+    .eq("id", media.id);
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, deleted: true });
+}

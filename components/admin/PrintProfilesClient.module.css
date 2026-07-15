@@ -1,0 +1,222 @@
+.wrap {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 760px;
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.form label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.form input,
+.form select {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+.table select,
+.templateTable input,
+.templateTable select,
+.templateTable textarea,
+.templatePanel input,
+.templatePanel select,
+.templatePanel textarea {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  max-width: 280px;
+  padding: 0.4rem 0.5rem;
+  width: 100%;
+}
+
+.templateTable textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.templatePanel textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.templatePanelList {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.templatePanel {
+  border: 1px solid #d8d8d8;
+}
+
+.templateSummary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  list-style-position: inside;
+  padding: 0.75rem;
+}
+
+.templateSummary > span:first-of-type {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.templateEditorGrid {
+  border-top: 1px solid #ececec;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.templateEditorSection {
+  border: 1px solid #ececec;
+  padding: 0.65rem;
+}
+
+.templateEditorSection h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.55rem;
+}
+
+.templateFieldGrid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.statusActive,
+.statusInactive {
+  border: 1px solid currentColor;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  white-space: nowrap;
+}
+
+.statusActive {
+  color: #176b2c;
+}
+
+.statusInactive {
+  color: #777;
+}
+
+.calculatedPixels {
+  color: #555;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.legacyTemplateTableWrap {
+  display: none;
+}
+
+.button {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  width: fit-content;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.secondaryButton {
+  border: 1px solid #111;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  width: fit-content;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d8d8d8;
+}
+
+.table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.templateTable {
+  width: 100%;
+  min-width: 1280px;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td,
+.templateTable th,
+.templateTable td {
+  border-bottom: 1px solid #ececec;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+
+.templateTable td {
+  display: table-cell;
+}
+
+.templateTable td > input,
+.templateTable td > select,
+.templateTable td > label {
+  margin-bottom: 0.4rem;
+}
+
+.inlineLabel {
+  color: #666;
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.actionStack {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: #666;
+}
+
+.error {
+  color: #a40000;
+}
+
+.success {
+  color: #176b2c;
+}

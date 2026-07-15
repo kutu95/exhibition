@@ -1,0 +1,91 @@
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.controls button,
+.button {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+}
+
+.controls select,
+.field,
+.textarea {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem;
+}
+
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.status {
+  border: 1px solid #d8d8d8;
+  padding: 0.2rem 0.45rem;
+  text-transform: capitalize;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.55rem 1rem;
+  margin: 0.9rem 0;
+}
+
+.details p {
+  margin: 0;
+}
+
+.actions {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.textarea {
+  min-height: 150px;
+  width: 100%;
+}
+
+.muted {
+  color: #666;
+}
+
+.error {
+  color: #a40000;
+}
