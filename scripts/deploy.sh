@@ -20,6 +20,10 @@ npm ci
 
 echo "→ Installing worker dependencies"
 python3 -m venv worker/.venv
+# Prefer python3 name if the venv has no bare `python` symlink
+if [ ! -x worker/.venv/bin/python ] && [ -x worker/.venv/bin/python3 ]; then
+  ln -sf python3 worker/.venv/bin/python
+fi
 worker/.venv/bin/pip install -r worker/requirements.txt
 
 echo "→ Building Next.js"

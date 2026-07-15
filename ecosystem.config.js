@@ -1,10 +1,15 @@
+const path = require("path");
+
+const root = __dirname;
+const workerPython = path.join(root, "worker", ".venv", "bin", "python");
+
 module.exports = {
   apps: [
     {
       name: "georgette-exhibition",
       script: "npm",
       args: "start",
-      cwd: __dirname,
+      cwd: root,
       instances: 1,
       autorestart: true,
       watch: false,
@@ -13,7 +18,7 @@ module.exports = {
         NODE_ENV: "production",
         PORT: 3007,
         HOSTNAME: "127.0.0.1",
-        APP_ROOT: __dirname,
+        APP_ROOT: root,
       },
       error_file: "./logs/pm2-error.log",
       out_file: "./logs/pm2-out.log",
@@ -21,15 +26,15 @@ module.exports = {
     },
     {
       name: "georgette-exhibition-worker",
-      script: "worker/fulfilment_worker.py",
-      interpreter: "worker/.venv/bin/python",
-      cwd: __dirname,
+      script: path.join(root, "worker", "fulfilment_worker.py"),
+      interpreter: workerPython,
+      cwd: root,
       instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: "512M",
       env: {
-        APP_ROOT: __dirname,
+        APP_ROOT: root,
         WORKER_TEMP_DIR: "/tmp/exhibition-worker",
       },
       error_file: "./logs/worker-error.log",
