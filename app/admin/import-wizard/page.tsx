@@ -16,10 +16,34 @@ const resolveMasterFilesDirDisplay = (): string => {
 };
 
 export default async function ImportWizardPage() {
-  const [masterFilesPayload, variantTemplates] = await Promise.all([
+  const results = await Promise.allSettled([
     fetchAdminJson<{ files: MasterFileCandidate[] }>("/api/admin/master-files"),
     fetchAdminJson<VariantTemplate[]>("/api/admin/variant-templates"),
   ]);
+
+  const loadErrors: string[] = [];
+  let masterFiles: MasterFileCandidate[] = [];
+  let variantTemplates: VariantTemplate[] = [];
+
+  if (results[0].status === "fulfilled") {
+    masterFiles = results[0].value.files;
+  } else {
+    const reason = results[0].reason;
+    loadErrors.push(
+      reason instanceof Error ? reason.message : "Failed to load master TIFF list from MASTER_FILES_DIR.",
+    );
+  }
+
+  if (results[1].status === "fulfilled") {
+    variantTemplates = results[1].value;
+  } else {
+    const reason = results[1].reason;
+    loadErrors.push(
+      reason instanceof Error
+        ? reason.message
+        : "Failed to load print templates. Apply the additive SQL migrations if variant_templates is missing.",
+    );
+  }
 
   return (
     <div>
@@ -29,9 +53,10 @@ export default async function ImportWizardPage() {
         For a single-screen form, use Register Photo.
       </p>
       <ImportPhotoWizardClient
-        initialMasterFiles={masterFilesPayload.files}
+        initialMasterFiles={masterFiles}
         variantTemplates={variantTemplates}
         masterFilesDirPath={resolveMasterFilesDirDisplay()}
+        loadErrors={loadErrors}
       />
     </div>
   );

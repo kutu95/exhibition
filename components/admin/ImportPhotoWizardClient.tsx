@@ -23,6 +23,7 @@ type ImportPhotoWizardClientProps = {
   initialMasterFiles: MasterFileCandidate[];
   variantTemplates: VariantTemplate[];
   masterFilesDirPath: string;
+  loadErrors?: string[];
 };
 
 type WebImageMode = "generate" | "upload";
@@ -95,6 +96,7 @@ export function ImportPhotoWizardClient({
   initialMasterFiles,
   variantTemplates,
   masterFilesDirPath,
+  loadErrors = [],
 }: ImportPhotoWizardClientProps) {
   const [step, setStep] = useState(0);
   const [understood, setUnderstood] = useState(false);
@@ -370,6 +372,21 @@ export function ImportPhotoWizardClient({
 
   return (
     <div className={styles.wrap}>
+      {loadErrors.length > 0 ? (
+        <div className={styles.blocker} role="alert">
+          <strong>Could not load wizard data</strong>
+          <ul>
+            {loadErrors.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+          <p style={{ marginBottom: 0 }}>
+            On production this usually means <code>MASTER_FILES_DIR</code> is missing or unreachable, or the{" "}
+            <code>variant_templates</code> table needs the additive SQL migrations.
+          </p>
+        </div>
+      ) : null}
+
       <ol className={styles.steps} aria-label="Import steps">
         {STEP_LABELS.map((label, index) => {
           const done = index < step || (index === 6 && Boolean(createdProductId));
