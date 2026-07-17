@@ -24,7 +24,7 @@ export const generateWebImageFromMaster = async (
   options: GenerateWebImageOptions = {},
 ): Promise<void> => {
   const appRoot = resolveAppRoot();
-  const venvPython = path.join(appRoot, "worker", ".venv", "bin", "python");
+  const venvPython = path.join(appRoot, ".worker-venv", "bin", "python3");
   const scriptPath = path.join(appRoot, "worker", "generate_web_image.py");
   const args = [scriptPath, inputPath, outputPath];
   if (typeof options.maxEdge === "number") {

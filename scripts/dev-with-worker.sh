@@ -13,13 +13,13 @@ fi
 
 mkdir -p storage/icc logs
 
-if [ ! -x "worker/.venv/bin/python" ]; then
+if [ ! -x ".worker-venv/bin/python3" ]; then
   echo "→ Creating worker virtualenv"
-  python3 -m venv worker/.venv
+  python3 -m venv .worker-venv
 fi
 
 echo "→ Installing worker dependencies"
-worker/.venv/bin/pip install -r worker/requirements.txt
+.worker-venv/bin/pip install -r worker/requirements.txt
 
 export APP_ROOT="${APP_ROOT:-$APP_DIR}"
 export EXHIBITION_API_BASE_URL="${EXHIBITION_API_BASE_URL:-http://127.0.0.1:3007}"
@@ -40,7 +40,7 @@ npm run dev &
 WEB_PID=$!
 
 echo "→ Starting fulfilment worker"
-worker/.venv/bin/python worker/fulfilment_worker.py &
+.worker-venv/bin/python3 worker/fulfilment_worker.py &
 WORKER_PID=$!
 
 wait "$WEB_PID"

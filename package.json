@@ -4,9 +4,9 @@
   "scripts": {
     "dev": "next dev -p 3007",
     "dev:all": "bash scripts/dev-with-worker.sh",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start -p 3007",
-    "worker": "worker/.venv/bin/python worker/fulfilment_worker.py",
+    "worker": ".worker-venv/bin/python3 worker/fulfilment_worker.py",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:check": "node scripts/check-database.mjs"

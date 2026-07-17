@@ -1,7 +1,7 @@
 const path = require("path");
 
 const root = __dirname;
-const workerPython = path.join(root, "worker", ".venv", "bin", "python");
+const workerPython = path.join(root, ".worker-venv", "bin", "python3");
 
 module.exports = {
   apps: [

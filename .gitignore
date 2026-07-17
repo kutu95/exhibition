@@ -13,3 +13,4 @@ tsconfig.tsbuildinfo
 .DS_Store
 **/__pycache__/
 worker/.venv/
+.worker-venv/
