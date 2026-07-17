@@ -100,16 +100,19 @@ export default async function StoryPage() {
             loose, survivors clinging to the upturned hull — what had been a managed evacuation became a catastrophe.
           </p>
           <p>
-            The inquiry later found Godfrey guilty on two charges: neglect of duty in not more thoroughly checking the
-            ship&apos;s condition the previous evening, and grave error of judgement in placing passengers in the
-            lifeboat under those conditions. His certificate of competency was suspended for eighteen months. A
-            manslaughter charge followed; he was acquitted. He maintained until the end that he had been made a
-            scapegoat — that any competent master would have done the same.
+            The Court of Inquiry cleared Godfrey of the five formal charges brought against him. But it found him guilty
+            on two further counts: gross misconduct in putting so many passengers into so leaky a boat, and neglect of
+            duty in not properly ascertaining his ship&apos;s condition, compounded by a grave error of judgement in not
+            turning back for Fremantle while it was still possible. His certificate of competency was suspended for
+            eighteen months. A manslaughter charge was recommended and a warrant issued — but it was stayed, and no
+            trial ever followed. He maintained until the end that he had been made a scapegoat — that any competent
+            master would have done the same.
           </p>
           <p>
-            He went back to sea. Within two years he had regained his certificate and taken command of the brig Laughing
-            Wave. On 3 May 1882, in the hours before dawn, off North West Cape, he went over the side and did not come
-            back.
+            He went back to sea, and by mid-1878 had regained his certificate. In 1882 he took command of the brig
+            Laughing Wave. Off North West Cape that year, he went over the side and drowned. The press at the time
+            recorded a verdict of &ldquo;temporary insanity&rdquo; — the era&apos;s language for a death it could not, or
+            would not, call by its plainer name.
           </p>
         </FadeInSection>
 
