@@ -187,11 +187,9 @@ export default async function StoryPage() {
             On a calm day you can see the shadow of it from the shore. Most days you cannot.
           </p>
           <p>
-            John Bowskill has spent the past year photographing these locations — Calgardup Bay, Redgate Beach, Isaac
-            Rock, the wreck site — as the basis for this exhibition. The photographs are not illustrations of the
-            historical events. They are pictures of places that carry the weight of what happened in them: the light on
-            the water, the shape of the rocks, the quality of the air at different hours. The history is in the
-            landscape. The camera finds it at an angle that words cannot reach.
+            John Bowskill has spent the past eight years photographing these locations — Calgardup Bay, Redgate Beach,
+            Isaac Rock, the wreck site — as the basis for this exhibition. The photographs you will see are pictures of
+            places that carry the weight of what happened in them. The history is in the landscape.
           </p>
           <p>
             The Georgette 150th opens at Margaret River Region Open Studios on 12 September 2026 — one hundred and
