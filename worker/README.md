@@ -45,12 +45,18 @@ For each `awaiting_file` item the worker:
 
 1. Builds a print-ready flat 8-bit TIFF from the master (Adobe RGB, ZIP compression, DPI metadata)
 2. Saves it under `LOCAL_OUTPUT_DIR/<order>_<slug>/`
-3. Creates one Google Drive folder and uploads the TIFF (if Drive OAuth is configured)
+3. Creates one Google Drive folder, uploads the TIFF, and grants unlisted
+   `anyone with the link` reader access (if Drive OAuth is configured)
 4. Marks the item `file_ready` so it is not retried
 
 The local copy is always retained. If Drive creation or upload fails, the item is
 still marked `file_ready` with a note directing you to upload the local copy
 manually.
+
+The public file URL is stored in `cloud_file_url` for copying into the Pixel
+Perfect order. Anyone possessing that URL can download the print file, although
+it is not discoverable through search. Remove the Drive permission or delete the
+file when the lab no longer needs access.
 
 ## Personal Google Drive OAuth setup
 

@@ -207,7 +207,18 @@ class GoogleDriveClient:
             supportsAllDrives=True,
         ).execute()
         file_id = str(created["id"])
-        return file_id, str(created.get("webViewLink") or f"https://drive.google.com/file/d/{file_id}/view")
+        self.service.permissions().create(
+            fileId=file_id,
+            body={
+                "type": "anyone",
+                "role": "reader",
+                "allowFileDiscovery": False,
+            },
+            fields="id",
+            supportsAllDrives=True,
+        ).execute()
+        public_url = str(created.get("webViewLink") or f"https://drive.google.com/file/d/{file_id}/view")
+        return file_id, public_url
 
 
 class ImageProcessor:
@@ -427,7 +438,7 @@ class FulfilmentWorker:
                 try:
                     _drive_file_id, cloud_file_url = self.drive.upload_file(drive_folder_id, destination)
                     uploaded_to_drive = True
-                    log(f"{item_ref}: uploaded TIFF to Google Drive")
+                    log(f"{item_ref}: uploaded TIFF to Google Drive and enabled anyone-with-link access")
                 except Exception as exc:
                     log(f"{item_ref}: Drive upload failed ({exc}); TIFF remains available locally")
 
@@ -438,7 +449,7 @@ class FulfilmentWorker:
                     "cloud_file_url": cloud_file_url,
                     "cloud_folder_path": drive_folder_id or str(order_folder),
                     "fulfilment_notes": (
-                        "Print TIFF saved locally and uploaded to Google Drive."
+                        "Print TIFF saved locally and uploaded to Google Drive with anyone-with-link download access."
                         if uploaded_to_drive
                         else "Print TIFF saved locally. Drive upload was unavailable; "
                         "upload it manually before sharing with the print lab."

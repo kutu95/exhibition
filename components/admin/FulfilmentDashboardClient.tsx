@@ -147,6 +147,17 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     Object.fromEntries(items.map((item) => [item.order_item_id, item.tracking_number ?? ""])),
   );
 
+  const copyToClipboard = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setError(null);
+      setMessage(`${label} copied.`);
+    } catch {
+      setMessage(null);
+      setError(`Could not copy ${label.toLowerCase()}.`);
+    }
+  };
+
   const filteredItems = useMemo(
     () => {
       if (statusFilter === "all") return items;
@@ -294,9 +305,18 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   <p>
                     <strong>{driveFileUrl(item) ? "Drive file:" : "Local file:"}</strong>{" "}
                     {driveFileUrl(item) ? (
-                      <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
-                        Open TIFF in Google Drive
-                      </a>
+                      <>
+                        <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
+                          Open public TIFF in Google Drive
+                        </a>
+                        <button
+                          className={styles.button}
+                          type="button"
+                          onClick={() => copyToClipboard(driveFileUrl(item)!, "Pixel Perfect file link")}
+                        >
+                          Copy Pixel Perfect Link
+                        </button>
+                      </>
                     ) : (
                       <code>{localFilePath(item)}</code>
                     )}
@@ -325,7 +345,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   className={styles.button}
                   type="button"
                   disabled={!item.cloud_file_url}
-                  onClick={() => navigator.clipboard.writeText(pixelPerfectText(item))}
+                  onClick={() => copyToClipboard(pixelPerfectText(item), "Pixel Perfect order text")}
                 >
                   Copy Pixel Perfect Text
                 </button>

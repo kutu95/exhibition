@@ -204,7 +204,8 @@ Run locally with app: `npm run dev:all` (Next.js + worker).
      - Resizes with **cover crop** (default) or fills a **custom_size** rectangle; optional white border
      - Writes a flat 8-bit TIFF (ZIP/Adobe Deflate) with output ICC embedded and **dpi metadata** set to `print_dpi`
    - Copy TIFF to **`LOCAL_OUTPUT_DIR`**
-   - Optionally create **one** Google Drive folder and upload the TIFF using personal OAuth (reuse an existing folder id if already stored)
+   - Optionally create **one** Google Drive folder, upload the TIFF using personal OAuth, and grant unlisted **anyone-with-link reader** access (reuse an existing folder id if already stored)
+   - Store the public Drive file URL in `cloud_file_url` for the Pixel Perfect order
    - If Drive fails, retain the local copy and record a manual-upload note
    - **`PATCH /api/fulfilment/items/{order_item_id}`** → **`fulfilment_status: 'file_ready'`**, plus `cloud_file_url` / `cloud_folder_path`
 
