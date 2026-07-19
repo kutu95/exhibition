@@ -102,12 +102,17 @@ const localFilePath = (item: FulfilmentDashboardItem): string => {
   return url;
 };
 
+const driveFileUrl = (item: FulfilmentDashboardItem): string | null => {
+  const url = item.cloud_file_url?.trim();
+  return url?.startsWith("https://drive.google.com/") ? url : null;
+};
+
 const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
   [
     `ORDER REF: ${item.order_number}`,
     `Customer: ${item.customer_name ?? ""}`,
     `Deliver to: ${formatAddress(item)}`,
-    `Local file: ${localFilePath(item)}`,
+    `${driveFileUrl(item) ? "Drive file" : "Local file"}: ${localFilePath(item)}`,
     driveFolderUrl(item) ? `Drive folder: ${driveFolderUrl(item)}` : null,
     item.tier_label ? `Range: ${item.tier_label}` : null,
     `Paper: ${item.paper_type ?? ""}`,
@@ -287,7 +292,14 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
               {item.cloud_file_url ? (
                 <>
                   <p>
-                    <strong>Local file:</strong> <code>{localFilePath(item)}</code>
+                    <strong>{driveFileUrl(item) ? "Drive file:" : "Local file:"}</strong>{" "}
+                    {driveFileUrl(item) ? (
+                      <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
+                        Open TIFF in Google Drive
+                      </a>
+                    ) : (
+                      <code>{localFilePath(item)}</code>
+                    )}
                   </p>
                   {driveFolderUrl(item) ? (
                     <p>
@@ -295,7 +307,11 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                       <a href={driveFolderUrl(item)!} target="_blank" rel="noreferrer">
                         Open in Google Drive
                       </a>
-                      <span className={styles.muted}> — upload the TIFF here manually, then share with the lab</span>
+                      <span className={styles.muted}>
+                        {driveFileUrl(item)
+                          ? " — TIFF uploaded automatically"
+                          : " — automatic upload was unavailable; upload the local TIFF manually"}
+                      </span>
                     </p>
                   ) : null}
                   <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />

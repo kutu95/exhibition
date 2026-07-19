@@ -15,8 +15,11 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from google.oauth2.credentials import Credentials as UserCredentials
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 from PIL import Image, ImageCms, ImageOps
 
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
@@ -66,6 +69,7 @@ class WorkerConfig:
     api_key: str
     master_files_dir: Path
     google_credentials_path: Path
+    google_oauth_token_path: Path
     google_drive_folder_id: str
     print_output_profile_path: Path
     local_output_dir: Path | None
@@ -83,6 +87,7 @@ class WorkerConfig:
             or env_required("API_KEY"),
             master_files_dir=Path(env_required("MASTER_FILES_DIR")),
             google_credentials_path=Path(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip() or "."),
+            google_oauth_token_path=Path(os.environ.get("GOOGLE_OAUTH_TOKEN_PATH", "").strip() or "."),
             google_drive_folder_id=os.environ.get("GOOGLE_DRIVE_FOLDER_ID", "").strip(),
             print_output_profile_path=Path(env_required("PRINT_OUTPUT_PROFILE_PATH")),
             local_output_dir=local_output_dir,
@@ -151,10 +156,21 @@ def looks_like_drive_id(value: str) -> bool:
 
 class GoogleDriveClient:
     def __init__(self, config: WorkerConfig):
-        credentials = service_account.Credentials.from_service_account_file(
-            str(config.google_credentials_path),
-            scopes=[DRIVE_SCOPE],
-        )
+        if config.google_oauth_token_path.is_file():
+            credentials = UserCredentials.from_authorized_user_file(
+                str(config.google_oauth_token_path),
+                scopes=[DRIVE_SCOPE],
+            )
+            if credentials.expired and credentials.refresh_token:
+                credentials.refresh(GoogleAuthRequest())
+                config.google_oauth_token_path.write_text(credentials.to_json())
+            self.auth_type = "personal OAuth"
+        else:
+            credentials = service_account.Credentials.from_service_account_file(
+                str(config.google_credentials_path),
+                scopes=[DRIVE_SCOPE],
+            )
+            self.auth_type = "service account"
         self.folder_id = config.google_drive_folder_id
         self.service = build("drive", "v3", credentials=credentials, cache_discovery=False)
 
@@ -178,6 +194,20 @@ class GoogleDriveClient:
             supportsAllDrives=True,
         ).execute()
         return str(created["id"])
+
+    def upload_file(self, folder_id: str, file_path: Path) -> tuple[str, str]:
+        media = MediaFileUpload(str(file_path), mimetype="image/tiff", resumable=True)
+        created = self.service.files().create(
+            body={
+                "name": file_path.name,
+                "parents": [folder_id],
+            },
+            media_body=media,
+            fields="id,webViewLink",
+            supportsAllDrives=True,
+        ).execute()
+        file_id = str(created["id"])
+        return file_id, str(created.get("webViewLink") or f"https://drive.google.com/file/d/{file_id}/view")
 
 
 class ImageProcessor:
@@ -339,7 +369,7 @@ class FulfilmentWorker:
     def __init__(self, config: WorkerConfig):
         self.config = config
         self.api = ApiClient(config)
-        credentials_ok = config.google_credentials_path.is_file()
+        credentials_ok = config.google_oauth_token_path.is_file() or config.google_credentials_path.is_file()
         drive_configured = bool(config.google_drive_folder_id) and credentials_ok
         self.drive = GoogleDriveClient(config) if drive_configured else None
         self.images = ImageProcessor(config)
@@ -391,15 +421,27 @@ class FulfilmentWorker:
             elif drive_folder_id:
                 log(f"{item_ref}: reusing existing Drive folder {drive_folder_id}")
 
+            cloud_file_url = destination.as_uri()
+            uploaded_to_drive = False
+            if self.drive is not None and drive_folder_id:
+                try:
+                    _drive_file_id, cloud_file_url = self.drive.upload_file(drive_folder_id, destination)
+                    uploaded_to_drive = True
+                    log(f"{item_ref}: uploaded TIFF to Google Drive")
+                except Exception as exc:
+                    log(f"{item_ref}: Drive upload failed ({exc}); TIFF remains available locally")
+
             self.api.patch_item(
                 item_ref_id,
                 {
                     "fulfilment_status": "file_ready",
-                    "cloud_file_url": destination.as_uri(),
+                    "cloud_file_url": cloud_file_url,
                     "cloud_folder_path": drive_folder_id or str(order_folder),
                     "fulfilment_notes": (
-                        "Print TIFF saved locally. Upload it into the Drive folder manually, "
-                        "then share with the print lab."
+                        "Print TIFF saved locally and uploaded to Google Drive."
+                        if uploaded_to_drive
+                        else "Print TIFF saved locally. Drive upload was unavailable; "
+                        "upload it manually before sharing with the print lab."
                     ),
                 },
             )
@@ -435,7 +477,7 @@ class FulfilmentWorker:
         log(f"Using local output directory: {self.config.local_output_dir}")
         if self.drive is not None:
             self.drive.check_access()
-            log("Drive folder creation enabled (TIFF upload is manual).")
+            log(f"Drive folder creation and TIFF upload enabled ({self.drive.auth_type}).")
         else:
             log("Drive not configured; local output only.")
         log("Fulfilment worker started.")

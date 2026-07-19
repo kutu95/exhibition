@@ -19,12 +19,17 @@ PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
 LOCAL_OUTPUT_DIR=/mnt/nas/AppData/Exhibition/print-output
 ```
 
-Optional — create a per-order Google Drive folder (TIFF upload is manual):
+Optional — automatically create a per-order folder and upload the TIFF to a
+personal Google Drive account:
 
 ```bash
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/google-service-account.json
+GOOGLE_OAUTH_TOKEN_PATH=/path/to/google-oauth-token.json
 GOOGLE_DRIVE_FOLDER_ID=...
 ```
+
+`GOOGLE_APPLICATION_CREDENTIALS` remains supported for Shared Drives, but a
+service account cannot upload into its own My Drive because it has no storage
+quota.
 
 Optional:
 
@@ -40,10 +45,43 @@ For each `awaiting_file` item the worker:
 
 1. Builds a print-ready flat 8-bit TIFF from the master (Adobe RGB, ZIP compression, DPI metadata)
 2. Saves it under `LOCAL_OUTPUT_DIR/<order>_<slug>/`
-3. Creates one Google Drive folder (if Drive is configured) — **does not upload the TIFF**
+3. Creates one Google Drive folder and uploads the TIFF (if Drive OAuth is configured)
 4. Marks the item `file_ready` so it is not retried
 
-Upload the TIFF into the Drive folder yourself, then share it with the print lab.
+The local copy is always retained. If Drive creation or upload fails, the item is
+still marked `file_ready` with a note directing you to upload the local copy
+manually.
+
+## Personal Google Drive OAuth setup
+
+OAuth does not use or store your Google password.
+
+1. In Google Cloud Console, enable **Google Drive API**.
+2. Configure the OAuth consent screen. Add your Google account as a test user
+   while setting up; publish the app to Production before unattended use so the
+   refresh token does not expire after seven days.
+3. Create an OAuth client with application type **Desktop app** and download its
+   JSON file.
+4. On a computer with a browser, install dependencies and authorize once:
+
+```bash
+cd /path/to/exhibition
+python3 -m venv worker/.venv
+worker/.venv/bin/pip install -r worker/requirements.txt
+worker/.venv/bin/python worker/authorize_google_drive.py ~/Downloads/client_secret.json
+```
+
+5. Copy `worker/google-oauth-token.json` securely to the production server and
+   set its permissions and worker environment:
+
+```bash
+chmod 600 /path/to/google-oauth-token.json
+GOOGLE_OAUTH_TOKEN_PATH=/path/to/google-oauth-token.json
+GOOGLE_DRIVE_FOLDER_ID=...
+```
+
+The token grants Drive access and must be protected like a password. The worker
+refreshes expired access tokens automatically.
 
 ## Colour / masters
 

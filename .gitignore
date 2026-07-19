@@ -14,3 +14,5 @@ tsconfig.tsbuildinfo
 **/__pycache__/
 worker/.venv/
 .worker-venv/
+worker/google-oauth-client*.json
+worker/google-oauth-token*.json

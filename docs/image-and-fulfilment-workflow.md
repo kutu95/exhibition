@@ -179,11 +179,15 @@ EXHIBITION_API_KEY=...
 MASTER_FILES_DIR=/mnt/nas/AppData/Exhibition/Masters
 PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
 LOCAL_OUTPUT_DIR=/mnt/nas/AppData/Exhibition/print-output
-GOOGLE_APPLICATION_CREDENTIALS=...   # optional: create per-order Drive folder
-GOOGLE_DRIVE_FOLDER_ID=...           # optional
+GOOGLE_OAUTH_TOKEN_PATH=...          # optional: personal Drive OAuth token
+GOOGLE_DRIVE_FOLDER_ID=...           # optional: parent folder for automatic uploads
 ```
 
-`LOCAL_OUTPUT_DIR` is required. Drive credentials are optional and only create an empty per-order folder; the TIFF is uploaded manually.
+`LOCAL_OUTPUT_DIR` is required and always retains a copy. Personal OAuth credentials
+optionally create a per-order Drive folder and upload the TIFF automatically. A
+service account remains supported for Shared Drives via
+`GOOGLE_APPLICATION_CREDENTIALS`, but cannot upload to its own My Drive because it
+has no storage quota. See `worker/README.md` for the one-time OAuth setup.
 
 `WORKER_POLL_SECONDS` defaults to 60.
 
@@ -200,7 +204,8 @@ Run locally with app: `npm run dev:all` (Next.js + worker).
      - Resizes with **cover crop** (default) or fills a **custom_size** rectangle; optional white border
      - Writes a flat 8-bit TIFF (ZIP/Adobe Deflate) with output ICC embedded and **dpi metadata** set to `print_dpi`
    - Copy TIFF to **`LOCAL_OUTPUT_DIR`**
-   - Optionally create **one** Google Drive folder (no file upload; reuse existing folder id if already stored)
+   - Optionally create **one** Google Drive folder and upload the TIFF using personal OAuth (reuse an existing folder id if already stored)
+   - If Drive fails, retain the local copy and record a manual-upload note
    - **`PATCH /api/fulfilment/items/{order_item_id}`** → **`fulfilment_status: 'file_ready'`**, plus `cloud_file_url` / `cloud_folder_path`
 
 Queue and updates: `lib/fulfilment-items.ts`, `lib/fulfilment-update.ts`. Admin mirror routes under `/api/admin/fulfilment/`.
@@ -272,8 +277,9 @@ Timestamps: `file_ready_at`, `submitted_to_lab_at`, `shipped_at` (set on status 
 | `APP_ROOT` | Resolve `worker/` scripts from Next.js |
 | `EXHIBITION_API_BASE_URL`, `EXHIBITION_API_KEY` | Worker ↔ app API |
 | `PRINT_OUTPUT_PROFILE_PATH` | Lab output ICC (Adobe RGB 1998) |
-| `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_DRIVE_FOLDER_ID` | Print file delivery |
-| `LOCAL_OUTPUT_DIR` | Local print output instead of Drive |
+| `GOOGLE_OAUTH_TOKEN_PATH`, `GOOGLE_DRIVE_FOLDER_ID` | Automatic personal Drive delivery |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Shared Drive service-account alternative |
+| `LOCAL_OUTPUT_DIR` | Required retained local print output |
 | Stripe / Resend vars | Checkout and emails |
 
 ---
