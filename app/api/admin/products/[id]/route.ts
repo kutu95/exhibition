@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
-import { resolveCanonicalMediaPath } from "../../../../../lib/media-storage";
+import { resolveReadableMediaPath } from "../../../../../lib/media-storage";
 import { stripe } from "../../../../../lib/stripe";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
 import { isValidProductImageUrl } from "../../../../../lib/utils/site-content-image";
@@ -164,7 +164,7 @@ const deleteProductImageFiles = async (images: ProductImageRow[]) => {
       deletedMediaRows += 1;
     }
 
-    const absoluteFilePath = resolveCanonicalMediaPath(urlPath);
+    const absoluteFilePath = resolveReadableMediaPath(urlPath);
     await fs.unlink(absoluteFilePath).then(
       () => {
         deletedFiles += 1;

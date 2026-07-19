@@ -99,7 +99,42 @@ const truncateFilename = (filename: string): string => {
   return `${filename.slice(0, 12)}...${filename.slice(-14)}`;
 };
 
+const mediaUsageLabels = (file: MediaFile): string[] => {
+  const siteContentKeys = file.usage?.site_content_keys ?? [];
+  const productImageCount = file.usage?.product_image_count ?? 0;
+  return [
+    ...siteContentKeys,
+    ...(productImageCount > 0
+      ? [`${productImageCount} product image${productImageCount === 1 ? "" : "s"}`]
+      : []),
+  ];
+};
+
 const isManagedLocalMediaPath = (src: string): boolean => src.startsWith("/images/") || src.startsWith("/video/");
+
+function MediaLibraryThumb({ file }: { file: MediaFile }) {
+  const [failed, setFailed] = useState(false);
+
+  if (file.file_type === "video") {
+    return <video className={styles.libraryThumb} src={file.url_path} muted loop playsInline />;
+  }
+
+  if (failed) {
+    return <div className={styles.missingThumb}>File missing on disk</div>;
+  }
+
+  return (
+    <Image
+      src={file.url_path}
+      alt={file.alt_text ?? ""}
+      width={120}
+      height={80}
+      className={styles.libraryThumb}
+      unoptimized={isManagedLocalMediaPath(file.url_path)}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 function InlineEditableField({
   value,
@@ -414,6 +449,8 @@ function MediaLibrary({
         </div>
       </div>
 
+      {error && !uploadModalType ? <p className={styles.error}>{error}</p> : null}
+
       {uploadModalType ? (
         <div className={styles.modalBackdrop}>
           <div className={styles.modal}>
@@ -451,18 +488,17 @@ function MediaLibrary({
       <div className={styles.mediaGrid}>
         {filteredFiles.map((file) => (
           <article className={styles.mediaCard} key={file.id}>
-            {file.file_type === "image" ? (
-              <Image
-                src={file.url_path}
-                alt={file.alt_text ?? ""}
-                width={120}
-                height={80}
-                className={styles.libraryThumb}
-                unoptimized={isManagedLocalMediaPath(file.url_path)}
-              />
-            ) : (
-              <video className={styles.libraryThumb} src={file.url_path} muted loop playsInline />
-            )}
+            <MediaLibraryThumb file={file} />
+
+            <p
+              className={
+                mediaUsageLabels(file).length > 0 ? styles.usageBadgeInUse : styles.usageBadgeUnused
+              }
+            >
+              {mediaUsageLabels(file).length > 0
+                ? `In use: ${mediaUsageLabels(file).join(", ")}`
+                : "Unused"}
+            </p>
 
             <p className={styles.mediaName} title={file.filename}>
               {truncateFilename(file.filename)}
@@ -501,12 +537,21 @@ function MediaLibrary({
             <button
               className={styles.deleteButton}
               type="button"
+              disabled={mediaUsageLabels(file).length > 0}
+              title={
+                mediaUsageLabels(file).length > 0
+                  ? "Replace or unlink this file before deleting it."
+                  : "Delete this unused file"
+              }
               onClick={() => {
                 if (!window.confirm("Delete this file? This cannot be undone.")) return;
-                void onDeleteMedia(file.id);
+                setError(null);
+                void onDeleteMedia(file.id).catch((deleteError) => {
+                  setError(deleteError instanceof Error ? deleteError.message : "Failed to delete media.");
+                });
               }}
             >
-              Delete
+              {mediaUsageLabels(file).length > 0 ? "In use" : "Delete"}
             </button>
           </article>
         ))}
@@ -554,6 +599,8 @@ export function ContentAdminClient({ initialContentRows, initialMediaFiles }: Co
     endpoint: "/api/admin/upload/image" | "/api/admin/upload/video",
     onProgress: (progress: number) => void,
   ) => {
+    const previousMediaId =
+      contentRows.find((row) => row.content_key === rowKey)?.media_file_id ?? null;
     const uploadResponse = await uploadWithProgress(endpoint, file, { usage_note: rowKey }, onProgress);
     const patchResponse = await fetch(`/api/admin/content/${encodeURIComponent(rowKey)}`, {
       method: "PATCH",
@@ -566,7 +613,15 @@ export function ContentAdminClient({ initialContentRows, initialMediaFiles }: Co
 
     if (!patchResponse.ok) {
       const body = (await patchResponse.json().catch(() => null)) as { error?: string } | null;
+      await fetch(`/api/admin/media/${uploadResponse.media_file_id}`, { method: "DELETE" }).catch(() => undefined);
       throw new Error(body?.error ?? "Failed to link media.");
+    }
+
+    if (previousMediaId && previousMediaId !== uploadResponse.media_file_id) {
+      const cleanupResponse = await fetch(`/api/admin/media/${previousMediaId}`, { method: "DELETE" });
+      if (!cleanupResponse.ok && cleanupResponse.status !== 409) {
+        console.error("Failed to clean up replaced media", await cleanupResponse.text().catch(() => ""));
+      }
     }
 
     const refreshedMedia = await fetch("/api/admin/media", { cache: "no-store" });
@@ -625,7 +680,13 @@ export function ContentAdminClient({ initialContentRows, initialMediaFiles }: Co
       throw new Error(body?.error ?? "Failed to delete media.");
     }
 
-    setMediaFiles((current) => current.filter((file) => file.id !== id));
+    const refreshedMedia = await fetch("/api/admin/media", { cache: "no-store" });
+    if (refreshedMedia.ok) {
+      setMediaFiles((await refreshedMedia.json()) as MediaFile[]);
+    } else {
+      setMediaFiles((current) => current.filter((file) => file.id !== id));
+    }
+
     setContentRows((rows) =>
       rows.map((row) => {
         if (row.media_file_id !== id) return row;

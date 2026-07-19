@@ -25,8 +25,13 @@ python3 -m venv .worker-venv
 echo "→ Building Next.js"
 npm run build
 
-# Preserve uploaded media in the canonical location
+echo "→ Ensuring media directories"
 mkdir -p public/images public/video storage/icc logs
+if [ -n "${WEB_MEDIA_DIR:-}" ]; then
+  mkdir -p "$WEB_MEDIA_DIR/images" "$WEB_MEDIA_DIR/video"
+fi
+
+# Preserve uploaded media in the canonical location
 if [ -d "$APP_ROOT/uploads-backup/images" ]; then
   cp -r "$APP_ROOT/uploads-backup/images/." public/images/
 fi

@@ -147,6 +147,10 @@ export type MediaFile = {
   alt_text: string | null;
   usage_note: string | null;
   uploaded_at: string;
+  usage?: {
+    site_content_keys: string[];
+    product_image_count: number;
+  };
 };
 
 export type PrintProfile = {

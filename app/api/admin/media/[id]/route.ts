@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
-import { resolveCanonicalMediaPath } from "../../../../../lib/media-storage";
+import { resolveCanonicalMediaPath, resolveReadableMediaPath } from "../../../../../lib/media-storage";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
 import type { MediaFile } from "../../../../../lib/supabase/types";
 
@@ -20,6 +20,17 @@ const updateSchema = z
   .refine((value) => value.alt_text !== undefined || value.usage_note !== undefined, {
     message: "No fields provided to update.",
   });
+
+const mediaPathMatches = (imageUrl: string | null | undefined, urlPath: string): boolean => {
+  const trimmed = imageUrl?.trim();
+  if (!trimmed) return false;
+  if (trimmed === urlPath) return true;
+  try {
+    return new URL(trimmed).pathname === urlPath;
+  } catch {
+    return false;
+  }
+};
 
 export async function PATCH(request: Request, context: RouteContext) {
   const isAuthed = await verifyAdminSession(request);
@@ -76,28 +87,88 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Media file not found." }, { status: 404 });
   }
 
-  const relativeFilePath = media.url_path.replace(/^\/+/, "");
-  const absoluteFilePath = resolveCanonicalMediaPath(relativeFilePath);
+  const [contentByIdResult, contentRowsResult, productImagesResult] = await Promise.all([
+    supabaseAdmin.from("site_content").select("content_key").eq("media_file_id", id),
+    supabaseAdmin.from("site_content").select("content_key, content_value, media_file_id"),
+    supabaseAdmin.from("product_images").select("image_url"),
+  ]);
 
-  await fs.unlink(absoluteFilePath).catch((error: NodeJS.ErrnoException) => {
-    if (error.code !== "ENOENT") {
-      throw error;
-    }
-  });
-
-  const { error: clearContentError } = await supabaseAdmin
-    .from("site_content")
-    .update({ media_file_id: null, content_value: "" })
-    .eq("media_file_id", id);
-
-  if (clearContentError) {
-    return NextResponse.json({ error: clearContentError.message }, { status: 500 });
+  const referenceError =
+    contentByIdResult.error ?? contentRowsResult.error ?? productImagesResult.error;
+  if (referenceError) {
+    return NextResponse.json({ error: referenceError.message }, { status: 500 });
   }
 
-  const { error: deleteError } = await supabaseAdmin.from("media_files").delete().eq("id", id);
+  const contentKeys = new Set((contentByIdResult.data ?? []).map((row) => row.content_key));
+  for (const row of contentRowsResult.data ?? []) {
+    if (row.media_file_id === id) {
+      contentKeys.add(row.content_key);
+      continue;
+    }
+    if (mediaPathMatches(row.content_value, media.url_path)) {
+      contentKeys.add(row.content_key);
+    }
+  }
+
+  const productImageCount = (productImagesResult.data ?? []).filter((row) =>
+    mediaPathMatches(row.image_url, media.url_path),
+  ).length;
+
+  if (contentKeys.size > 0 || productImageCount > 0) {
+    const references = [
+      contentKeys.size > 0 ? `site content: ${[...contentKeys].join(", ")}` : null,
+      productImageCount > 0
+        ? `${productImageCount} product image${productImageCount === 1 ? "" : "s"}`
+        : null,
+    ].filter(Boolean);
+    return NextResponse.json(
+      {
+        error: `This file is in use by ${references.join(" and ")}. Replace or unlink it before deleting.`,
+      },
+      { status: 409 },
+    );
+  }
+
+  const { data: deletedRows, error: deleteError } = await supabaseAdmin
+    .from("media_files")
+    .delete()
+    .eq("id", id)
+    .select("id");
+
   if (deleteError) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  if (!deletedRows || deletedRows.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Could not delete this media record from the database. Check that SUPABASE_SERVICE_ROLE_KEY is configured for admin writes.",
+      },
+      { status: 500 },
+    );
+  }
+
+  const relativeFilePath = media.url_path.replace(/^\/+/, "");
+  const absoluteFilePath = resolveReadableMediaPath(relativeFilePath);
+  try {
+    await fs.unlink(absoluteFilePath);
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code !== "ENOENT") {
+      console.error("Deleted media DB row but failed to remove file:", absoluteFilePath, err);
+    }
+  }
+
+  // If the file also existed under the write target (shared vs public), remove that too.
+  const writePath = resolveCanonicalMediaPath(relativeFilePath);
+  if (writePath !== absoluteFilePath) {
+    await fs.unlink(writePath).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") {
+        console.error("Deleted media DB row but failed to remove write-target file:", writePath, error);
+      }
+    });
+  }
+
+  return NextResponse.json({ success: true, deleted_id: id });
 }

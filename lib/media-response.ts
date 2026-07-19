@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { NextResponse } from "next/server";
 
-import { resolveCanonicalMediaPath } from "./media-storage";
+import { resolveReadableMediaPath } from "./media-storage";
 
 const contentTypeByExtension: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -24,7 +24,7 @@ export const buildMediaResponse = async (
     return NextResponse.json({ error: "Invalid filename." }, { status: 400 });
   }
 
-  const absolutePath = resolveCanonicalMediaPath(`${folder}/${filename}`);
+  const absolutePath = resolveReadableMediaPath(`${folder}/${filename}`);
   const extension = path.extname(filename).toLowerCase();
   const contentType = contentTypeByExtension[extension] ?? "application/octet-stream";
 
