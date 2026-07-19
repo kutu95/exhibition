@@ -30,7 +30,7 @@ SECTIONS: list[tuple[str, list[str]]] = [
         "2. Prerequisites before registering a photo",
         [
             "Before opening the admin Register Photo screen, confirm the following:",
-            "1. The finished master exists as a .tif or .tiff file in MASTER_FILES_DIR (production example: /mnt/exhibition-masters). In local development, MASTER_FILES_DIR_DEV may be used instead.",
+            "1. The finished master exists as a .tif or .tiff file in MASTER_FILES_DIR (Mac: /Volumes/AppData/Exhibition/Masters; server: /mnt/nas/AppData/Exhibition/Masters). In local development, MASTER_FILES_DIR_DEV may be used instead.",
             "2. The master filename is path-free (for example isaac-rock-01.tif). The database stores the filename only — not a full folder path.",
             "3. The TIFF includes an embedded ICC colour profile. The fulfilment worker refuses to process masters that have no embedded profile, because it will not guess a source colour space.",
             "4. Variant templates (print sizes and base prices) already exist and are marked active. You will select which templates apply to this photo at registration time.",

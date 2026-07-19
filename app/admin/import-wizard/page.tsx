@@ -4,14 +4,14 @@ import type { Theme, VariantTemplate } from "../../../lib/supabase/types";
 import { fetchAdminJson } from "../_lib/fetch-admin";
 
 const resolveMasterFilesDirDisplay = (): string => {
-  if (process.env.NODE_ENV !== "production") {
-    return "/Volumes/AppData/Exhibition";
-  }
-
   try {
     return getMasterFilesDir();
   } catch {
-    return process.env.MASTER_FILES_DIR?.trim() || "(MASTER_FILES_DIR not configured)";
+    return (
+      process.env.MASTER_FILES_DIR_DEV?.trim() ||
+      process.env.MASTER_FILES_DIR?.trim() ||
+      "(MASTER_FILES_DIR not configured)"
+    );
   }
 };
 

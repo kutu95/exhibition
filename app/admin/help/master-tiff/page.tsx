@@ -78,10 +78,11 @@ export default function MasterTiffHelpPage() {
             Save into the master share folder used by this app:
             <ul>
               <li>
-                Local development: <code>/Volumes/AppData/Exhibition</code>
+                Mac: <code>/Volumes/AppData/Exhibition/Masters</code>
               </li>
               <li>
-                Production host: the path shown on Import Wizard step 2 (<code>MASTER_FILES_DIR</code>)
+                Server: <code>/mnt/nas/AppData/Exhibition/Masters</code> (also shown on Import Wizard
+                step 2 as <code>MASTER_FILES_DIR</code>)
               </li>
             </ul>
           </li>

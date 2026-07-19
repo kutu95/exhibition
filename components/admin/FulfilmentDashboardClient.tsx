@@ -64,7 +64,17 @@ type FulfilmentDashboardClientProps = {
   fetchedAt: string;
 };
 
-const statusOptions = ["all", "awaiting_file", "file_ready", "submitted_to_lab", "shipped", "delivered"];
+const inProcessStatuses = new Set(["awaiting_file", "file_ready", "submitted_to_lab", "shipped"]);
+
+const statusOptions = [
+  { value: "in_process", label: "In process" },
+  { value: "all", label: "All active orders" },
+  { value: "awaiting_file", label: "Awaiting file" },
+  { value: "file_ready", label: "File ready" },
+  { value: "submitted_to_lab", label: "Submitted to lab" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+];
 
 const formatAddress = (item: FulfilmentDashboardItem): string =>
   [item.shipping_address.street, item.shipping_address.suburb, item.shipping_address.state, item.shipping_address.postcode]
@@ -97,7 +107,7 @@ const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
 
 export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashboardClientProps) {
   const router = useRouter();
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("in_process");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refs, setRefs] = useState<Record<string, string>>(
@@ -108,10 +118,13 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
   );
 
   const filteredItems = useMemo(
-    () =>
-      statusFilter === "all"
-        ? items
-        : items.filter((item) => item.fulfilment_status === statusFilter),
+    () => {
+      if (statusFilter === "all") return items;
+      if (statusFilter === "in_process") {
+        return items.filter((item) => inProcessStatuses.has(item.fulfilment_status));
+      }
+      return items.filter((item) => item.fulfilment_status === statusFilter);
+    },
     [items, statusFilter],
   );
 
@@ -193,9 +206,9 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
         <label>
           Status{" "}
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {status}
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -210,6 +223,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
       {error ? <p className={styles.error}>{error}</p> : null}
 
       <div className={styles.grid}>
+        {filteredItems.length === 0 ? <p className={styles.muted}>No orders match this filter.</p> : null}
         {filteredItems.map((item) => (
           <article className={styles.card} key={item.order_item_id}>
             <div className={styles.cardHeader}>

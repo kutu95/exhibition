@@ -197,6 +197,7 @@ export const getFulfilmentQueue = async (): Promise<FulfilmentItem[]> => {
     left join exhibition.print_profiles spp on spp.id = pv.source_print_profile_id and spp.is_active = true
     left join exhibition.print_profiles dpp on dpp.id = pv.destination_print_profile_id and dpp.is_active = true
     where p.product_type = 'print'
+      and o.status not in ('cancelled', 'refunded')
       and oi.fulfilment_status in ('awaiting_file', 'file_ready', 'submitted_to_lab', 'shipped', 'delivered')
     order by o.created_at asc, oi.id asc
   `);

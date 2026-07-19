@@ -53,7 +53,7 @@ Customers see a **web JPEG** (`product_images.image_url`, typically `/images/...
 
 ### Master files
 
-- Stored under **`MASTER_FILES_DIR`** (production: mounted share on the Ubuntu host, e.g. `/mnt/exhibition-masters`).
+- Stored under **`MASTER_FILES_DIR`** (Mac: `/Volumes/AppData/Exhibition/Masters`; server: `/mnt/nas/AppData/Exhibition/Masters`).
 - Dev may use **`MASTER_FILES_DIR_DEV`** when `NODE_ENV` is not `production`.
 - Filename only in the database (e.g. `photo-name.tif`) — no paths. Valid extensions: `.tif`, `.tiff`.
 - Masters should include an **embedded ICC profile** (required later for the print worker).
@@ -176,7 +176,7 @@ See **`worker/README.md`**. Typical production env:
 ```bash
 EXHIBITION_API_BASE_URL=https://exhibition.margies.app
 EXHIBITION_API_KEY=...
-MASTER_FILES_DIR=/mnt/exhibition-masters
+MASTER_FILES_DIR=/mnt/nas/AppData/Exhibition/Masters
 PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
 GOOGLE_APPLICATION_CREDENTIALS=...
 GOOGLE_DRIVE_FOLDER_ID=...

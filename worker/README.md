@@ -14,7 +14,7 @@ Required:
 ```bash
 EXHIBITION_API_BASE_URL=https://exhibition.margies.app
 EXHIBITION_API_KEY=...
-MASTER_FILES_DIR=/mnt/exhibition-masters
+MASTER_FILES_DIR=/mnt/nas/AppData/Exhibition/Masters
 PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
 ```
 
