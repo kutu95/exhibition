@@ -124,7 +124,7 @@ const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
     item.shipping_class ? `Shipping class: ${item.shipping_class}` : null,
     `Edition: ${item.edition_number_assigned ?? ""} of ${item.edition_size ?? ""}`,
     "Colour space: Adobe RGB 1998",
-    `Print ready: Yes - ${item.print_dpi}ppi, Adobe RGB 1998, 8-bit JPEG, flattened`,
+    `Print ready: Yes - ${item.print_dpi}ppi, Adobe RGB 1998, 8-bit TIFF, flattened, ZIP`,
     "Trimmed: Yes",
     item.variant_fulfilment_notes ? `Notes: ${item.variant_fulfilment_notes}` : null,
     `Qty: ${item.quantity}`,
@@ -295,7 +295,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                       <a href={driveFolderUrl(item)!} target="_blank" rel="noreferrer">
                         Open in Google Drive
                       </a>
-                      <span className={styles.muted}> — upload the JPEG here manually, then share with the lab</span>
+                      <span className={styles.muted}> — upload the TIFF here manually, then share with the lab</span>
                     </p>
                   ) : null}
                   <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />

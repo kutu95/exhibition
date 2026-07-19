@@ -42,7 +42,7 @@ flowchart LR
 |-------|------------|--------|
 | Register photo | Admin UI or PhotoLab API | Product, variants, web image, Stripe prices |
 | Browse & buy | Customer on site | Paid `order_items` |
-| Auto print prep | Python worker | Sized Adobe RGB JPEG + `file_ready` |
+| Auto print prep | Python worker | Sized Adobe RGB TIFF + `file_ready` |
 | Lab & ship | Admin fulfilment dashboard | Pixel Perfect ref, tracking, emails |
 
 ---
@@ -183,7 +183,7 @@ GOOGLE_APPLICATION_CREDENTIALS=...   # optional: create per-order Drive folder
 GOOGLE_DRIVE_FOLDER_ID=...           # optional
 ```
 
-`LOCAL_OUTPUT_DIR` is required. Drive credentials are optional and only create an empty per-order folder; the JPEG is uploaded manually.
+`LOCAL_OUTPUT_DIR` is required. Drive credentials are optional and only create an empty per-order folder; the TIFF is uploaded manually.
 
 `WORKER_POLL_SECONDS` defaults to 60.
 
@@ -198,8 +198,8 @@ Run locally with app: `npm run dev:all` (Next.js + worker).
      - Requires embedded ICC in the TIFF
      - Converts to **Adobe RGB 1998** using `PRINT_OUTPUT_PROFILE_PATH` (perceptual intent, black-point compensation)
      - Resizes with **cover crop** (default) or fills a **custom_size** rectangle; optional white border
-     - Writes a high-quality JPEG with output ICC embedded and **dpi metadata** set to `print_dpi`
-   - Copy JPEG to **`LOCAL_OUTPUT_DIR`**
+     - Writes a flat 8-bit TIFF (ZIP/Adobe Deflate) with output ICC embedded and **dpi metadata** set to `print_dpi`
+   - Copy TIFF to **`LOCAL_OUTPUT_DIR`**
    - Optionally create **one** Google Drive folder (no file upload; reuse existing folder id if already stored)
    - **`PATCH /api/fulfilment/items/{order_item_id}`** → **`fulfilment_status: 'file_ready'`**, plus `cloud_file_url` / `cloud_folder_path`
 
@@ -218,7 +218,7 @@ Dimensions come from **`product_variants`** at order time (originally copied fro
 | Status | Meaning |
 |--------|---------|
 | `awaiting_file` | Paid; worker should produce upload |
-| `file_ready` | Print JPEG available (Drive link or local URI) |
+| `file_ready` | Print TIFF available (Drive link or local URI) |
 | `submitted_to_lab` | Pixel Perfect order reference saved |
 | `shipped` | Tracking recorded; customer may be notified |
 | `delivered` | Terminal state |

@@ -270,7 +270,7 @@ class ImageProcessor:
         flags = imagecms_blackpoint_flag()
 
         slug = str(item.get("slug") or slugify(str(item.get("master_filename") or "print")))
-        filename = f"{order_number(item)}_{slug}_{int(width_mm)}x{int(height_mm)}mm.jpg"
+        filename = f"{order_number(item)}_{slug}_{int(width_mm)}x{int(height_mm)}mm.tif"
         output = self.config.temp_dir / filename
 
         with Image.open(master_path) as image:
@@ -323,13 +323,12 @@ class ImageProcessor:
             converted = canvas
             if border_px > 0:
                 converted = ImageOps.expand(converted, border=border_px, fill=(255, 255, 255))
+            # Flat 8-bit RGB TIFF for Pixel Perfect — lossless ZIP, Adobe RGB ICC, print DPI.
             converted = converted.convert("RGB")
-            # Pixel dimensions are already computed at print_dpi; also embed JFIF/EXIF
-            # density so Photoshop and labs report 300 PPI instead of defaulting to 72.
             converted.save(
                 output,
-                "JPEG",
-                quality=90,
+                "TIFF",
+                compression="tiff_adobe_deflate",
                 dpi=(print_dpi, print_dpi),
                 icc_profile=destination_profile_bytes,
             )
@@ -367,7 +366,7 @@ class FulfilmentWorker:
 
         if not self.config.local_output_dir:
             raise RuntimeError(
-                "LOCAL_OUTPUT_DIR is required. Print JPEGs are saved locally; "
+                "LOCAL_OUTPUT_DIR is required. Print TIFFs are saved locally; "
                 "upload to Google Drive is manual."
             )
 
@@ -399,7 +398,7 @@ class FulfilmentWorker:
                     "cloud_file_url": destination.as_uri(),
                     "cloud_folder_path": drive_folder_id or str(order_folder),
                     "fulfilment_notes": (
-                        "Print JPEG saved locally. Upload it into the Drive folder manually, "
+                        "Print TIFF saved locally. Upload it into the Drive folder manually, "
                         "then share with the print lab."
                     ),
                 },
@@ -429,14 +428,14 @@ class FulfilmentWorker:
         self.api.health()
         if not self.config.local_output_dir:
             raise RuntimeError(
-                "LOCAL_OUTPUT_DIR is required. Print JPEGs are saved locally; "
+                "LOCAL_OUTPUT_DIR is required. Print TIFFs are saved locally; "
                 "upload to Google Drive is manual."
             )
         self.config.local_output_dir.mkdir(parents=True, exist_ok=True)
         log(f"Using local output directory: {self.config.local_output_dir}")
         if self.drive is not None:
             self.drive.check_access()
-            log("Drive folder creation enabled (JPEG upload is manual).")
+            log("Drive folder creation enabled (TIFF upload is manual).")
         else:
             log("Drive not configured; local output only.")
         log("Fulfilment worker started.")

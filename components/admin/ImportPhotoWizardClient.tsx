@@ -458,7 +458,7 @@ export function ImportPhotoWizardClient({
               <li>You add title, slug, edition size, and choose print sizes (templates).</li>
               <li>The app creates a public web JPEG (or uses your override), product, variants, and Stripe prices.</li>
               <li>The product is marked available and appears on <code>/shop</code>.</li>
-              <li>After a sale, a separate fulfilment worker builds the lab JPEG from the same master.</li>
+              <li>After a sale, a separate fulfilment worker builds the lab TIFF from the same master.</li>
             </ul>
             <h3>You will need</h3>
             <ul>
@@ -858,7 +858,7 @@ export function ImportPhotoWizardClient({
           <div className={styles.explain}>
             <p>
               Customers can buy it now at <code>/shop/{slug}</code>. After payment, fulfilment waits for the print
-              worker to prepare a lab JPEG from the same master TIFF.
+              worker to prepare a lab TIFF from the same master TIFF.
             </p>
           </div>
           <div className={styles.doneLinks}>

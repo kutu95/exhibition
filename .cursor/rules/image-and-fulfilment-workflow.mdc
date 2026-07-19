@@ -17,8 +17,8 @@ alwaysApply: false
 ## Order → print
 
 1. Stripe webhook → `order_items.fulfilment_status = awaiting_file`
-2. **`worker/fulfilment_worker.py`** polls `/api/fulfilment/queue`, builds sized Adobe RGB JPEG from master + variant mm/DPI (`cover_crop` or `custom_size`)
-3. Save under `LOCAL_OUTPUT_DIR`; optionally create one Drive folder (manual JPEG upload) → PATCH `file_ready`
-4. Admin **`/admin/fulfilment`** → upload JPEG to Drive folder → Pixel Perfect ref → `submitted_to_lab` → `shipped`
+2. **`worker/fulfilment_worker.py`** polls `/api/fulfilment/queue`, builds sized Adobe RGB TIFF from master + variant mm/DPI (`cover_crop` or `custom_size`)
+3. Save under `LOCAL_OUTPUT_DIR`; optionally create one Drive folder (manual TIFF upload) → PATCH `file_ready`
+4. Admin **`/admin/fulfilment`** → upload TIFF to Drive folder → Pixel Perfect ref → `submitted_to_lab` → `shipped`
 
 Print dimensions come from **product_variants** on the order (`fit_mode` / `crop_offset` / `size_lock`), not templates at fulfilment time.

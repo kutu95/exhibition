@@ -19,7 +19,7 @@ PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
 LOCAL_OUTPUT_DIR=/mnt/nas/AppData/Exhibition/print-output
 ```
 
-Optional — create a per-order Google Drive folder (JPEG upload is manual):
+Optional — create a per-order Google Drive folder (TIFF upload is manual):
 
 ```bash
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/google-service-account.json
@@ -38,12 +38,12 @@ WORKER_TEMP_DIR=/tmp/exhibition-worker
 
 For each `awaiting_file` item the worker:
 
-1. Builds a print-ready JPEG from the master TIFF
+1. Builds a print-ready flat 8-bit TIFF from the master (Adobe RGB, ZIP compression, DPI metadata)
 2. Saves it under `LOCAL_OUTPUT_DIR/<order>_<slug>/`
-3. Creates one Google Drive folder (if Drive is configured) — **does not upload the JPEG**
+3. Creates one Google Drive folder (if Drive is configured) — **does not upload the TIFF**
 4. Marks the item `file_ready` so it is not retried
 
-Upload the JPEG into the Drive folder yourself, then share it with the print lab.
+Upload the TIFF into the Drive folder yourself, then share it with the print lab.
 
 ## Colour / masters
 
