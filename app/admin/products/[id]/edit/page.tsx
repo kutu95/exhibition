@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProductEditorForm } from "../../../../../components/admin/ProductEditorForm";
-import type { VariantTemplate } from "../../../../../lib/supabase/types";
+import type { Theme, VariantTemplate } from "../../../../../lib/supabase/types";
 import { fetchAdminJson } from "../../../_lib/fetch-admin";
 
 type ProductDetailResponse = {
@@ -56,6 +56,7 @@ type ProductDetailResponse = {
     sort_order: number;
     is_primary: boolean;
   }>;
+  product_themes: Array<{ theme_id: string }>;
 };
 
 type PageProps = {
@@ -67,10 +68,12 @@ export default async function AdminEditProductPage({ params }: PageProps) {
 
   let product: ProductDetailResponse;
   let variantTemplates: VariantTemplate[];
+  let themes: Theme[];
   try {
-    [product, variantTemplates] = await Promise.all([
+    [product, variantTemplates, themes] = await Promise.all([
       fetchAdminJson<ProductDetailResponse>(`/api/admin/products/${id}`),
       fetchAdminJson<VariantTemplate[]>("/api/admin/variant-templates"),
+      fetchAdminJson<Theme[]>("/api/admin/themes"),
     ]);
   } catch {
     notFound();
@@ -90,6 +93,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
         photo_type_tag: product.photo_type_tag ?? "",
         is_available: product.is_available,
         is_featured: product.is_featured,
+        theme_ids: product.product_themes.map((assignment) => assignment.theme_id),
         variants: product.product_variants.map((variant) => ({
           id: variant.id,
           has_order_items: variant.has_order_items,
@@ -136,6 +140,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
         })),
       }}
       variantTemplates={variantTemplates}
+      themes={themes}
     />
   );
 }

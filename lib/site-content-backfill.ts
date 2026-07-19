@@ -1,7 +1,7 @@
 import type { SiteContent } from "./supabase/types";
 import type { supabaseAdmin } from "./supabase/admin";
 
-const installationImageContentRows: Array<{
+const managedImageContentRows: Array<{
   content_key: string;
   content_value: string;
   content_type: SiteContent["content_type"];
@@ -9,6 +9,7 @@ const installationImageContentRows: Array<{
   { content_key: "installation_cubarama_image", content_value: "", content_type: "image" },
   { content_key: "installation_captain_godfrey_image", content_value: "", content_type: "image" },
   { content_key: "installation_drift_image", content_value: "", content_type: "image" },
+  { content_key: "author_talk_image", content_value: "", content_type: "image" },
 ];
 
 /**
@@ -21,7 +22,7 @@ export async function backfillMissingInstallationImageRows(
   supabase: ServiceRoleClient,
   existingKeys: Set<string>,
 ): Promise<boolean> {
-  const toInsert = installationImageContentRows.filter((row) => !existingKeys.has(row.content_key));
+  const toInsert = managedImageContentRows.filter((row) => !existingKeys.has(row.content_key));
   if (toInsert.length === 0) {
     return false;
   }

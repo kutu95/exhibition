@@ -24,6 +24,15 @@ export type SiteContentImageRow = {
   media_files?: ImageMedia | ImageMedia[] | null;
 };
 
+export function resolveOptionalContentImage(
+  row: SiteContentImageRow | undefined,
+): { src: string; alt: string } | null {
+  const media = Array.isArray(row?.media_files) ? row.media_files[0] : row?.media_files;
+  const src = row?.content_value?.trim() || media?.url_path?.trim();
+  if (!src) return null;
+  return { src, alt: media?.alt_text?.trim() || "" };
+}
+
 /**
  * Resolves a required site_content image. Missing values are configuration errors.
  */

@@ -12,6 +12,7 @@ import { getInstallationBody } from "../../lib/utils/installation-content";
 import {
   isManagedLocalMediaPath,
   resolveContentImage,
+  resolveOptionalContentImage,
   type SiteContentImageRow,
 } from "../../lib/utils/site-content-image";
 import { buildBreadcrumb } from "../../lib/structured-data";
@@ -35,6 +36,7 @@ const installationImageKeys = [
   "installation_cubarama_image",
   "installation_captain_godfrey_image",
   "installation_drift_image",
+  "author_talk_image",
 ] as const;
 
 const installationPageContentKeys = [...installationContentKeys, ...installationImageKeys] as const;
@@ -74,6 +76,9 @@ export default async function InstallationsPage() {
   const driftImage = resolveContentImage(
     rowByKey.get("installation_drift_image") as SiteContentImageRow | undefined,
     "installation_drift_image",
+  );
+  const authorTalkImage = resolveOptionalContentImage(
+    rowByKey.get("author_talk_image") as SiteContentImageRow | undefined,
   );
 
   return (
@@ -164,30 +169,46 @@ export default async function InstallationsPage() {
 
       <section className={styles.talkSection} id="talk">
         <div className="container">
-          <FadeInSection className={styles.talkInner}>
-            <p className="eyebrow">Public Talk</p>
-            <h2 className="heading-section">Marcia van Zeller</h2>
-            <p className={styles.talkSubheading}>The Truth About the Georgette</p>
-            <p>
-              Marcia van Zeller spent years researching the wreck of the SS Georgette for her doctoral novel Cruel
-              Capes, completed at Curtin University in 2014. Her research took her to the State Records Office of
-              Western Australia, the Battye Library, the tiny Busselton courtroom where the marine inquiry was held in
-              December 1876, and to the coast itself — Redgate Beach, Calgardup Bay, the locations of this exhibition.
-            </p>
-            <p>
-              Her work excavated the contradictions in the historical record: the eyewitness accounts that contradicted
-              the press; the contested role of Sam Isaacs; the captain who was found guilty and never accepted the
-              verdict. She will give a public talk during the first week of the exhibition — drawing on her research, her
-              novel, and what fifteen years of living with this story has taught her about the gap between history and
-              truth.
-            </p>
-            <p className={styles.dateLine}>Date and time to be confirmed · Free entry · Venue as exhibition</p>
-            <p className={styles.signupLabel}>Notify me when the talk date is confirmed</p>
-            <div className={styles.signupWrap}>
-              <EmailSignupForm
-                source="installations_talk"
-                buttonLabel="Notify me when the talk date is confirmed"
-              />
+          <FadeInSection
+            className={`${styles.talkInner} ${authorTalkImage ? styles.talkWithImage : ""}`}
+          >
+            {authorTalkImage ? (
+              <div className={styles.talkImageWrap}>
+                <Image
+                  src={authorTalkImage.src}
+                  alt={authorTalkImage.alt || "Marcia van Zeller"}
+                  fill
+                  className={styles.talkImage}
+                  sizes="(max-width: 929px) 100vw, 35vw"
+                  unoptimized={isManagedLocalMediaPath(authorTalkImage.src)}
+                />
+              </div>
+            ) : null}
+            <div className={styles.talkContent}>
+              <p className="eyebrow">Public Talk</p>
+              <h2 className="heading-section">Marcia van Zeller</h2>
+              <p className={styles.talkSubheading}>The Truth About the Georgette</p>
+              <p>
+                Marcia van Zeller spent years researching the wreck of the SS Georgette for her doctoral novel Cruel
+                Capes, completed at Curtin University in 2014. Her research took her to the State Records Office of
+                Western Australia, the Battye Library, the tiny Busselton courtroom where the marine inquiry was held in
+                December 1876, and to the coast itself — Redgate Beach, Calgardup Bay, the locations of this exhibition.
+              </p>
+              <p>
+                Her work excavated the contradictions in the historical record: the eyewitness accounts that
+                contradicted the press; the contested role of Sam Isaacs; the captain who was found guilty and never
+                accepted the verdict. She will give a public talk during the first week of the exhibition — drawing on
+                her research, her novel, and what fifteen years of living with this story has taught her about the gap
+                between history and truth.
+              </p>
+              <p className={styles.dateLine}>Date and time to be confirmed · Free entry · Venue as exhibition</p>
+              <p className={styles.signupLabel}>Notify me when the talk date is confirmed</p>
+              <div className={styles.signupWrap}>
+                <EmailSignupForm
+                  source="installations_talk"
+                  buttonLabel="Notify me when the talk date is confirmed"
+                />
+              </div>
             </div>
           </FadeInSection>
         </div>

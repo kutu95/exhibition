@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "../../../../lib/supabase/server";
 import type {
   Product,
   ProductImage,
+  ProductTheme,
   ProductVariant,
   ProductWithVariantsAndImages,
 } from "../../../../lib/supabase/types";
@@ -11,6 +12,7 @@ import type {
 type ProductRow = Product & {
   product_variants: ProductVariant[] | null;
   product_images: ProductImage[] | null;
+  product_themes: ProductTheme[] | null;
 };
 
 type RouteContext = {
@@ -25,7 +27,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const { data, error } = await supabase
     .from("products")
-    .select("*, product_variants(*), product_images(*)")
+    .select("*, product_variants(*), product_images(*), product_themes(*, theme:themes(*))")
     .eq("slug", slug)
     .eq("is_available", true)
     .maybeSingle();
@@ -45,6 +47,7 @@ export async function GET(_request: Request, context: RouteContext) {
     ...product,
     product_variants: product.product_variants ?? [],
     product_images: (product.product_images ?? []).sort((a, b) => a.sort_order - b.sort_order),
+    product_themes: product.product_themes ?? [],
   };
 
   return NextResponse.json(response);

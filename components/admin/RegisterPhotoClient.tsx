@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { VariantTemplate } from "../../lib/supabase/types";
+import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./RegisterPhotoClient.module.css";
+import { ThemeSelector } from "./ThemeSelector";
 
 type MasterFileCandidate = {
   filename: string;
@@ -22,6 +23,7 @@ type MasterFileCandidate = {
 type RegisterPhotoClientProps = {
   masterFiles: MasterFileCandidate[];
   variantTemplates: VariantTemplate[];
+  themes: Theme[];
 };
 
 const photoTypeOptions = ["", "Still camera", "Drone", "Underwater"];
@@ -37,7 +39,7 @@ const formatDollars = (cents: number | null): string | null => (cents === null ?
 const formatResolution = (file: MasterFileCandidate): string =>
   file.pixel_width && file.pixel_height ? `${file.pixel_width} x ${file.pixel_height} px` : "Resolution unavailable";
 
-export function RegisterPhotoClient({ masterFiles, variantTemplates }: RegisterPhotoClientProps) {
+export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: RegisterPhotoClientProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -50,6 +52,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates }: RegisterP
   const [isFeatured, setIsFeatured] = useState(false);
   const [webImage, setWebImage] = useState<File | null>(null);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
   const [templatePrices, setTemplatePrices] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       variantTemplates
@@ -94,6 +97,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates }: RegisterP
     formData.set("master_filename", masterFilename.trim());
     formData.set("is_featured", String(isFeatured));
     formData.set("variant_template_ids", JSON.stringify(selectedTemplateIds));
+    formData.set("theme_ids", JSON.stringify(selectedThemeIds));
     formData.set(
       "variant_template_prices",
       JSON.stringify(
@@ -258,6 +262,11 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates }: RegisterP
             Description
             <textarea rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />
           </label>
+
+          <div>
+            <h3>Themes</h3>
+            <ThemeSelector themes={themes} selectedThemeIds={selectedThemeIds} onChange={setSelectedThemeIds} />
+          </div>
 
           <label>
             Web image override

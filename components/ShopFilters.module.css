@@ -12,6 +12,14 @@
   gap: 0.5rem;
 }
 
+.groupLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+
 .filterBtn {
   border: 1px solid rgba(10, 22, 40, 0.35);
   border-radius: 0;

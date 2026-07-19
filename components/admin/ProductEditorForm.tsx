@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
-import type { VariantTemplate } from "../../lib/supabase/types";
+import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import { isValidProductImageUrl } from "../../lib/utils/site-content-image";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ProductEditorForm.module.css";
+import { ThemeSelector } from "./ThemeSelector";
 
 type VariantInput = {
   id?: string;
@@ -65,6 +66,7 @@ type ProductEditorInitialData = {
   photo_type_tag: string;
   is_available: boolean;
   is_featured: boolean;
+  theme_ids: string[];
   variants: VariantInput[];
   images: ImageInput[];
 };
@@ -73,6 +75,7 @@ type ProductEditorFormProps = {
   mode: "new" | "edit";
   initialData?: ProductEditorInitialData;
   variantTemplates: VariantTemplate[];
+  themes: Theme[];
 };
 
 const createBlankVariant = (): VariantInput => ({
@@ -150,7 +153,7 @@ const applyTemplateToVariant = (variant: VariantInput, template: VariantTemplate
   front_face_height_mm: template.front_face_height_mm?.toString() ?? "",
 });
 
-export function ProductEditorForm({ mode, initialData, variantTemplates }: ProductEditorFormProps) {
+export function ProductEditorForm({ mode, initialData, variantTemplates, themes }: ProductEditorFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
@@ -161,6 +164,7 @@ export function ProductEditorForm({ mode, initialData, variantTemplates }: Produ
   const [photoTypeTag, setPhotoTypeTag] = useState(initialData?.photo_type_tag ?? "");
   const [isAvailable, setIsAvailable] = useState(initialData?.is_available ?? true);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? false);
+  const [selectedThemeIds, setSelectedThemeIds] = useState(initialData?.theme_ids ?? []);
   const [variants, setVariants] = useState<VariantInput[]>(
     initialData?.variants.length ? initialData.variants : [createBlankVariant()],
   );
@@ -280,6 +284,7 @@ export function ProductEditorForm({ mode, initialData, variantTemplates }: Produ
       photo_type_tag: photoTypeTag ? photoTypeTag : null,
       is_available: isAvailable,
       is_featured: isFeatured,
+      theme_ids: selectedThemeIds,
       variants: normalizedVariants,
       images: normalizedImages.filter((image) => image.image_url),
     };
@@ -399,9 +404,23 @@ export function ProductEditorForm({ mode, initialData, variantTemplates }: Produ
     router.refresh();
   };
 
+  const saveActions = (
+    <>
+      <button className={styles.btn} type="button" onClick={handleSave} disabled={saving}>
+        {saving ? "Saving..." : "Save Product"}
+      </button>
+      <Link className={styles.btnSecondary} href="/admin/products">
+        Cancel
+      </Link>
+    </>
+  );
+
   return (
     <div>
-      <h1>{mode === "new" ? "Add New Product" : "Edit Product"}</h1>
+      <div className={styles.pageHeader}>
+        <h1>{mode === "new" ? "Add New Product" : "Edit Product"}</h1>
+        <div className={styles.footerActions}>{saveActions}</div>
+      </div>
 
       <div className={styles.form}>
         <section className={styles.panel}>
@@ -454,13 +473,11 @@ export function ProductEditorForm({ mode, initialData, variantTemplates }: Produ
 
             <label>
               Location Tag
-              <select value={locationTag} onChange={(event) => setLocationTag(event.target.value)}>
-                <option value="">none</option>
-                <option value="Calgardup Bay">Calgardup Bay</option>
-                <option value="Redgate Beach">Redgate Beach</option>
-                <option value="Isaac Rock">Isaac Rock</option>
-                <option value="SS Georgette Wreck">SS Georgette Wreck</option>
-              </select>
+              <input
+                value={locationTag}
+                onChange={(event) => setLocationTag(event.target.value)}
+                placeholder="e.g. Glasgow"
+              />
             </label>
 
             <label>
@@ -491,6 +508,9 @@ export function ProductEditorForm({ mode, initialData, variantTemplates }: Produ
               {" "}Is Featured
             </label>
           </div>
+          <h3>Themes</h3>
+          <p className={styles.muted}>A photograph can belong to any number of themes.</p>
+          <ThemeSelector themes={themes} selectedThemeIds={selectedThemeIds} onChange={setSelectedThemeIds} />
         </section>
 
         <section className={styles.panel}>
@@ -1071,17 +1091,12 @@ export function ProductEditorForm({ mode, initialData, variantTemplates }: Produ
         {testOrderMessage ? <p className={styles.success}>{testOrderMessage}</p> : null}
 
         <div className={styles.footerActions}>
-          <button className={styles.btn} type="button" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Product"}
-          </button>
+          {saveActions}
           {mode === "edit" ? (
             <button className={styles.btnDanger} type="button" onClick={handleDeleteOrArchive} disabled={deleting || saving}>
               {deleting ? "Archiving..." : "Archive / Delete Product"}
             </button>
           ) : null}
-          <Link className={styles.btnSecondary} href="/admin/products">
-            Cancel
-          </Link>
         </div>
       </div>
     </div>

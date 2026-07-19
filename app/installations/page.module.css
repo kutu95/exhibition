@@ -74,6 +74,29 @@
   line-height: 1.8;
 }
 
+.talkWithImage {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+}
+
+.talkImageWrap {
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+  aspect-ratio: 4 / 5;
+  border: 1px solid rgba(245, 240, 232, 0.2);
+  overflow: hidden;
+}
+
+.talkImage {
+  object-fit: cover;
+}
+
+.talkContent h2 {
+  margin-top: 0;
+}
+
 .talkSubheading {
   margin: -0.4rem 0 1.2rem;
   color: var(--color-sand);
@@ -98,5 +121,10 @@
   .sectionBlock {
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
+  }
+
+  .talkWithImage {
+    grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+    gap: 3rem;
   }
 }

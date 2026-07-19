@@ -65,6 +65,7 @@ const productUpdateSchema = z.object({
   photo_type_tag: z.enum(photoTypeOptions).nullable(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
+  theme_ids: z.array(z.string().uuid()),
   variants: z.array(variantSchema).min(1),
   images: z.array(imageSchema),
 });
@@ -201,15 +202,20 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
-  const [{ data: variants, error: variantsError }, { data: images, error: imagesError }] =
+  const [
+    { data: variants, error: variantsError },
+    { data: images, error: imagesError },
+    { data: themes, error: themesError },
+  ] =
     await Promise.all([
       supabaseAdmin.from("product_variants").select("*").eq("product_id", id).order("created_at"),
       supabaseAdmin.from("product_images").select("*").eq("product_id", id).order("sort_order"),
+      supabaseAdmin.from("product_themes").select("theme_id").eq("product_id", id),
     ]);
 
-  if (variantsError || imagesError) {
+  if (variantsError || imagesError || themesError) {
     return NextResponse.json(
-      { error: variantsError?.message ?? imagesError?.message ?? "Failed to load product assets." },
+      { error: variantsError?.message ?? imagesError?.message ?? themesError?.message ?? "Failed to load product assets." },
       { status: 500 },
     );
   }
@@ -231,6 +237,7 @@ export async function GET(request: Request, context: RouteContext) {
       has_order_items: referencedVariantIds.has(variant.id),
     })),
     product_images: images ?? [],
+    product_themes: themes ?? [],
   });
 }
 
@@ -436,6 +443,23 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { error } = await supabaseAdmin.from("product_images").delete().in("id", imageIdsToDelete);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+
+  const { error: deleteThemesError } = await supabaseAdmin
+    .from("product_themes")
+    .delete()
+    .eq("product_id", id);
+  if (deleteThemesError) {
+    return NextResponse.json({ error: deleteThemesError.message }, { status: 500 });
+  }
+
+  if (payload.theme_ids.length > 0) {
+    const { error: insertThemesError } = await supabaseAdmin
+      .from("product_themes")
+      .insert(payload.theme_ids.map((themeId) => ({ product_id: id, theme_id: themeId })));
+    if (insertThemesError) {
+      return NextResponse.json({ error: insertThemesError.message }, { status: 500 });
     }
   }
 

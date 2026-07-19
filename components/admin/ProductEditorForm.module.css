@@ -94,7 +94,21 @@
   margin-bottom: 0.5rem;
 }
 
+.pageHeader {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.pageHeader h1 {
+  margin: 0;
+}
+
 .footerActions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.65rem;
 }

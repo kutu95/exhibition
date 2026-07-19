@@ -38,6 +38,7 @@ const formSchema = z.object({
   master_filename: z.string().min(1),
   variant_template_ids: z.array(z.string().uuid()).min(1),
   variant_template_prices: z.record(z.string().uuid(), z.number().int().nonnegative()),
+  theme_ids: z.array(z.string().uuid()),
 });
 
 const stringField = (formData: FormData, key: string): string | null => {
@@ -58,6 +59,17 @@ const variantTemplateIdsField = (formData: FormData): string[] => {
       return value ? [value] : [];
     }
   });
+};
+
+const themeIdsField = (formData: FormData): string[] => {
+  const value = formData.get("theme_ids");
+  if (typeof value !== "string" || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
 };
 
 const variantTemplatePricesField = (formData: FormData): Record<string, number> => {
@@ -205,6 +217,7 @@ export async function POST(request: Request) {
     master_filename: stringField(formData, "master_filename"),
     variant_template_ids: variantTemplateIdsField(formData),
     variant_template_prices: variantTemplatePricesField(formData),
+    theme_ids: themeIdsField(formData),
   });
 
   if (!parsed.success) {

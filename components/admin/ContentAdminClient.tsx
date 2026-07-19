@@ -42,6 +42,7 @@ const contentGroups: Array<{ title: string; keys: string[] }> = [
       "installation_drift_image",
     ],
   },
+  { title: "Author Talk", keys: ["author_talk_image"] },
   {
     title: "Locations",
     keys: ["location_calgardup_bay", "location_redgate_beach", "location_isaac_rock", "location_ss_georgette"],
@@ -177,11 +178,14 @@ function InlineEditableField({
 
 function ContentEditBlock({
   row,
+  mediaFiles,
   onSaveText,
   onUploadAndLinkMedia,
+  onLinkExistingMedia,
   onRemoveLinkedMedia,
 }: {
   row: SiteContentWithMedia;
+  mediaFiles: MediaFile[];
   onSaveText: (key: string, contentValue: string) => Promise<void>;
   onUploadAndLinkMedia: (
     rowKey: string,
@@ -189,6 +193,7 @@ function ContentEditBlock({
     endpoint: "/api/admin/upload/image" | "/api/admin/upload/video",
     onProgress: (progress: number) => void,
   ) => Promise<void>;
+  onLinkExistingMedia: (rowKey: string, media: MediaFile) => Promise<void>;
   onRemoveLinkedMedia: (rowKey: string) => Promise<void>;
 }) {
   const [value, setValue] = useState(row.content_value ?? "");
@@ -196,8 +201,21 @@ function ContentEditBlock({
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [linkingMediaId, setLinkingMediaId] = useState<string | null>(null);
 
   const isTextual = row.content_type === "text" || row.content_type === "html";
+  const pickerMedia = useMemo(() => {
+    const search = pickerSearch.trim().toLowerCase();
+    return mediaFiles.filter((file) => {
+      if (file.file_type !== row.content_type) return false;
+      if (!search) return true;
+      return [file.original_filename, file.filename, file.usage_note, file.alt_text]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(search));
+    });
+  }, [mediaFiles, pickerSearch, row.content_type]);
 
   const saveText = async () => {
     setStatus("saving");
@@ -234,6 +252,20 @@ function ContentEditBlock({
   };
 
   const linkedMedia = row.media_files;
+
+  const chooseExistingMedia = async (media: MediaFile) => {
+    setLinkingMediaId(media.id);
+    setError(null);
+    try {
+      await onLinkExistingMedia(row.content_key, media);
+      setPickerOpen(false);
+      setPickerSearch("");
+    } catch (linkError) {
+      setError(linkError instanceof Error ? linkError.message : "Failed to link media.");
+    } finally {
+      setLinkingMediaId(null);
+    }
+  };
 
   return (
     <article className={styles.contentBlock}>
@@ -298,6 +330,9 @@ function ContentEditBlock({
               disabled={uploading}
             />
           </label>
+          <button className={styles.chooseMediaButton} type="button" onClick={() => setPickerOpen(true)}>
+            Choose existing image from Media Library
+          </button>
           {uploading ? <p className={styles.progress}>Uploading {uploadProgress}%</p> : null}
           {error ? <p className={styles.error}>{error}</p> : null}
         </div>
@@ -337,6 +372,9 @@ function ContentEditBlock({
               disabled={uploading}
             />
           </label>
+          <button className={styles.chooseMediaButton} type="button" onClick={() => setPickerOpen(true)}>
+            Choose existing video from Media Library
+          </button>
           {uploading ? (
             <progress className={styles.progressBar} value={uploadProgress} max={100}>
               {uploadProgress}
@@ -348,6 +386,76 @@ function ContentEditBlock({
             background.
           </p>
           {error ? <p className={styles.error}>{error}</p> : null}
+        </div>
+      ) : null}
+
+      {pickerOpen ? (
+        <div className={styles.modalBackdrop} role="presentation">
+          <div className={`${styles.modal} ${styles.mediaPicker}`} role="dialog" aria-modal="true">
+            <div className={styles.pickerHeader}>
+              <div>
+                <h3>Choose existing {row.content_type}</h3>
+                <p className={styles.mutedText}>
+                  This links the selected file to <code>{row.content_key}</code> without uploading another copy.
+                </p>
+              </div>
+              <button type="button" onClick={() => setPickerOpen(false)} disabled={Boolean(linkingMediaId)}>
+                Close
+              </button>
+            </div>
+
+            <label>
+              Search media
+              <input
+                value={pickerSearch}
+                placeholder="Filename, usage note, or alt text"
+                onChange={(event) => setPickerSearch(event.target.value)}
+              />
+            </label>
+
+            {pickerMedia.length > 0 ? (
+              <div className={styles.pickerGrid}>
+                {pickerMedia.map((file) => {
+                  const selected = file.id === row.media_file_id;
+                  return (
+                    <article className={styles.pickerCard} key={file.id}>
+                      <MediaLibraryThumb file={file} />
+                      <p className={styles.mediaName} title={file.original_filename}>
+                        {truncateFilename(file.original_filename)}
+                      </p>
+                      <p className={styles.mutedText}>
+                        {file.usage_note?.trim() || "No usage note"}
+                      </p>
+                      <p
+                        className={
+                          mediaUsageLabels(file).length > 0
+                            ? styles.usageBadgeInUse
+                            : styles.usageBadgeUnused
+                        }
+                      >
+                        {mediaUsageLabels(file).length > 0
+                          ? `In use: ${mediaUsageLabels(file).join(", ")}`
+                          : "Unused"}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={selected || Boolean(linkingMediaId)}
+                        onClick={() => void chooseExistingMedia(file)}
+                      >
+                        {selected
+                          ? "Currently selected"
+                          : linkingMediaId === file.id
+                            ? "Linking..."
+                            : "Use this file"}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.emptyState}>No matching {row.content_type} files.</p>
+            )}
+          </div>
         </div>
       ) : null}
     </article>
@@ -640,6 +748,46 @@ export function ContentAdminClient({ initialContentRows, initialMediaFiles }: Co
     router.refresh();
   };
 
+  const linkExistingMedia = async (rowKey: string, media: MediaFile) => {
+    const previousMediaId =
+      contentRows.find((row) => row.content_key === rowKey)?.media_file_id ?? null;
+    const patchResponse = await fetch(`/api/admin/content/${encodeURIComponent(rowKey)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        media_file_id: media.id,
+        content_value: media.url_path,
+      }),
+    });
+
+    if (!patchResponse.ok) {
+      const body = (await patchResponse.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(body?.error ?? "Failed to link existing media.");
+    }
+
+    if (previousMediaId && previousMediaId !== media.id) {
+      const cleanupResponse = await fetch(`/api/admin/media/${previousMediaId}`, { method: "DELETE" });
+      if (!cleanupResponse.ok && cleanupResponse.status !== 409) {
+        console.error("Failed to clean up replaced media", await cleanupResponse.text().catch(() => ""));
+      }
+    }
+
+    const refreshedMedia = await fetch("/api/admin/media", { cache: "no-store" });
+    let latestMedia = mediaFiles;
+    if (refreshedMedia.ok) {
+      latestMedia = (await refreshedMedia.json()) as MediaFile[];
+      setMediaFiles(latestMedia);
+    }
+
+    const linkedMedia = latestMedia.find((item) => item.id === media.id) ?? media;
+    updateContentRow(rowKey, {
+      media_file_id: media.id,
+      content_value: media.url_path,
+      media_files: linkedMedia,
+    });
+    router.refresh();
+  };
+
   const removeLinkedMedia = async (rowKey: string) => {
     const response = await fetch(`/api/admin/content/${encodeURIComponent(rowKey)}`, {
       method: "PATCH",
@@ -751,8 +899,10 @@ export function ContentAdminClient({ initialContentRows, initialMediaFiles }: Co
                     <ContentEditBlock
                       key={row.id}
                       row={row}
+                      mediaFiles={mediaFiles}
                       onSaveText={saveContentValue}
                       onUploadAndLinkMedia={uploadAndLinkMedia}
+                      onLinkExistingMedia={linkExistingMedia}
                       onRemoveLinkedMedia={removeLinkedMedia}
                     />
                   );

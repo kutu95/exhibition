@@ -1,6 +1,6 @@
 import { ImportPhotoWizardClient } from "../../../components/admin/ImportPhotoWizardClient";
 import { getMasterFilesDir, type MasterFileCandidate } from "../../../lib/master-files";
-import type { VariantTemplate } from "../../../lib/supabase/types";
+import type { Theme, VariantTemplate } from "../../../lib/supabase/types";
 import { fetchAdminJson } from "../_lib/fetch-admin";
 
 const resolveMasterFilesDirDisplay = (): string => {
@@ -19,11 +19,13 @@ export default async function ImportWizardPage() {
   const results = await Promise.allSettled([
     fetchAdminJson<{ files: MasterFileCandidate[] }>("/api/admin/master-files"),
     fetchAdminJson<VariantTemplate[]>("/api/admin/variant-templates"),
+    fetchAdminJson<Theme[]>("/api/admin/themes"),
   ]);
 
   const loadErrors: string[] = [];
   let masterFiles: MasterFileCandidate[] = [];
   let variantTemplates: VariantTemplate[] = [];
+  let themes: Theme[] = [];
 
   if (results[0].status === "fulfilled") {
     masterFiles = results[0].value.files;
@@ -45,6 +47,13 @@ export default async function ImportWizardPage() {
     );
   }
 
+  if (results[2].status === "fulfilled") {
+    themes = results[2].value;
+  } else {
+    const reason = results[2].reason;
+    loadErrors.push(reason instanceof Error ? reason.message : "Failed to load themes.");
+  }
+
   return (
     <div>
       <h1>Import Photo Wizard</h1>
@@ -55,6 +64,7 @@ export default async function ImportWizardPage() {
       <ImportPhotoWizardClient
         initialMasterFiles={masterFiles}
         variantTemplates={variantTemplates}
+        themes={themes}
         masterFilesDirPath={resolveMasterFilesDirDisplay()}
         loadErrors={loadErrors}
       />

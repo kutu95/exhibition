@@ -153,6 +153,15 @@
   font: inherit;
 }
 
+.chooseMediaButton {
+  width: fit-content;
+  border: 1px solid #111;
+  background: #fff;
+  color: #111;
+  padding: 0.42rem 0.7rem;
+  cursor: pointer;
+}
+
 .progress {
   margin: 0;
   font-size: 0.85rem;
@@ -334,6 +343,60 @@
   padding: 1rem;
   display: grid;
   gap: 0.7rem;
+}
+
+.mediaPicker {
+  width: min(920px, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+}
+
+.pickerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.pickerHeader h3 {
+  margin: 0 0 0.3rem;
+}
+
+.pickerHeader button {
+  border: 1px solid #bbb;
+  background: #fff;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+}
+
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.7rem;
+}
+
+.pickerCard {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  padding: 0.6rem;
+}
+
+.pickerCard button {
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+}
+
+.pickerCard button:disabled {
+  border-color: #ccc;
+  background: #eee;
+  color: #666;
+  cursor: not-allowed;
 }
 
 .modal label {

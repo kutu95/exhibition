@@ -72,6 +72,21 @@ export type ProductImage = {
   is_primary: boolean;
 };
 
+export type Theme = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type ProductTheme = {
+  product_id: string;
+  theme_id: string;
+  created_at: string;
+  theme: Theme;
+};
+
 export type Order = {
   id: string;
   order_number: string;
@@ -216,4 +231,5 @@ export type SiteContent = {
 export type ProductWithVariantsAndImages = Product & {
   product_variants: ProductVariant[];
   product_images: ProductImage[];
+  product_themes: ProductTheme[];
 };

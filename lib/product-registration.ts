@@ -12,6 +12,7 @@ export type RegisterPrintProductPayload = {
   edition_size: number;
   master_filename: string;
   web_image_url: string;
+  theme_ids?: string[];
   variant_template_ids?: string[];
   variant_template_prices?: Record<string, number>;
 };
@@ -124,6 +125,16 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
     );
 
     const product = productRows[0];
+
+    if (payload.theme_ids?.length) {
+      await client.query(
+        `
+          insert into exhibition.product_themes (product_id, theme_id)
+          select $1, unnest($2::uuid[])
+        `,
+        [product.id, payload.theme_ids],
+      );
+    }
 
     const { rows: variantRows } = await client.query<VariantRow>(
       `

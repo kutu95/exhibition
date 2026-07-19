@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
-import type { VariantTemplate } from "../../lib/supabase/types";
+import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ImportPhotoWizardClient.module.css";
+import { ThemeSelector } from "./ThemeSelector";
 
 type MasterFileCandidate = {
   filename: string;
@@ -22,6 +23,7 @@ type MasterFileCandidate = {
 type ImportPhotoWizardClientProps = {
   initialMasterFiles: MasterFileCandidate[];
   variantTemplates: VariantTemplate[];
+  themes: Theme[];
   masterFilesDirPath: string;
   loadErrors?: string[];
 };
@@ -95,6 +97,7 @@ function MasterThumbnail({
 export function ImportPhotoWizardClient({
   initialMasterFiles,
   variantTemplates,
+  themes,
   masterFilesDirPath,
   loadErrors = [],
 }: ImportPhotoWizardClientProps) {
@@ -113,6 +116,7 @@ export function ImportPhotoWizardClient({
   const [editionSize, setEditionSize] = useState("10");
   const [isFeatured, setIsFeatured] = useState(false);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
   const [templatePrices, setTemplatePrices] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       variantTemplates
@@ -225,6 +229,7 @@ export function ImportPhotoWizardClient({
 
   const deselectAllTemplates = () => {
     setSelectedTemplateIds([]);
+    setSelectedThemeIds([]);
   };
 
   const editionNumber = Number.parseInt(editionSize, 10);
@@ -333,6 +338,7 @@ export function ImportPhotoWizardClient({
     formData.set("master_filename", masterFilename.trim());
     formData.set("is_featured", String(isFeatured));
     formData.set("variant_template_ids", JSON.stringify(selectedTemplateIds));
+    formData.set("theme_ids", JSON.stringify(selectedThemeIds));
     formData.set(
       "variant_template_prices",
       JSON.stringify(
@@ -576,6 +582,10 @@ export function ImportPhotoWizardClient({
               Description
               <textarea rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />
             </label>
+            <div>
+              <h3>Themes</h3>
+              <ThemeSelector themes={themes} selectedThemeIds={selectedThemeIds} onChange={setSelectedThemeIds} />
+            </div>
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
@@ -744,6 +754,15 @@ export function ImportPhotoWizardClient({
               <tr>
                 <th>Location</th>
                 <td>{locationTag || "—"}</td>
+              </tr>
+              <tr>
+                <th>Themes</th>
+                <td>
+                  {themes
+                    .filter((theme) => selectedThemeIds.includes(theme.id))
+                    .map((theme) => theme.name)
+                    .join(", ") || "—"}
+                </td>
               </tr>
               <tr>
                 <th>Featured</th>

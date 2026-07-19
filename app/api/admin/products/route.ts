@@ -62,6 +62,7 @@ const productSchema = z.object({
   photo_type_tag: z.enum(photoTypeOptions).nullable(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
+  theme_ids: z.array(z.string().uuid()),
   variants: z.array(variantSchema).min(1),
   images: z.array(imageSchema),
 });
@@ -189,18 +190,25 @@ export async function POST(request: Request) {
     sort_order: image.sort_order,
     is_primary: image.is_primary,
   }));
+  const themesPayload = payload.theme_ids.map((themeId) => ({
+    product_id: productId,
+    theme_id: themeId,
+  }));
 
-  const [{ error: variantsError }, { error: imagesError }] = await Promise.all([
+  const [{ error: variantsError }, { error: imagesError }, { error: themesError }] = await Promise.all([
     supabaseAdmin.from("product_variants").insert(variantsPayload),
     imagesPayload.length > 0
       ? supabaseAdmin.from("product_images").insert(imagesPayload)
       : Promise.resolve({ error: null }),
+    themesPayload.length > 0
+      ? supabaseAdmin.from("product_themes").insert(themesPayload)
+      : Promise.resolve({ error: null }),
   ]);
 
-  if (variantsError || imagesError) {
+  if (variantsError || imagesError || themesError) {
     await supabaseAdmin.from("products").delete().eq("id", productId);
     return NextResponse.json(
-      { error: variantsError?.message ?? imagesError?.message ?? "Failed to create product assets." },
+      { error: variantsError?.message ?? imagesError?.message ?? themesError?.message ?? "Failed to create product assets." },
       { status: 500 },
     );
   }
