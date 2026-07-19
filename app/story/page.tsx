@@ -90,35 +90,17 @@ export default async function StoryPage() {
         <FadeInSection className={styles.prose}>
           <h2>The lifeboat</h2>
           <p>
-            In the darkness before dawn, with the ship going down fast, Godfrey ordered the lifeboat launched. Women and
-            children were placed aboard — twelve of them, some with infants in arms. The boat was to be towed astern
-            until the ship grounded and a safer landing could be arranged.
+            In the darkness before dawn, with the ship going down fast, Godfrey ordered the lifeboat and gig launched.
+            Men, women and children were placed aboard the lifeboat— 22 of them, some with infants in arms. The lifeboat
+            was to be towed astern until the ship grounded and a safer landing could be arranged.
           </p>
           <p>
-            It never reached the shore. As the lifeboat was lowered into the sea, it stove in against the hull and
-            capsized. Seven people drowned. In the chaos that followed — crew jumping overboard, the gig being cut
-            loose, survivors clinging to the upturned hull — what had been a managed evacuation became a catastrophe.
-          </p>
-          <p>
-            The Court of Inquiry cleared Godfrey of the five formal charges brought against him. But it found him guilty
-            on two further counts: gross misconduct in putting so many passengers into so leaky a boat, and neglect of
-            duty in not properly ascertaining his ship&apos;s condition, compounded by a grave error of judgement in not
-            turning back for Fremantle while it was still possible. His certificate of competency was suspended for
-            eighteen months. A manslaughter charge was recommended and a warrant issued — but it was stayed, and no
-            trial ever followed. He maintained until the end that he had been made a scapegoat — that any competent
-            master would have done the same.
-          </p>
-          <p>
-            He went back to sea, and by mid-1878 had regained his certificate. In 1882 he took command of the brig
-            Laughing Wave. Off North West Cape that year, he went over the side and drowned. The press at the time
-            recorded a verdict of &ldquo;temporary insanity&rdquo; — the era&apos;s language for a death it could not, or
-            would not, call by its plainer name.
+            The gig, a smaller boat with 14 aboard, came to shore at Injidup beach miles to the north but the lifeboat
+            never reached the shore. As it was lowered into the sea, it stove in against the hull and capsized. Eight
+            people drowned. In the chaos that followed — crew jumping overboard, the gig being cut loose, survivors
+            clinging to the upturned hull — what had been a managed evacuation became a catastrophe.
           </p>
         </FadeInSection>
-
-        <p className={styles.quote}>
-          "Seven people drowned. The inquiry found him guilty. He never stopped believing he had done the right thing."
-        </p>
 
         <FadeInSection className={styles.prose}>
           <h2>The beach</h2>

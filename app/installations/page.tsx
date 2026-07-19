@@ -162,7 +162,7 @@ export default async function InstallationsPage() {
         </FadeInSection>
       </div>
 
-      <section className={styles.talkSection}>
+      <section className={styles.talkSection} id="talk">
         <div className="container">
           <FadeInSection className={styles.talkInner}>
             <p className="eyebrow">Public Talk</p>

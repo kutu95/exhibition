@@ -4,6 +4,7 @@ import styles from "./HeroVideo.module.css";
 
 const exploreLinks = [
   { href: "/story", label: "Story" },
+  { href: "/installations#talk", label: "Author Talk" },
   { href: "/installations", label: "Installations" },
   { href: "/shop", label: "Photographs" },
   { href: "/visit", label: "Visit" },
@@ -13,15 +14,17 @@ type HeroVideoProps = {
   videoSrc?: string;
   posterSrc?: string;
   headline: string;
+  byline?: string;
   subheadline: string;
-  ctaLabel: string;
-  ctaHref: string;
+  ctaLabel?: string;
+  ctaHref?: string;
 };
 
 export function HeroVideo({
   videoSrc,
   posterSrc,
   headline,
+  byline,
   subheadline,
   ctaLabel,
   ctaHref,
@@ -48,6 +51,7 @@ export function HeroVideo({
       <div className={`container ${styles.content}`}>
         <p className="eyebrow">MARGARET RIVER REGION OPEN STUDIOS · 12–27 SEPTEMBER 2026</p>
         <h1 className="heading-display">{headline}</h1>
+        {byline ? <p className={styles.byline}>{byline}</p> : null}
         <p className={styles.subheadline}>{subheadline}</p>
         <nav className={styles.explore} aria-label="Explore the site">
           <span className={styles.explorePrefix}>
@@ -67,9 +71,11 @@ export function HeroVideo({
             ))}
           </span>
         </nav>
-        <Link href={ctaHref} className={`button-outline ${styles.cta}`}>
-          {ctaLabel}
-        </Link>
+        {ctaHref && ctaLabel ? (
+          <Link href={ctaHref} className={`button-outline ${styles.cta}`}>
+            {ctaLabel}
+          </Link>
+        ) : null}
       </div>
     </section>
   );

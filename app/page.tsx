@@ -40,7 +40,7 @@ export default async function HomePage() {
   const contentMap = new Map((data ?? []).map((row) => [row.content_key, row.content_value]) as Array<[string, string | null]>);
 
   const heroHeadline = "The Georgette 150th";
-  const heroSubheadline = "A photography exhibition · Calgardup Bay · Redgate Beach · Isaac Rock";
+  const heroSubheadline = "Calgardup Bay · Redgate Beach · Isaac Rock";
   const heroVideoSrc = contentMap.get("hero_video")?.trim() || undefined;
   const heroPosterSrc = contentMap.get("hero_background_image")?.trim() || "/images/holding-bg.jpg";
   const holdingPageBody = contentMap.get("holding_page_body")?.trim() || fallbackHoldingBody;
@@ -53,9 +53,8 @@ export default async function HomePage() {
           videoSrc={heroVideoSrc}
           posterSrc={heroPosterSrc}
           headline={heroHeadline}
+          byline="An exhibition by photographer John Bowskill"
           subheadline={heroSubheadline}
-          ctaLabel="Keep me informed"
-          ctaHref="#holding-signup"
         />
 
         <div
@@ -64,15 +63,52 @@ export default async function HomePage() {
           }}
         >
           <div style={{ maxWidth: "560px", margin: "0 auto", width: "100%" }}>
-            <p style={{ fontSize: "0.95rem", lineHeight: 1.7, color: "var(--color-sand)", opacity: 0.9 }}>
+            <p style={{ fontSize: "1.05rem", lineHeight: 1.75, color: "var(--color-cream)" }}>
               {holdingPageBody}
             </p>
 
-            <hr style={{ border: 0, height: "1px", background: "var(--color-sand)", opacity: 0.3, margin: "2rem 0" }} />
+            <div
+              style={{
+                border: "1px solid rgba(245, 240, 232, 0.35)",
+                padding: "1.4rem 1.5rem",
+                margin: "2.2rem 0 0",
+              }}
+            >
+              <p
+                style={{
+                  margin: "0 0 0.4rem",
+                  fontSize: "0.72rem",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--color-sand)",
+                }}
+              >
+                Public Talk
+              </p>
+              <p style={{ margin: "0 0 0.5rem", fontSize: "1.05rem", color: "var(--color-cream)" }}>
+                Marcia van Zeller — The Truth About the Georgette
+              </p>
+              <p style={{ margin: "0 0 0.9rem", fontSize: "0.88rem", lineHeight: 1.6, color: "var(--color-sand)" }}>
+                The author and historian behind the research into what really happened at Calgardup Bay gives a free
+                public talk during the exhibition. Date and time to be confirmed.
+              </p>
+              <a
+                href="/installations#talk"
+                style={{
+                  color: "var(--color-cream)",
+                  fontSize: "0.88rem",
+                  borderBottom: "1px solid rgba(245, 240, 232, 0.5)",
+                  paddingBottom: "0.1rem",
+                }}
+              >
+                About the talk →
+              </a>
+            </div>
+
+            <hr style={{ border: 0, height: "1px", background: "var(--color-sand)", opacity: 0.3, margin: "2.2rem 0" }} />
 
             <p style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "var(--color-sand)", marginBottom: "0.9rem" }}>
-              Be first to hear about new print releases, exhibition details, and a special public talk by Georgette
-              historian and author Marcia van Zeller.
+              Be first to hear about new print releases, exhibition details, and Marcia van Zeller&apos;s talk date.
             </p>
 
             <div id="holding-signup" className="holding-signup">

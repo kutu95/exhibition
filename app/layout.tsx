@@ -88,6 +88,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {isStripeBypassEnabled ? (
           <div
             style={{
+              position: "fixed",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 100,
               background: "#7a1400",
               color: "#fff",
               padding: "0.55rem 0.9rem",

@@ -7,6 +7,7 @@ import styles from "./SiteNav.module.css";
 
 const navLinks = [
   { href: "/story", label: "The Story" },
+  { href: "/installations#talk", label: "Author Talk" },
   { href: "/installations", label: "Installations" },
   { href: "/shop", label: "Photographs" },
   { href: "/visit", label: "Visit" },

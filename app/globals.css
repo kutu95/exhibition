@@ -54,7 +54,8 @@ video {
 }
 
 .section {
-  padding: 3rem 0;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
 
 .heading-display {
@@ -139,6 +140,7 @@ video {
 
 @media (min-width: 900px) {
   .section {
-    padding: 5rem 0;
+    padding-top: 5rem;
+    padding-bottom: 5rem;
   }
 }
