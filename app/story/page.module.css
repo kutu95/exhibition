@@ -62,3 +62,39 @@
   border-bottom: 1px solid currentColor;
   padding-bottom: 1px;
 }
+
+.talkCallout {
+  margin: 3.2rem 0;
+  padding: 1.4rem 1.5rem;
+  border: 1px solid rgba(10, 22, 40, 0.22);
+  background: rgba(10, 22, 40, 0.03);
+}
+
+.talkEyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.talkHook {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3.2vw, 2rem);
+  line-height: 1.15;
+  color: var(--color-navy);
+}
+
+.talkCopy {
+  margin: 0 0 0.9rem;
+  max-width: 54ch;
+  line-height: 1.7;
+  color: #333;
+}
+
+.talkLink {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  font-size: 0.95rem;
+}

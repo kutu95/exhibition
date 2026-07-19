@@ -136,6 +136,18 @@ export default async function StoryPage() {
           near.&rdquo; — George Leake, 1877
         </p>
 
+        <aside className={styles.talkCallout}>
+          <p className={styles.talkEyebrow}>Public talk</p>
+          <p className={styles.talkHook}>What really happened at Calgardup Bay?</p>
+          <p className={styles.talkCopy}>
+            Author and historian Marcia van Zeller — whose research into the Georgette formed the basis of her novel
+            The Capes — gives a free public talk during the exhibition. Date and time to be confirmed.
+          </p>
+          <Link className={styles.talkLink} href="/installations#talk">
+            About the talk →
+          </Link>
+        </aside>
+
         <FadeInSection className={styles.prose}>
           <h2>The man who was forgotten</h2>
           <p>
@@ -158,7 +170,11 @@ export default async function StoryPage() {
             Marcia van Zeller, whose research into the Georgette formed the basis of her doctoral novel The Capes, has
             argued that Sam Isaacs&apos; contribution was systematically underplayed — not by any single act of erasure,
             but by the accumulated weight of a culture that found Grace Bussell&apos;s story more convenient, more
-            romantic, and more publishable. Van Zeller will give a public talk during the exhibition. Details below.
+            romantic, and more publishable. Van Zeller will give a{" "}
+            <Link href="/installations#talk" className="text-link">
+              public talk during the exhibition
+            </Link>
+            .
           </p>
         </FadeInSection>
 
@@ -186,6 +202,7 @@ export default async function StoryPage() {
         />
 
         <div className={styles.bottomLinks}>
+          <Link href="/installations#talk">Author talk →</Link>
           <Link href="/installations">Explore the installations →</Link>
           <Link href="/shop">View the photographs →</Link>
         </div>
