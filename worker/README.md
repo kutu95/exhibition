@@ -16,19 +16,14 @@ EXHIBITION_API_BASE_URL=https://exhibition.margies.app
 EXHIBITION_API_KEY=...
 MASTER_FILES_DIR=/mnt/nas/AppData/Exhibition/Masters
 PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
+LOCAL_OUTPUT_DIR=/mnt/nas/AppData/Exhibition/print-output
 ```
 
-For Google Drive uploads (default mode), also set:
+Optional — create a per-order Google Drive folder (JPEG upload is manual):
 
 ```bash
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/google-service-account.json
 GOOGLE_DRIVE_FOLDER_ID=...
-```
-
-For local-output mode (no Google Drive), set:
-
-```bash
-LOCAL_OUTPUT_DIR=/absolute/path/to/print-output
 ```
 
 Optional:
@@ -38,6 +33,19 @@ APP_ROOT=/path/to/exhibition
 WORKER_POLL_SECONDS=60
 WORKER_TEMP_DIR=/tmp/exhibition-worker
 ```
+
+## Behaviour
+
+For each `awaiting_file` item the worker:
+
+1. Builds a print-ready JPEG from the master TIFF
+2. Saves it under `LOCAL_OUTPUT_DIR/<order>_<slug>/`
+3. Creates one Google Drive folder (if Drive is configured) — **does not upload the JPEG**
+4. Marks the item `file_ready` so it is not retried
+
+Upload the JPEG into the Drive folder yourself, then share it with the print lab.
+
+## Colour / masters
 
 The worker prepares files for Pixel Perfect in one configured output colour
 space, normally Adobe RGB 1998. `PRINT_OUTPUT_PROFILE_PATH` must point at that

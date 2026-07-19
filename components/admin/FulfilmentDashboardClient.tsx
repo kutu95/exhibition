@@ -81,12 +81,31 @@ const formatAddress = (item: FulfilmentDashboardItem): string =>
     .filter(Boolean)
     .join(", ");
 
+const driveFolderUrl = (item: FulfilmentDashboardItem): string | null => {
+  const folder = item.cloud_folder_path?.trim();
+  if (!folder || folder.includes("/") || folder.startsWith("file:")) return null;
+  return `https://drive.google.com/drive/folders/${folder}`;
+};
+
+const localFilePath = (item: FulfilmentDashboardItem): string => {
+  const url = item.cloud_file_url?.trim() ?? "";
+  if (url.startsWith("file://")) {
+    try {
+      return decodeURIComponent(url.replace(/^file:\/\//, ""));
+    } catch {
+      return url.replace(/^file:\/\//, "");
+    }
+  }
+  return url;
+};
+
 const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
   [
     `ORDER REF: ${item.order_number}`,
     `Customer: ${item.customer_name ?? ""}`,
     `Deliver to: ${formatAddress(item)}`,
-    `File: ${item.cloud_file_url ?? ""}`,
+    `Local file: ${localFilePath(item)}`,
+    driveFolderUrl(item) ? `Drive folder: ${driveFolderUrl(item)}` : null,
     item.tier_label ? `Range: ${item.tier_label}` : null,
     `Paper: ${item.paper_type ?? ""}`,
     item.finish ? `Finish: ${item.finish}` : null,
@@ -254,9 +273,23 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
 
             <div className={styles.actions}>
               {item.cloud_file_url ? (
-                <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />
+                <>
+                  <p>
+                    <strong>Local file:</strong> <code>{localFilePath(item)}</code>
+                  </p>
+                  {driveFolderUrl(item) ? (
+                    <p>
+                      <strong>Drive folder:</strong>{" "}
+                      <a href={driveFolderUrl(item)!} target="_blank" rel="noreferrer">
+                        Open in Google Drive
+                      </a>
+                      <span className={styles.muted}> — upload the JPEG here manually, then share with the lab</span>
+                    </p>
+                  ) : null}
+                  <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />
+                </>
               ) : (
-                <p className={styles.muted}>Print file has not been uploaded yet.</p>
+                <p className={styles.muted}>Print file has not been prepared yet.</p>
               )}
 
               <div className={styles.actionRow}>

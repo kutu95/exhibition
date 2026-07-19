@@ -178,11 +178,14 @@ EXHIBITION_API_BASE_URL=https://exhibition.margies.app
 EXHIBITION_API_KEY=...
 MASTER_FILES_DIR=/mnt/nas/AppData/Exhibition/Masters
 PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
-GOOGLE_APPLICATION_CREDENTIALS=...
-GOOGLE_DRIVE_FOLDER_ID=...
+LOCAL_OUTPUT_DIR=/mnt/nas/AppData/Exhibition/print-output
+GOOGLE_APPLICATION_CREDENTIALS=...   # optional: create per-order Drive folder
+GOOGLE_DRIVE_FOLDER_ID=...           # optional
 ```
 
-Optional: `LOCAL_OUTPUT_DIR` instead of Google Drive; `WORKER_POLL_SECONDS` (default 60).
+`LOCAL_OUTPUT_DIR` is required. Drive credentials are optional and only create an empty per-order folder; the JPEG is uploaded manually.
+
+`WORKER_POLL_SECONDS` defaults to 60.
 
 Run locally with app: `npm run dev:all` (Next.js + worker).
 
@@ -196,7 +199,8 @@ Run locally with app: `npm run dev:all` (Next.js + worker).
      - Converts to **Adobe RGB 1998** using `PRINT_OUTPUT_PROFILE_PATH` (perceptual intent, black-point compensation)
      - Resizes/fits to print area at variant DPI; optional white border
      - Writes a high-quality JPEG with output ICC embedded
-   - **Upload** to Google Drive (per-order folder) **or** copy to `LOCAL_OUTPUT_DIR`
+   - Copy JPEG to **`LOCAL_OUTPUT_DIR`**
+   - Optionally create **one** Google Drive folder (no file upload; reuse existing folder id if already stored)
    - **`PATCH /api/fulfilment/items/{order_item_id}`** → **`fulfilment_status: 'file_ready'`**, plus `cloud_file_url` / `cloud_folder_path`
 
 Queue and updates: `lib/fulfilment-items.ts`, `lib/fulfilment-update.ts`. Admin mirror routes under `/api/admin/fulfilment/`.

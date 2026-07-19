@@ -17,7 +17,6 @@ from typing import Any
 import requests
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
 from PIL import Image, ImageCms, ImageOps
 
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
@@ -145,6 +144,11 @@ class ApiClient:
         return response.json()
 
 
+def looks_like_drive_id(value: str) -> bool:
+    # Drive file/folder IDs are opaque tokens without path separators.
+    return bool(value) and "/" not in value and not value.startswith("file:")
+
+
 class GoogleDriveClient:
     def __init__(self, config: WorkerConfig):
         credentials = service_account.Credentials.from_service_account_file(
@@ -174,45 +178,6 @@ class GoogleDriveClient:
             supportsAllDrives=True,
         ).execute()
         return str(created["id"])
-
-    def upload_jpeg(self, path: Path, folder_id: str) -> dict[str, str]:
-        media = MediaFileUpload(str(path), mimetype="image/jpeg", resumable=True)
-        file_id = ""
-        try:
-            created = self.service.files().create(
-                body={"name": path.name, "parents": [folder_id]},
-                media_body=media,
-                fields="id,webViewLink,webContentLink",
-                supportsAllDrives=True,
-            ).execute()
-            file_id = str(created["id"])
-            self.service.permissions().create(
-                fileId=file_id,
-                body={"type": "anyone", "role": "reader"},
-                fields="id",
-                supportsAllDrives=True,
-            ).execute()
-            metadata = self.service.files().get(
-                fileId=file_id,
-                fields="id,webViewLink,webContentLink",
-                supportsAllDrives=True,
-            ).execute()
-            return {
-                "id": str(metadata["id"]),
-                "webViewLink": str(metadata.get("webViewLink") or ""),
-                "webContentLink": str(metadata.get("webContentLink") or ""),
-                "direct_download_url": f"https://drive.google.com/uc?export=download&id={file_id}",
-            }
-        except Exception:
-            if file_id:
-                self.delete_file_quietly(file_id)
-            raise
-
-    def delete_file_quietly(self, file_id: str) -> None:
-        try:
-            self.service.files().delete(fileId=file_id, supportsAllDrives=True).execute()
-        except Exception:
-            pass
 
 
 class ImageProcessor:
@@ -329,7 +294,9 @@ class FulfilmentWorker:
     def __init__(self, config: WorkerConfig):
         self.config = config
         self.api = ApiClient(config)
-        self.drive = None if config.local_output_dir else GoogleDriveClient(config)
+        credentials_ok = config.google_credentials_path.is_file()
+        drive_configured = bool(config.google_drive_folder_id) and credentials_ok
+        self.drive = GoogleDriveClient(config) if drive_configured else None
         self.images = ImageProcessor(config)
         self.running = True
 
@@ -352,38 +319,50 @@ class FulfilmentWorker:
             self.api.patch_item(item_ref_id, {"fulfilment_notes": message})
             return
 
+        if not self.config.local_output_dir:
+            raise RuntimeError(
+                "LOCAL_OUTPUT_DIR is required. Print JPEGs are saved locally; "
+                "upload to Google Drive is manual."
+            )
+
         log(f"{item_ref}: generating print file")
         temp_file = self.images.generate_print_file(master_path, item)
         try:
             slug = str(item.get("slug") or slugify(str(item.get("master_filename") or item_ref)))
-            if self.config.local_output_dir:
-                order_folder = self.config.local_output_dir / f"{item_ref}_{slug}"
-                order_folder.mkdir(parents=True, exist_ok=True)
-                destination = order_folder / temp_file.name
-                shutil.copy2(temp_file, destination)
-                self.api.patch_item(
-                    item_ref_id,
-                    {
-                        "fulfilment_status": "file_ready",
-                        "cloud_file_url": destination.as_uri(),
-                        "cloud_folder_path": str(order_folder),
-                    },
-                )
-                log(f"{item_ref}: saved locally to {destination} and marked file_ready")
-            else:
-                if self.drive is None:
-                    raise RuntimeError("Drive client is not initialized.")
-                folder_id = self.drive.create_folder(f"{item_ref}_{slug}")
-                metadata = self.drive.upload_jpeg(temp_file, folder_id)
-                self.api.patch_item(
-                    item_ref_id,
-                    {
-                        "fulfilment_status": "file_ready",
-                        "cloud_file_url": metadata["direct_download_url"],
-                        "cloud_folder_path": folder_id,
-                    },
-                )
-                log(f"{item_ref}: uploaded and marked file_ready")
+            order_folder = self.config.local_output_dir / f"{item_ref}_{slug}"
+            order_folder.mkdir(parents=True, exist_ok=True)
+            destination = order_folder / temp_file.name
+            shutil.copy2(temp_file, destination)
+
+            existing_folder = str(item.get("cloud_folder_path") or "").strip()
+            drive_folder_id = existing_folder if looks_like_drive_id(existing_folder) else ""
+
+            if self.drive is not None and not drive_folder_id:
+                try:
+                    drive_folder_id = self.drive.create_folder(f"{item_ref}_{slug}")
+                    log(f"{item_ref}: created Drive folder {drive_folder_id}")
+                except Exception as exc:
+                    log(f"{item_ref}: Drive folder creation failed ({exc}); continuing with local file only")
+            elif drive_folder_id:
+                log(f"{item_ref}: reusing existing Drive folder {drive_folder_id}")
+
+            self.api.patch_item(
+                item_ref_id,
+                {
+                    "fulfilment_status": "file_ready",
+                    "cloud_file_url": destination.as_uri(),
+                    "cloud_folder_path": drive_folder_id or str(order_folder),
+                    "fulfilment_notes": (
+                        "Print JPEG saved locally. Upload it into the Drive folder manually, "
+                        "then share with the print lab."
+                    ),
+                },
+            )
+            log(
+                f"{item_ref}: saved locally to {destination}"
+                + (f" (Drive folder {drive_folder_id})" if drive_folder_id else "")
+                + " and marked file_ready"
+            )
         finally:
             temp_file.unlink(missing_ok=True)
 
@@ -402,15 +381,18 @@ class FulfilmentWorker:
 
     def run_forever(self) -> None:
         self.api.health()
-        if self.config.local_output_dir:
-            self.config.local_output_dir.mkdir(parents=True, exist_ok=True)
-            log(f"Using local output directory: {self.config.local_output_dir}")
-        else:
-            if not self.config.google_drive_folder_id:
-                raise RuntimeError("GOOGLE_DRIVE_FOLDER_ID is required when LOCAL_OUTPUT_DIR is not set.")
-            if self.drive is None:
-                raise RuntimeError("Drive client is not initialized.")
+        if not self.config.local_output_dir:
+            raise RuntimeError(
+                "LOCAL_OUTPUT_DIR is required. Print JPEGs are saved locally; "
+                "upload to Google Drive is manual."
+            )
+        self.config.local_output_dir.mkdir(parents=True, exist_ok=True)
+        log(f"Using local output directory: {self.config.local_output_dir}")
+        if self.drive is not None:
             self.drive.check_access()
+            log("Drive folder creation enabled (JPEG upload is manual).")
+        else:
+            log("Drive not configured; local output only.")
         log("Fulfilment worker started.")
         while self.running:
             self.run_once()
