@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
+import type { VariantFramingInput } from "../../lib/print-framing";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ImportPhotoWizardClient.module.css";
+import { defaultVariantFraming, PrintFramingControls } from "./PrintFramingControls";
 import { ThemeSelector } from "./ThemeSelector";
 
 type MasterFileCandidate = {
@@ -124,6 +126,7 @@ export function ImportPhotoWizardClient({
         .map((template) => [template.id, (template.base_price_aud / 100).toFixed(2)]),
     ),
   );
+  const [templateFraming, setTemplateFraming] = useState<Record<string, VariantFramingInput>>({});
   const [webImageMode, setWebImageMode] = useState<WebImageMode>("generate");
   const [webImage, setWebImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -194,6 +197,7 @@ export function ImportPhotoWizardClient({
     }
     if (masterChanged) {
       setSelectedTemplateIds([]);
+      setTemplateFraming({});
       setWebImageMode("generate");
       setWebImage(null);
       setCreatedProductId(null);
@@ -215,6 +219,10 @@ export function ImportPhotoWizardClient({
         [templateId]: (template.base_price_aud / 100).toFixed(2),
       }));
     }
+    setTemplateFraming((current) => {
+      if (current[templateId]) return current;
+      return { ...current, [templateId]: defaultVariantFraming() };
+    });
   };
 
   const selectAllTemplates = () => {
@@ -223,6 +231,10 @@ export function ImportPhotoWizardClient({
       ...Object.fromEntries(
         activeTemplates.map((template) => [template.id, (template.base_price_aud / 100).toFixed(2)]),
       ),
+      ...current,
+    }));
+    setTemplateFraming((current) => ({
+      ...Object.fromEntries(activeTemplates.map((template) => [template.id, current[template.id] ?? defaultVariantFraming()])),
       ...current,
     }));
   };
@@ -310,6 +322,7 @@ export function ImportPhotoWizardClient({
     setEditionSize("10");
     setIsFeatured(false);
     setSelectedTemplateIds([]);
+    setTemplateFraming({});
     setWebImageMode("generate");
     setWebImage(null);
     setSaving(false);
@@ -336,6 +349,12 @@ export function ImportPhotoWizardClient({
     formData.set("photo_type_tag", photoTypeTag);
     formData.set("edition_size", editionSize);
     formData.set("master_filename", masterFilename.trim());
+    if (selectedMaster?.pixel_width) {
+      formData.set("master_pixel_width", String(selectedMaster.pixel_width));
+    }
+    if (selectedMaster?.pixel_height) {
+      formData.set("master_pixel_height", String(selectedMaster.pixel_height));
+    }
     formData.set("is_featured", String(isFeatured));
     formData.set("variant_template_ids", JSON.stringify(selectedTemplateIds));
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
@@ -346,6 +365,17 @@ export function ImportPhotoWizardClient({
           selectedTemplateIds.map((templateId) => [
             templateId,
             Math.round((Number.parseFloat(templatePrices[templateId] || "0") || 0) * 100),
+          ]),
+        ),
+      ),
+    );
+    formData.set(
+      "variant_framing",
+      JSON.stringify(
+        Object.fromEntries(
+          selectedTemplateIds.map((templateId) => [
+            templateId,
+            templateFraming[templateId] ?? defaultVariantFraming(),
           ]),
         ),
       ),
@@ -666,6 +696,31 @@ export function ImportPhotoWizardClient({
               </details>
             ))}
           </div>
+
+          {selectedTemplates.length > 0 && selectedMaster ? (
+            <div className={styles.framingList}>
+              <h3>Framing for selected sizes</h3>
+              <p className={styles.explain}>
+                Cover &amp; crop fills the print size (default). Custom size keeps the whole photo and adjusts one
+                edge for a Pixel Perfect custom paper order.
+              </p>
+              {selectedTemplates.map((template) => (
+                <PrintFramingControls
+                  key={template.id}
+                  label={template.variant_label}
+                  templateWidthMm={template.width_mm}
+                  templateHeightMm={template.height_mm}
+                  pixelWidth={selectedMaster.pixel_width}
+                  pixelHeight={selectedMaster.pixel_height}
+                  previewUrl={masterThumbnailUrl(selectedMaster.filename)}
+                  value={templateFraming[template.id] ?? defaultVariantFraming()}
+                  onChange={(next) =>
+                    setTemplateFraming((current) => ({ ...current, [template.id]: next }))
+                  }
+                />
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 

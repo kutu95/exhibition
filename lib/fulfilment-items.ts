@@ -46,6 +46,9 @@ export type FulfilmentItem = {
   wrap_style: string | null;
   front_face_width_mm: number | null;
   front_face_height_mm: number | null;
+  fit_mode: "cover_crop" | "custom_size";
+  crop_offset: number;
+  size_lock: "long_edge" | "width" | "height" | null;
   source_print_profile_id: string | null;
   source_print_profile_display_name: string | null;
   source_print_profile_storage_path: string | null;
@@ -138,6 +141,9 @@ const fulfilmentItemJson = `
       'wrap_style', pv.wrap_style,
       'front_face_width_mm', pv.front_face_width_mm,
       'front_face_height_mm', pv.front_face_height_mm,
+      'fit_mode', coalesce(pv.fit_mode, 'cover_crop'),
+      'crop_offset', coalesce(pv.crop_offset, 0),
+      'size_lock', pv.size_lock,
       'source_print_profile_id', pv.source_print_profile_id,
       'source_print_profile_display_name', spp.display_name,
       'source_print_profile_storage_path', spp.storage_path,

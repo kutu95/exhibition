@@ -1,4 +1,9 @@
 import { withTransaction } from "./postgres";
+import {
+  describeFramingNote,
+  resolvePrintSize,
+  type VariantFramingInput,
+} from "./print-framing";
 import { stripe } from "./stripe";
 
 export type RegisterPrintProductPayload = {
@@ -15,6 +20,10 @@ export type RegisterPrintProductPayload = {
   theme_ids?: string[];
   variant_template_ids?: string[];
   variant_template_prices?: Record<string, number>;
+  /** Per-template framing overrides keyed by template UUID. */
+  variant_framing?: Record<string, VariantFramingInput>;
+  master_pixel_width?: number | null;
+  master_pixel_height?: number | null;
 };
 
 type ProductRow = {
@@ -59,6 +68,35 @@ type ImageRow = {
   is_primary: boolean;
 };
 
+type TemplateRow = {
+  id: string;
+  variant_label: string;
+  width_mm: number;
+  height_mm: number;
+  border_mm: number;
+  paper_type: string | null;
+  print_type: string | null;
+  base_price_aud: number;
+  edition_size: number | null;
+  tier_label: string | null;
+  finish: string | null;
+  is_framed: boolean;
+  frame_type: string | null;
+  print_dpi: number;
+  lab_cost_aud: number | null;
+  suggested_retail_min_aud: number | null;
+  suggested_retail_max_aud: number | null;
+  turnaround_days_min: number | null;
+  turnaround_days_max: number | null;
+  shipping_class: string | null;
+  fulfilment_notes: string | null;
+  aspect_ratio: string | null;
+  canvas_wrap_mm: number | null;
+  wrap_style: string | null;
+  front_face_width_mm: number | null;
+  front_face_height_mm: number | null;
+};
+
 export const isStripeConfigurationError = (error: unknown): boolean =>
   error instanceof Error &&
   (
@@ -94,7 +132,10 @@ export const normalizeManagedImageUrl = (value: string): string => {
 export const registerPrintProduct = async (payload: RegisterPrintProductPayload) => {
   const webImageUrl = normalizeManagedImageUrl(payload.web_image_url);
   const selectedTemplateIds = payload.variant_template_ids?.length ? payload.variant_template_ids : null;
-  const selectedTemplatePrices = JSON.stringify(payload.variant_template_prices ?? {});
+  const priceOverrides = payload.variant_template_prices ?? {};
+  const framingByTemplate = payload.variant_framing ?? {};
+  const masterPixelWidth = payload.master_pixel_width ?? null;
+  const masterPixelHeight = payload.master_pixel_height ?? null;
 
   return withTransaction(async (client) => {
     const { rows: productRows } = await client.query<ProductRow>(
@@ -136,86 +177,122 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
       );
     }
 
-    const { rows: variantRows } = await client.query<VariantRow>(
+    const { rows: templates } = await client.query<TemplateRow>(
       `
-        insert into exhibition.product_variants (
-          product_id,
-          variant_label,
-          width_mm,
-          height_mm,
-          border_mm,
-          paper_type,
-          print_type,
-          price_aud,
-          edition_size,
-          master_filename,
-          source_print_profile_id,
-          destination_print_profile_id,
-          stripe_price_id,
-          stock_quantity,
-          is_active,
-          tier_label,
-          finish,
-          is_framed,
-          frame_type,
-          print_dpi,
-          lab_cost_aud,
-          suggested_retail_min_aud,
-          suggested_retail_max_aud,
-          turnaround_days_min,
-          turnaround_days_max,
-          shipping_class,
-          fulfilment_notes,
-          aspect_ratio,
-          canvas_wrap_mm,
-          wrap_style,
-          front_face_width_mm,
-          front_face_height_mm
-        )
-        select
-          $1,
-          vt.variant_label,
-          vt.width_mm,
-          vt.height_mm,
-          vt.border_mm,
-          vt.paper_type,
-          vt.print_type,
-          coalesce(($5::jsonb ->> vt.id::text)::integer, vt.base_price_aud),
-          coalesce(vt.edition_size, $2),
-          $3,
-          null,
-          null,
-          null,
-          null,
-          true,
-          vt.tier_label,
-          vt.finish,
-          vt.is_framed,
-          vt.frame_type,
-          vt.print_dpi,
-          vt.lab_cost_aud,
-          vt.suggested_retail_min_aud,
-          vt.suggested_retail_max_aud,
-          vt.turnaround_days_min,
-          vt.turnaround_days_max,
-          vt.shipping_class,
-          vt.fulfilment_notes,
-          vt.aspect_ratio,
-          vt.canvas_wrap_mm,
-          vt.wrap_style,
-          vt.front_face_width_mm,
-          vt.front_face_height_mm
+        select *
         from exhibition.variant_templates vt
         where vt.is_active = true
-          and ($4::uuid[] is null or vt.id = any($4::uuid[]))
+          and ($1::uuid[] is null or vt.id = any($1::uuid[]))
         order by vt.sort_order asc, vt.created_at asc
-        returning *
       `,
-      [product.id, payload.edition_size, payload.master_filename, selectedTemplateIds, selectedTemplatePrices],
+      [selectedTemplateIds],
     );
 
-    if (variantRows.length === 0) {
+    if (templates.length === 0) {
       throw new Error("NO_ACTIVE_VARIANT_TEMPLATES");
+    }
+
+    const variantRows: VariantRow[] = [];
+
+    for (const template of templates) {
+      const framing = framingByTemplate[template.id] ?? null;
+      const resolved = resolvePrintSize({
+        templateWidthMm: template.width_mm,
+        templateHeightMm: template.height_mm,
+        pixelWidth: masterPixelWidth,
+        pixelHeight: masterPixelHeight,
+        framing,
+      });
+
+      const framingNote = describeFramingNote(template.variant_label, resolved);
+      const fulfilmentNotes = [template.fulfilment_notes, framingNote].filter(Boolean).join(" ");
+      const label =
+        resolved.fit_mode === "custom_size"
+          ? `${template.variant_label} (custom ${resolved.width_mm}x${resolved.height_mm}mm)`
+          : template.variant_label;
+
+      const { rows: inserted } = await client.query<VariantRow>(
+        `
+          insert into exhibition.product_variants (
+            product_id,
+            variant_label,
+            width_mm,
+            height_mm,
+            border_mm,
+            paper_type,
+            print_type,
+            price_aud,
+            edition_size,
+            master_filename,
+            source_print_profile_id,
+            destination_print_profile_id,
+            stripe_price_id,
+            stock_quantity,
+            is_active,
+            tier_label,
+            finish,
+            is_framed,
+            frame_type,
+            print_dpi,
+            lab_cost_aud,
+            suggested_retail_min_aud,
+            suggested_retail_max_aud,
+            turnaround_days_min,
+            turnaround_days_max,
+            shipping_class,
+            fulfilment_notes,
+            aspect_ratio,
+            canvas_wrap_mm,
+            wrap_style,
+            front_face_width_mm,
+            front_face_height_mm,
+            fit_mode,
+            crop_offset,
+            size_lock
+          )
+          values (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+            null, null, null, null, true,
+            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
+            $28, $29, $30
+          )
+          returning *
+        `,
+        [
+          product.id,
+          label,
+          resolved.width_mm,
+          resolved.height_mm,
+          template.border_mm,
+          template.paper_type,
+          template.print_type,
+          priceOverrides[template.id] ?? template.base_price_aud,
+          template.edition_size ?? payload.edition_size,
+          payload.master_filename,
+          template.tier_label,
+          template.finish,
+          template.is_framed,
+          template.frame_type,
+          template.print_dpi,
+          template.lab_cost_aud,
+          template.suggested_retail_min_aud,
+          template.suggested_retail_max_aud,
+          template.turnaround_days_min,
+          template.turnaround_days_max,
+          template.shipping_class,
+          fulfilmentNotes || null,
+          resolved.aspect_ratio ?? template.aspect_ratio,
+          template.canvas_wrap_mm,
+          template.wrap_style,
+          template.front_face_width_mm,
+          template.front_face_height_mm,
+          resolved.fit_mode,
+          resolved.crop_offset,
+          resolved.size_lock,
+        ],
+      );
+
+      if (inserted[0]) variantRows.push(inserted[0]);
     }
 
     const { rows: imageRows } = await client.query<ImageRow>(

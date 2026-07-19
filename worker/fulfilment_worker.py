@@ -275,18 +275,64 @@ class ImageProcessor:
 
         with Image.open(master_path) as image:
             converted = self._convert_profile(image, item, destination_profile, imagecms_perceptual_intent(), flags=flags)
-            # Preserve source aspect ratio to avoid distortion. Fit the image inside
-            # the print area and center on a white canvas when ratios differ.
-            fitted = ImageOps.contain(converted, (content_width_px, content_height_px), Image.Resampling.LANCZOS)
-            canvas = Image.new("RGB", (content_width_px, content_height_px), (255, 255, 255))
-            offset_x = (content_width_px - fitted.width) // 2
-            offset_y = (content_height_px - fitted.height) // 2
-            canvas.paste(fitted, (offset_x, offset_y))
+            fit_mode = str(item.get("fit_mode") or "cover_crop").strip().lower()
+            try:
+                crop_offset = float(item.get("crop_offset") or 0)
+            except (TypeError, ValueError):
+                crop_offset = 0.0
+            crop_offset = max(-1.0, min(1.0, crop_offset))
+
+            if fit_mode == "custom_size":
+                # Dimensions already match photo aspect; fill without letterboxing.
+                fitted = ImageOps.fit(
+                    converted,
+                    (content_width_px, content_height_px),
+                    method=Image.Resampling.LANCZOS,
+                    centering=(0.5, 0.5),
+                )
+                canvas = fitted
+            else:
+                # Cover the print area, then crop. crop_offset pans the free axis
+                # (-1..1); the constrained axis stays centred.
+                src_w, src_h = converted.size
+                if src_w <= 0 or src_h <= 0:
+                    raise RuntimeError(f"Invalid source image size for {order_number(item)}")
+                scale = max(content_width_px / src_w, content_height_px / src_h)
+                scaled_w = max(1, round(src_w * scale))
+                scaled_h = max(1, round(src_h * scale))
+                scaled = converted.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+
+                max_x = max(0, scaled_w - content_width_px)
+                max_y = max(0, scaled_h - content_height_px)
+                if max_x > 0 and max_y == 0:
+                    # Wider than target: horizontal pan
+                    left = int(round((max_x / 2) * (1 + crop_offset)))
+                    left = max(0, min(max_x, left))
+                    top = 0
+                elif max_y > 0 and max_x == 0:
+                    # Taller than target: vertical pan
+                    top = int(round((max_y / 2) * (1 + crop_offset)))
+                    top = max(0, min(max_y, top))
+                    left = 0
+                else:
+                    left = max_x // 2
+                    top = max_y // 2
+
+                canvas = scaled.crop((left, top, left + content_width_px, top + content_height_px))
+
             converted = canvas
             if border_px > 0:
                 converted = ImageOps.expand(converted, border=border_px, fill=(255, 255, 255))
             converted = converted.convert("RGB")
-            converted.save(output, "JPEG", quality=90, icc_profile=destination_profile_bytes)
+            # Pixel dimensions are already computed at print_dpi; also embed JFIF/EXIF
+            # density so Photoshop and labs report 300 PPI instead of defaulting to 72.
+            converted.save(
+                output,
+                "JPEG",
+                quality=90,
+                dpi=(print_dpi, print_dpi),
+                icc_profile=destination_profile_bytes,
+            )
         return output
 
 

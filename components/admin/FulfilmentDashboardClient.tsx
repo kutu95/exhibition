@@ -46,6 +46,9 @@ export type FulfilmentDashboardItem = {
   wrap_style: string | null;
   front_face_width_mm: number | null;
   front_face_height_mm: number | null;
+  fit_mode?: string | null;
+  crop_offset?: number | null;
+  size_lock?: string | null;
   quantity: number;
   price: number;
   edition_number_assigned: number | null;
@@ -110,6 +113,9 @@ const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
     `Paper: ${item.paper_type ?? ""}`,
     item.finish ? `Finish: ${item.finish}` : null,
     `Size: ${item.width_mm} x ${item.height_mm} mm`,
+    item.fit_mode === "custom_size"
+      ? `Framing: custom size (lock ${item.size_lock ?? "long_edge"}) — order as custom paper at Pixel Perfect`
+      : `Framing: cover crop${item.crop_offset ? ` (pan ${Number(item.crop_offset).toFixed(2)})` : ""}`,
     item.front_face_width_mm && item.front_face_height_mm
       ? `Front face: ${item.front_face_width_mm} x ${item.front_face_height_mm} mm`
       : null,
@@ -260,6 +266,12 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
               <p><strong>Variant:</strong> {item.variant_label}</p>
               <p><strong>Range:</strong> {item.tier_label ?? "—"}</p>
               <p><strong>Dimensions:</strong> {item.width_mm} x {item.height_mm} mm</p>
+              <p>
+                <strong>Framing:</strong>{" "}
+                {item.fit_mode === "custom_size"
+                  ? `Custom size (lock ${item.size_lock ?? "long_edge"})`
+                  : `Cover crop${item.crop_offset ? ` · pan ${Number(item.crop_offset).toFixed(2)}` : ""}`}
+              </p>
               <p><strong>Paper:</strong> {item.paper_type ?? "—"}</p>
               <p><strong>Finish:</strong> {item.finish ?? "—"}</p>
               <p><strong>Frame:</strong> {item.is_framed ? item.frame_type ?? "Framed" : "No"}</p>

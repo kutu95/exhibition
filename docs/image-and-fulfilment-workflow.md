@@ -197,8 +197,8 @@ Run locally with app: `npm run dev:all` (Next.js + worker).
    - **`generate_print_file()`**:
      - Requires embedded ICC in the TIFF
      - Converts to **Adobe RGB 1998** using `PRINT_OUTPUT_PROFILE_PATH` (perceptual intent, black-point compensation)
-     - Resizes/fits to print area at variant DPI; optional white border
-     - Writes a high-quality JPEG with output ICC embedded
+     - Resizes with **cover crop** (default) or fills a **custom_size** rectangle; optional white border
+     - Writes a high-quality JPEG with output ICC embedded and **dpi metadata** set to `print_dpi`
    - Copy JPEG to **`LOCAL_OUTPUT_DIR`**
    - Optionally create **one** Google Drive folder (no file upload; reuse existing folder id if already stored)
    - **`PATCH /api/fulfilment/items/{order_item_id}`** → **`fulfilment_status: 'file_ready'`**, plus `cloud_file_url` / `cloud_folder_path`

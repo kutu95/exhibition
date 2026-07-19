@@ -42,6 +42,9 @@ const variantSchema = z.object({
   wrap_style: z.string().nullable(),
   front_face_width_mm: z.number().int().positive().nullable(),
   front_face_height_mm: z.number().int().positive().nullable(),
+  fit_mode: z.enum(["cover_crop", "custom_size"]).default("cover_crop"),
+  crop_offset: z.number().min(-1).max(1).default(0),
+  size_lock: z.enum(["long_edge", "width", "height"]).nullable(),
   is_active: z.boolean(),
 });
 
@@ -348,6 +351,9 @@ export async function PATCH(request: Request, context: RouteContext) {
           wrap_style: variant.wrap_style,
           front_face_width_mm: variant.front_face_width_mm,
           front_face_height_mm: variant.front_face_height_mm,
+          fit_mode: variant.fit_mode,
+          crop_offset: variant.crop_offset,
+          size_lock: variant.size_lock,
           is_active: variant.is_active,
         })),
         { onConflict: "id" },
@@ -390,6 +396,9 @@ export async function PATCH(request: Request, context: RouteContext) {
         wrap_style: variant.wrap_style,
         front_face_width_mm: variant.front_face_width_mm,
         front_face_height_mm: variant.front_face_height_mm,
+        fit_mode: variant.fit_mode,
+        crop_offset: variant.crop_offset,
+        size_lock: variant.size_lock,
         is_active: variant.is_active,
       })),
     );

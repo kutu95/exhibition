@@ -61,6 +61,9 @@ export type ProductVariant = {
   wrap_style: string | null;
   front_face_width_mm: number | null;
   front_face_height_mm: number | null;
+  fit_mode: "cover_crop" | "custom_size";
+  crop_offset: number;
+  size_lock: "long_edge" | "width" | "height" | null;
 };
 
 export type ProductImage = {

@@ -158,6 +158,41 @@ describe("Photolab API contract", () => {
               };
             }
 
+            if (sql.includes("from exhibition.variant_templates")) {
+              return {
+                rows: [
+                  {
+                    id: "00000000-0000-0000-0000-000000000099",
+                    variant_label: "A2",
+                    width_mm: 420,
+                    height_mm: 594,
+                    border_mm: 0,
+                    paper_type: "Photo Rag",
+                    print_type: "fine_art",
+                    base_price_aud: 45000,
+                    edition_size: 10,
+                    tier_label: null,
+                    finish: null,
+                    is_framed: false,
+                    frame_type: null,
+                    print_dpi: 300,
+                    lab_cost_aud: null,
+                    suggested_retail_min_aud: null,
+                    suggested_retail_max_aud: null,
+                    turnaround_days_min: null,
+                    turnaround_days_max: null,
+                    shipping_class: null,
+                    fulfilment_notes: null,
+                    aspect_ratio: null,
+                    canvas_wrap_mm: null,
+                    wrap_style: null,
+                    front_face_width_mm: null,
+                    front_face_height_mm: null,
+                  },
+                ],
+              };
+            }
+
             if (sql.includes("insert into exhibition.product_variants")) {
               variantInsertParams = params;
               return {
@@ -170,10 +205,14 @@ describe("Photolab API contract", () => {
                     edition_size: 10,
                     stripe_price_id: null,
                     is_active: true,
-                    master_filename: params?.[2],
+                    master_filename: params?.[9],
                   },
                 ],
               };
+            }
+
+            if (sql.includes("update exhibition.product_variants")) {
+              return { rows: [] };
             }
 
             return { rows: [{ id: "image-id", product_id: productId, image_url: "https://example.com/image.jpg" }] };
@@ -219,7 +258,7 @@ describe("Photolab API contract", () => {
     const body = await response.json();
 
     expect(response.status).toBe(201);
-    expect(variantInsertParams?.[2]).toBe("new_print.tif");
+    expect(variantInsertParams?.[9]).toBe("new_print.tif");
     expect(body).toMatchObject({
       ok: true,
       product_id: productId,

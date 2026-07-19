@@ -46,6 +46,9 @@ type ProductDetailResponse = {
     wrap_style: string | null;
     front_face_width_mm: number | null;
     front_face_height_mm: number | null;
+    fit_mode?: "cover_crop" | "custom_size" | null;
+    crop_offset?: number | null;
+    size_lock?: "long_edge" | "width" | "height" | null;
     is_active: boolean;
     has_order_items: boolean;
   }>;
@@ -129,6 +132,12 @@ export default async function AdminEditProductPage({ params }: PageProps) {
           wrap_style: variant.wrap_style ?? "",
           front_face_width_mm: variant.front_face_width_mm?.toString() ?? "",
           front_face_height_mm: variant.front_face_height_mm?.toString() ?? "",
+          fit_mode: variant.fit_mode === "custom_size" ? "custom_size" : "cover_crop",
+          crop_offset: String(variant.crop_offset ?? 0),
+          size_lock:
+            variant.size_lock === "long_edge" || variant.size_lock === "width" || variant.size_lock === "height"
+              ? variant.size_lock
+              : "",
           is_active: variant.is_active,
         })),
         images: product.product_images.map((image) => ({

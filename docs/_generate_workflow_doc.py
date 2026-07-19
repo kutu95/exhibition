@@ -96,7 +96,7 @@ SECTIONS: list[tuple[str, list[str]]] = [
             "1. GET /api/fulfilment/queue and find items with fulfilment_status = awaiting_file.",
             "2. Locate MASTER_FILES_DIR / master_filename for that line item.",
             "3. Convert colour from the TIFF’s embedded profile to Adobe RGB 1998 (perceptual intent with black-point compensation).",
-            "4. Size the image to the variant’s width_mm × height_mm at print_dpi, preserving aspect ratio (fit and centre on a white canvas). Add a white border if border_mm > 0.",
+            "4. Size the image to the variant’s width_mm × height_mm at print_dpi. Default fit_mode is cover_crop (fill the print area and crop overflow, with optional crop_offset pan). custom_size fills without letterboxing when mm already match the photo aspect.",
             "5. Save a high-quality JPEG with the output ICC embedded.",
             "6. Upload to a per-order Google Drive folder (or copy to LOCAL_OUTPUT_DIR).",
             "7. PATCH the order item to fulfilment_status = file_ready, storing cloud_file_url and cloud_folder_path.",

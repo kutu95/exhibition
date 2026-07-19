@@ -36,8 +36,18 @@ const formSchema = z.object({
   is_featured: z.boolean(),
   edition_size: z.number().int().positive(),
   master_filename: z.string().min(1),
+  master_pixel_width: z.number().int().positive().nullable(),
+  master_pixel_height: z.number().int().positive().nullable(),
   variant_template_ids: z.array(z.string().uuid()).min(1),
   variant_template_prices: z.record(z.string().uuid(), z.number().int().nonnegative()),
+  variant_framing: z.record(
+    z.string().uuid(),
+    z.object({
+      fit_mode: z.enum(["cover_crop", "custom_size"]),
+      crop_offset: z.number().min(-1).max(1),
+      size_lock: z.enum(["long_edge", "width", "height"]).nullable(),
+    }),
+  ),
   theme_ids: z.array(z.string().uuid()),
 });
 
@@ -89,6 +99,39 @@ const variantTemplatePricesField = (formData: FormData): Record<string, number> 
     Object.entries(parsed).flatMap(([templateId, price]) =>
       typeof price === "number" ? [[templateId, price]] : [],
     ),
+  );
+};
+
+const variantFramingField = (
+  formData: FormData,
+): Record<
+  string,
+  { fit_mode: "cover_crop" | "custom_size"; crop_offset: number; size_lock: "long_edge" | "width" | "height" | null }
+> => {
+  const value = formData.get("variant_framing");
+  if (typeof value !== "string" || !value.trim()) return {};
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    return {};
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+  return Object.fromEntries(
+    Object.entries(parsed).flatMap(([templateId, framing]) => {
+      if (!framing || typeof framing !== "object" || Array.isArray(framing)) return [];
+      const record = framing as Record<string, unknown>;
+      const fitMode = record.fit_mode === "custom_size" ? "custom_size" : "cover_crop";
+      const cropOffset = typeof record.crop_offset === "number" ? record.crop_offset : 0;
+      const sizeLock =
+        record.size_lock === "width" || record.size_lock === "height" || record.size_lock === "long_edge"
+          ? record.size_lock
+          : null;
+      return [[templateId, { fit_mode: fitMode, crop_offset: cropOffset, size_lock: sizeLock }]];
+    }),
   );
 };
 
@@ -215,8 +258,11 @@ export async function POST(request: Request) {
     is_featured: booleanField(formData, "is_featured"),
     edition_size: Number.parseInt(stringField(formData, "edition_size") ?? "", 10),
     master_filename: stringField(formData, "master_filename"),
+    master_pixel_width: Number.parseInt(stringField(formData, "master_pixel_width") ?? "", 10) || null,
+    master_pixel_height: Number.parseInt(stringField(formData, "master_pixel_height") ?? "", 10) || null,
     variant_template_ids: variantTemplateIdsField(formData),
     variant_template_prices: variantTemplatePricesField(formData),
+    variant_framing: variantFramingField(formData),
     theme_ids: themeIdsField(formData),
   });
 

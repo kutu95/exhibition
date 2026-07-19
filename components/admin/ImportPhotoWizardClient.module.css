@@ -308,6 +308,16 @@
   margin: 0;
 }
 
+.framingList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.2rem;
+}
+
+.framingList h3 {
+  margin: 0;
+}
+
 .templateActions {
   align-items: center;
   display: flex;

@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
+import type { VariantFramingInput } from "../../lib/print-framing";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import { isValidProductImageUrl } from "../../lib/utils/site-content-image";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ProductEditorForm.module.css";
+import { PrintFramingControls } from "./PrintFramingControls";
 import { ThemeSelector } from "./ThemeSelector";
 
 type VariantInput = {
@@ -44,6 +46,9 @@ type VariantInput = {
   wrap_style: string;
   front_face_width_mm: string;
   front_face_height_mm: string;
+  fit_mode: "cover_crop" | "custom_size";
+  crop_offset: string;
+  size_lock: "" | "long_edge" | "width" | "height";
   is_active: boolean;
 };
 
@@ -109,6 +114,9 @@ const createBlankVariant = (): VariantInput => ({
   wrap_style: "",
   front_face_width_mm: "",
   front_face_height_mm: "",
+  fit_mode: "cover_crop",
+  crop_offset: "0",
+  size_lock: "",
   is_active: true,
 });
 
@@ -151,6 +159,9 @@ const applyTemplateToVariant = (variant: VariantInput, template: VariantTemplate
   wrap_style: template.wrap_style ?? "",
   front_face_width_mm: template.front_face_width_mm?.toString() ?? "",
   front_face_height_mm: template.front_face_height_mm?.toString() ?? "",
+  fit_mode: "cover_crop",
+  crop_offset: "0",
+  size_lock: "",
 });
 
 export function ProductEditorForm({ mode, initialData, variantTemplates, themes }: ProductEditorFormProps) {
@@ -238,6 +249,13 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
       wrap_style: variant.wrap_style.trim() || null,
       front_face_width_mm: variant.front_face_width_mm ? Number.parseInt(variant.front_face_width_mm, 10) : null,
       front_face_height_mm: variant.front_face_height_mm ? Number.parseInt(variant.front_face_height_mm, 10) : null,
+      fit_mode: variant.fit_mode === "custom_size" ? "custom_size" : "cover_crop",
+      crop_offset: Number.parseFloat(variant.crop_offset || "0") || 0,
+      size_lock:
+        variant.fit_mode === "custom_size" &&
+        (variant.size_lock === "long_edge" || variant.size_lock === "width" || variant.size_lock === "height")
+          ? variant.size_lock
+          : null,
       is_active: variant.is_active,
     }));
 
@@ -684,6 +702,49 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                     }
                   />
                 </label>
+                <div className={styles.framingBlock}>
+                  <PrintFramingControls
+                    label="Print framing"
+                    templateWidthMm={Number.parseInt(variant.width_mm || "0", 10) || 1}
+                    templateHeightMm={Number.parseInt(variant.height_mm || "0", 10) || 1}
+                    pixelWidth={null}
+                    pixelHeight={null}
+                    previewUrl={images.find((image) => image.is_primary)?.image_url || images[0]?.image_url || null}
+                    value={{
+                      fit_mode: variant.fit_mode === "custom_size" ? "custom_size" : "cover_crop",
+                      crop_offset: Number.parseFloat(variant.crop_offset || "0") || 0,
+                      size_lock:
+                        variant.size_lock === "long_edge" ||
+                        variant.size_lock === "width" ||
+                        variant.size_lock === "height"
+                          ? variant.size_lock
+                          : null,
+                    }}
+                    onChange={(next: VariantFramingInput) => {
+                      setVariants((current) =>
+                        current.map((row, i) => {
+                          if (i !== index) return row;
+                          const updated = {
+                            ...row,
+                            fit_mode: next.fit_mode,
+                            crop_offset: String(next.crop_offset),
+                            size_lock: (next.size_lock ?? "") as VariantInput["size_lock"],
+                          };
+                          // When switching to custom with known template mm, keep current mm
+                          // (editor has no master pixels; admin can edit width/height manually).
+                          if (next.fit_mode === "cover_crop" && row.template_id) {
+                            const template = variantTemplates.find((item) => item.id === row.template_id);
+                            if (template) {
+                              updated.width_mm = template.width_mm.toString();
+                              updated.height_mm = template.height_mm.toString();
+                            }
+                          }
+                          return updated;
+                        }),
+                      );
+                    }}
+                  />
+                </div>
                 <label>
                   Border (mm)
                   <input
