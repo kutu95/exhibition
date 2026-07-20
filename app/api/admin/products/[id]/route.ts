@@ -102,22 +102,29 @@ const getImageUrlPath = (value: string): string | null => {
 
 const archiveStripeCatalogue = async (variants: VariantStripeRow[]) => {
   const archivedProductIds = new Set<string>();
+  let archivedPrices = 0;
 
   for (const variant of variants) {
     if (!variant.stripe_price_id) continue;
 
-    const price = await stripe.prices.retrieve(variant.stripe_price_id);
-    await stripe.prices.update(variant.stripe_price_id, { active: false });
+    try {
+      const price = await stripe.prices.retrieve(variant.stripe_price_id);
+      await stripe.prices.update(variant.stripe_price_id, { active: false });
+      archivedPrices += 1;
 
-    const stripeProductId = typeof price.product === "string" ? price.product : price.product.id;
-    if (!archivedProductIds.has(stripeProductId)) {
-      await stripe.products.update(stripeProductId, { active: false });
-      archivedProductIds.add(stripeProductId);
+      const stripeProductId = typeof price.product === "string" ? price.product : price.product.id;
+      if (!archivedProductIds.has(stripeProductId)) {
+        await stripe.products.update(stripeProductId, { active: false });
+        archivedProductIds.add(stripeProductId);
+      }
+    } catch (error) {
+      // Legacy catalog IDs from a previous Stripe account can be missing; ignore.
+      console.warn(`Could not archive Stripe price ${variant.stripe_price_id}`, error);
     }
   }
 
   return {
-    archived_prices: variants.filter((variant) => variant.stripe_price_id).length,
+    archived_prices: archivedPrices,
     archived_products: archivedProductIds.size,
   };
 };

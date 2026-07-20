@@ -16,6 +16,15 @@
   padding: 0.45rem 0.7rem;
 }
 
+.buttonSecondary {
+  border: 1px solid #111;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+}
+
 .controls select,
 .field,
 .textarea {
@@ -27,31 +36,93 @@
 
 .grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.65rem;
 }
 
 .card {
   border: 1px solid #d8d8d8;
-  padding: 0.9rem;
+  padding: 0.75rem 0.9rem;
 }
 
-.cardHeader {
+.cardSummary {
+  align-items: flex-start;
+  cursor: pointer;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.6rem 1rem;
   justify-content: space-between;
-  align-items: flex-start;
+  list-style: none;
 }
 
-.cardHeader h2 {
+.cardSummary::-webkit-details-marker {
+  display: none;
+}
+
+.summaryMain {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.chevron {
+  display: inline-block;
+  margin-top: 0.2rem;
+  width: 0.85rem;
+}
+
+.cardSummary h2 {
+  font-size: 1.05rem;
   margin: 0;
-  font-size: 1.15rem;
+}
+
+.summaryTitle {
+  font-weight: 500;
+}
+
+.summaryMeta {
+  color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0;
+}
+
+.summaryCustomer {
+  color: #111;
+  font-weight: 600;
 }
 
 .status {
   border: 1px solid #d8d8d8;
   padding: 0.2rem 0.45rem;
   text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.cardBody {
+  margin-top: 0.85rem;
+}
+
+.timeline {
+  border: 1px solid #ececec;
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.timeline h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.35rem;
+}
+
+.timeline ul {
+  list-style: none;
+  margin: 0 0 0.55rem;
+  padding: 0;
+}
+
+.timeline li {
+  margin: 0.15rem 0;
 }
 
 .details {

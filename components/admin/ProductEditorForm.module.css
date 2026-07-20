@@ -13,13 +13,57 @@
   font-size: 1.05rem;
 }
 
+.panelSummary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.panelSummary::-webkit-details-marker {
+  display: none;
+}
+
 .grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.65rem;
+}
+
+.spanFull {
+  grid-column: 1 / -1;
+}
+
+.span2 {
+  grid-column: span 2;
 }
 
 .framingBlock {
   grid-column: 1 / -1;
+}
+
+.checkRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  grid-column: 1 / -1;
+}
+
+.checkCell {
+  align-items: center;
+  display: flex;
+  min-height: 2.4rem;
+}
+
+.checkRow label,
+.checkCell label {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  font-size: 0.9rem;
 }
 
 .grid label {
@@ -37,6 +81,18 @@
   padding: 0.45rem 0.55rem;
 }
 
+.hint {
+  color: #666;
+  font-size: 0.8rem;
+  grid-column: 1 / -1;
+}
+
+.muted {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0 0 0.65rem;
+}
+
 .row {
   border: 1px solid #e1e1e1;
   padding: 0.75rem;
@@ -47,6 +103,56 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 0.5rem;
+}
+
+.variantSummary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.variantSummary::-webkit-details-marker {
+  display: none;
+}
+
+.variantHeading {
+  font-weight: 600;
+  min-width: 0;
+}
+
+.variantChevron {
+  display: inline-block;
+  margin-right: 0.4rem;
+  width: 0.85rem;
+}
+
+.variantMeta {
+  color: #666;
+  font-weight: 400;
+}
+
+.variantSummaryActions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.75rem;
+}
+
+.variantActiveFlag {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 500;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.variantBody {
+  margin-top: 0.75rem;
 }
 
 .btn {
@@ -115,4 +221,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
+}
+
+@media (max-width: 640px) {
+  .span2 {
+    grid-column: 1 / -1;
+  }
 }

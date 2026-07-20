@@ -4,7 +4,6 @@ import {
   resolvePrintSize,
   type VariantFramingInput,
 } from "./print-framing";
-import { stripe } from "./stripe";
 
 export type RegisterPrintProductPayload = {
   title: string;
@@ -310,44 +309,9 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
       [product.id, webImageUrl, payload.title],
     );
 
-    const variantsWithStripePrices = [];
-
-    for (const variant of variantRows) {
-      const stripeProduct = await stripe.products.create({
-        name: `${product.title} — ${variant.variant_label}`,
-        metadata: {
-          product_id: product.id,
-          variant_id: variant.id,
-        },
-      });
-
-      const stripePrice = await stripe.prices.create({
-        unit_amount: variant.price_aud,
-        currency: "aud",
-        product: stripeProduct.id,
-        metadata: {
-          variant_id: variant.id,
-        },
-      });
-
-      await client.query(
-        `
-          update exhibition.product_variants
-          set stripe_price_id = $1
-          where id = $2
-        `,
-        [stripePrice.id, variant.id],
-      );
-
-      variantsWithStripePrices.push({
-        ...variant,
-        stripe_price_id: stripePrice.id,
-      });
-    }
-
     return {
       ...product,
-      product_variants: variantsWithStripePrices,
+      product_variants: variantRows,
       product_images: imageRows,
     };
   });

@@ -14,7 +14,9 @@ const checkoutSessionSchema = z.object({
 
 type VariantCheckoutRow = {
   id: string;
-  stripe_price_id: string | null;
+  variant_label: string;
+  price_aud: number;
+  product_title: string;
   edition_size: number | null;
   editions_remaining: number | null;
 };
@@ -34,7 +36,9 @@ export async function POST(request: Request) {
       `
         select
           pv.id,
-          pv.stripe_price_id,
+          pv.variant_label,
+          pv.price_aud,
+          p.title as product_title,
           pv.edition_size,
           case
             when pv.edition_size is null then null
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
         where pv.id = $1
           and pv.is_active = true
           and p.is_available = true
-        group by pv.id
+        group by pv.id, p.title
         limit 1
       `,
       [variant_id],
@@ -61,17 +65,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "sold_out" }, { status: 409 });
     }
 
-    if (!variant.stripe_price_id) {
-      return NextResponse.json({ error: "Variant is missing a Stripe price." }, { status: 500 });
-    }
-
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://exhibition.margies.app";
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [
         {
-          price: variant.stripe_price_id,
           quantity,
+          price_data: {
+            currency: "aud",
+            unit_amount: variant.price_aud,
+            product_data: {
+              name: `${variant.product_title} - ${variant.variant_label}`,
+            },
+          },
         },
       ],
       customer_email,

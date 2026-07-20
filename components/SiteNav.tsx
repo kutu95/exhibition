@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { formatAUD } from "../lib/utils/currency";
+import { useCart } from "./CartProvider";
 import styles from "./SiteNav.module.css";
 
 const navLinks = [
@@ -21,6 +24,8 @@ type SiteNavProps = {
 export function SiteNav({ exhibitionTitle }: SiteNavProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
+  const { items, itemCount, subtotalAud } = useCart();
 
   useEffect(() => {
     const onScroll = () => {
@@ -44,6 +49,8 @@ export function SiteNav({ exhibitionTitle }: SiteNavProps) {
     };
   }, [mobileOpen]);
 
+  const cartLabel = itemCount > 0 ? `Cart (${itemCount})` : "Cart";
+
   return (
     <header className={`${styles.navRoot} ${isScrolled ? styles.scrolled : ""}`}>
       <nav className={`container ${styles.nav}`} aria-label="Primary">
@@ -57,6 +64,64 @@ export function SiteNav({ exhibitionTitle }: SiteNavProps) {
               <Link href={link.href}>{link.label}</Link>
             </li>
           ))}
+          <li
+            className={styles.cartItem}
+            onMouseEnter={() => setCartPreviewOpen(true)}
+            onMouseLeave={() => setCartPreviewOpen(false)}
+            onFocus={() => setCartPreviewOpen(true)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setCartPreviewOpen(false);
+              }
+            }}
+          >
+            <Link href="/cart" className={styles.cartLink} aria-haspopup="dialog" aria-expanded={cartPreviewOpen}>
+              {cartLabel}
+            </Link>
+            <div
+              className={`${styles.cartPreview} ${cartPreviewOpen ? styles.cartPreviewOpen : ""}`}
+              role="dialog"
+              aria-label="Cart preview"
+            >
+              {items.length === 0 ? (
+                <p className={styles.cartEmpty}>Your cart is empty.</p>
+              ) : (
+                <>
+                  <ul className={styles.cartPreviewList}>
+                    {items.map((item) => (
+                      <li key={item.variant_id} className={styles.cartPreviewRow}>
+                        <div className={styles.cartPreviewThumb}>
+                          <Image
+                            src={item.image_url}
+                            alt={item.product_title}
+                            fill
+                            sizes="48px"
+                            className={styles.cartPreviewImage}
+                          />
+                        </div>
+                        <div className={styles.cartPreviewDetails}>
+                          <p className={styles.cartPreviewTitle}>{item.product_title}</p>
+                          <p className={styles.cartPreviewMeta}>
+                            {item.variant_label} · Qty {item.quantity}
+                          </p>
+                        </div>
+                        <p className={styles.cartPreviewPrice}>{formatAUD(item.price_aud * item.quantity)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className={styles.cartPreviewFooter}>
+                    <p>
+                      <strong>Subtotal</strong>
+                      <span>{formatAUD(subtotalAud)}</span>
+                    </p>
+                    <Link href="/cart" className={styles.cartPreviewCta} onClick={() => setCartPreviewOpen(false)}>
+                      View cart
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
+          </li>
         </ul>
 
         <button
@@ -84,6 +149,13 @@ export function SiteNav({ exhibitionTitle }: SiteNavProps) {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/cart"
+            onClick={() => setMobileOpen(false)}
+            style={{ transitionDelay: `${100 + navLinks.length * 70}ms` }}
+          >
+            {cartLabel}
+          </Link>
         </div>
       </div>
     </header>

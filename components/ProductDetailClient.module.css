@@ -96,6 +96,20 @@
   width: 100%;
 }
 
+.buyActions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.cartFeedback {
+  margin: 0.75rem 0 0;
+  font-size: 0.92rem;
+}
+
+.cartFeedback a {
+  text-decoration: underline;
+}
+
 .error {
   color: var(--color-rust);
 }

@@ -50,6 +50,125 @@
   border-color: currentColor;
 }
 
+.cartItem {
+  position: relative;
+}
+
+.cartLink {
+  display: inline-block;
+}
+
+.cartPreview {
+  background: var(--color-cream);
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  color: var(--color-navy);
+  max-height: min(70vh, 28rem);
+  opacity: 0;
+  overflow: auto;
+  padding: 0.85rem;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.55rem);
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  width: min(22rem, calc(100vw - 2rem));
+  z-index: 70;
+}
+
+.cartPreviewOpen {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.cartEmpty {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.cartPreviewList {
+  display: grid;
+  gap: 0.7rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cartPreviewRow {
+  align-items: center;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 48px 1fr auto;
+}
+
+.cartPreviewThumb {
+  height: 48px;
+  position: relative;
+  width: 48px;
+}
+
+.cartPreviewImage {
+  object-fit: cover;
+}
+
+.cartPreviewDetails {
+  min-width: 0;
+}
+
+.cartPreviewTitle,
+.cartPreviewMeta,
+.cartPreviewPrice {
+  margin: 0;
+}
+
+.cartPreviewTitle {
+  font-size: 0.92rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cartPreviewMeta {
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.cartPreviewPrice {
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.cartPreviewFooter {
+  border-top: 1px solid rgba(10, 22, 40, 0.15);
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+}
+
+.cartPreviewFooter p {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.cartPreviewCta {
+  border: 1px solid var(--color-navy);
+  color: var(--color-navy) !important;
+  display: block;
+  padding: 0.55rem 0.7rem;
+  text-align: center;
+}
+
+.cartPreviewCta:hover {
+  background: var(--color-navy);
+  border-color: var(--color-navy);
+  color: var(--color-cream) !important;
+}
+
 .menuButton {
   border: 1px solid rgba(245, 240, 232, 0.6);
   background: transparent;

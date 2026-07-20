@@ -19,6 +19,7 @@ export function trackEvent(
 export const PlausibleEvents = {
   EMAIL_SIGNUP: "Email Signup",
   SHOP_VIEW_PRODUCT: "View Product",
+  SHOP_ADD_TO_CART: "Add to Cart",
   SHOP_CHECKOUT_START: "Checkout Start",
   SHOP_CHECKOUT_COMPLETE: "Checkout Complete",
   SHOP_FILTER_USED: "Shop Filter",

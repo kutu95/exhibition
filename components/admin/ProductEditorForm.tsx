@@ -179,6 +179,8 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
   const [variants, setVariants] = useState<VariantInput[]>(
     initialData?.variants.length ? initialData.variants : [createBlankVariant()],
   );
+  const [expandedVariantIndexes, setExpandedVariantIndexes] = useState<Set<number>>(() => new Set());
+  const [productDetailsExpanded, setProductDetailsExpanded] = useState(mode === "new");
   const [images, setImages] = useState<ImageInput[]>(initialData?.images ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -218,7 +220,7 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
       price_aud: Math.round((Number.parseFloat(variant.price_dollars || "0") || 0) * 100),
       edition_size: variant.edition_size ? Number.parseInt(variant.edition_size, 10) : null,
       stock_quantity: variant.stock_quantity ? Number.parseInt(variant.stock_quantity, 10) : null,
-      stripe_price_id: variant.stripe_price_id.trim() || null,
+      stripe_price_id: null,
       width_mm: variant.width_mm ? Number.parseInt(variant.width_mm, 10) : null,
       height_mm: variant.height_mm ? Number.parseInt(variant.height_mm, 10) : null,
       border_mm: variant.border_mm ? Number.parseInt(variant.border_mm, 10) : 0,
@@ -441,8 +443,21 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
       </div>
 
       <div className={styles.form}>
-        <section className={styles.panel}>
-          <h2>Product</h2>
+        <details
+          className={styles.panel}
+          open={productDetailsExpanded}
+          onToggle={(event) => setProductDetailsExpanded(event.currentTarget.open)}
+        >
+          <summary className={styles.panelSummary}>
+            <span className={styles.variantHeading}>
+              <span className={styles.variantChevron} aria-hidden="true">
+                {productDetailsExpanded ? "▾" : "▸"}
+              </span>
+              Product Details
+              {title.trim() ? ` ${title.trim()}` : ""}
+            </span>
+          </summary>
+          <div className={styles.variantBody}>
           <div className={styles.grid}>
             <label>
               Title
@@ -467,14 +482,14 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                 required
               />
             </label>
-            <small>Suggested: {slugSuggestion || "n/a"}</small>
+            <small className={styles.hint}>Suggested: {slugSuggestion || "n/a"}</small>
 
-            <label>
+            <label className={styles.spanFull}>
               Description
               <textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                rows={5}
+                rows={3}
               />
             </label>
 
@@ -508,28 +523,30 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
               </select>
             </label>
 
-            <label>
-              <input
-                type="checkbox"
-                checked={isAvailable}
-                onChange={(event) => setIsAvailable(event.target.checked)}
-              />
-              {" "}Is Available
-            </label>
-
-            <label>
-              <input
-                type="checkbox"
-                checked={isFeatured}
-                onChange={(event) => setIsFeatured(event.target.checked)}
-              />
-              {" "}Is Featured
-            </label>
+            <div className={styles.checkRow}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={isAvailable}
+                  onChange={(event) => setIsAvailable(event.target.checked)}
+                />
+                Is Available
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={isFeatured}
+                  onChange={(event) => setIsFeatured(event.target.checked)}
+                />
+                Is Featured
+              </label>
+            </div>
           </div>
           <h3>Themes</h3>
           <p className={styles.muted}>A photograph can belong to any number of themes.</p>
           <ThemeSelector themes={themes} selectedThemeIds={selectedThemeIds} onChange={setSelectedThemeIds} />
-        </section>
+          </div>
+        </details>
 
         <section className={styles.panel}>
           <div className={styles.rowTop}>
@@ -537,25 +554,84 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
             <button
               className={styles.btnSecondary}
               type="button"
-              onClick={() => setVariants((current) => [...current, createBlankVariant()])}
+              onClick={() => {
+                const nextIndex = variants.length;
+                setVariants((current) => [...current, createBlankVariant()]);
+                setExpandedVariantIndexes((expanded) => new Set(expanded).add(nextIndex));
+              }}
             >
               Add Variant
             </button>
           </div>
 
-          {variants.map((variant, index) => (
-            <div key={`${variant.id ?? "new"}-${index}`} className={styles.row}>
-              <div className={styles.rowTop}>
-                <strong>Variant {index + 1}</strong>
-                <button
-                  className={styles.btnSecondary}
-                  type="button"
-                  onClick={() => setVariants((current) => current.filter((_, i) => i !== index))}
-                  disabled={variants.length === 1 || Boolean(variant.has_order_items)}
-                >
-                  {variant.has_order_items ? "Used in Orders" : "Delete"}
-                </button>
-              </div>
+          {variants.map((variant, index) => {
+            const isExpanded = expandedVariantIndexes.has(index);
+            const variantHeading = `Variant ${index + 1}${
+              variant.variant_label.trim() ? ` ${variant.variant_label.trim()}` : ""
+            }`;
+            return (
+            <details
+              key={`${variant.id ?? "new"}-${index}`}
+              className={styles.row}
+              open={isExpanded}
+              onToggle={(event) => {
+                const nextOpen = event.currentTarget.open;
+                setExpandedVariantIndexes((current) => {
+                  const next = new Set(current);
+                  if (nextOpen) next.add(index);
+                  else next.delete(index);
+                  return next;
+                });
+              }}
+            >
+              <summary className={styles.variantSummary}>
+                <span className={styles.variantHeading}>
+                  <span className={styles.variantChevron} aria-hidden="true">
+                    {isExpanded ? "▾" : "▸"}
+                  </span>
+                  {variantHeading}
+                </span>
+                <span className={styles.variantSummaryActions}>
+                  <label
+                    className={styles.variantActiveFlag}
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={variant.is_active}
+                      onChange={(event) => {
+                        const checked = event.target.checked;
+                        setVariants((current) =>
+                          current.map((row, i) => (i === index ? { ...row, is_active: checked } : row)),
+                        );
+                      }}
+                    />
+                    Active
+                  </label>
+                  <button
+                    className={styles.btnSecondary}
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setVariants((current) => current.filter((_, i) => i !== index));
+                      setExpandedVariantIndexes((current) => {
+                        const next = new Set<number>();
+                        for (const expandedIndex of current) {
+                          if (expandedIndex < index) next.add(expandedIndex);
+                          else if (expandedIndex > index) next.add(expandedIndex - 1);
+                        }
+                        return next;
+                      });
+                    }}
+                    disabled={variants.length === 1 || Boolean(variant.has_order_items)}
+                  >
+                    {variant.has_order_items ? "Used in Orders" : "Delete"}
+                  </button>
+                </span>
+              </summary>
+              <div className={styles.variantBody}>
               {mode === "edit" ? (
                 <div className={styles.inlineActions}>
                   <button
@@ -660,19 +736,6 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                   />
                 </label>
                 <label>
-                  Stripe Price ID
-                  <input
-                    value={variant.stripe_price_id}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, stripe_price_id: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
                   Width (mm)
                   <input
                     type="number"
@@ -697,6 +760,36 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                       setVariants((current) =>
                         current.map((row, i) =>
                           i === index ? { ...row, height_mm: event.target.value } : row,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  Border (mm)
+                  <input
+                    type="number"
+                    min="0"
+                    value={variant.border_mm}
+                    onChange={(event) =>
+                      setVariants((current) =>
+                        current.map((row, i) =>
+                          i === index ? { ...row, border_mm: event.target.value } : row,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  Print DPI
+                  <input
+                    type="number"
+                    min="1"
+                    value={variant.print_dpi}
+                    onChange={(event) =>
+                      setVariants((current) =>
+                        current.map((row, i) =>
+                          i === index ? { ...row, print_dpi: event.target.value } : row,
                         ),
                       )
                     }
@@ -746,36 +839,6 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                   />
                 </div>
                 <label>
-                  Border (mm)
-                  <input
-                    type="number"
-                    min="0"
-                    value={variant.border_mm}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, border_mm: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Print DPI
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.print_dpi}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, print_dpi: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
                   Paper Type
                   <input
                     value={variant.paper_type}
@@ -802,19 +865,47 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                   />
                 </label>
                 <label>
+                  Tier Label
                   <input
-                    type="checkbox"
-                    checked={variant.is_framed}
+                    value={variant.tier_label}
                     onChange={(event) =>
                       setVariants((current) =>
                         current.map((row, i) =>
-                          i === index ? { ...row, is_framed: event.target.checked } : row,
+                          i === index ? { ...row, tier_label: event.target.value } : row,
                         ),
                       )
                     }
                   />
-                  {" "}Framed
                 </label>
+                <label>
+                  Finish
+                  <input
+                    value={variant.finish}
+                    onChange={(event) =>
+                      setVariants((current) =>
+                        current.map((row, i) =>
+                          i === index ? { ...row, finish: event.target.value } : row,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <div className={styles.checkCell}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={variant.is_framed}
+                      onChange={(event) =>
+                        setVariants((current) =>
+                          current.map((row, i) =>
+                            i === index ? { ...row, is_framed: event.target.checked } : row,
+                          ),
+                        )
+                      }
+                    />
+                    Framed
+                  </label>
+                </div>
                 <label>
                   Frame Type
                   <input
@@ -849,32 +940,6 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                       setVariants((current) =>
                         current.map((row, i) =>
                           i === index ? { ...row, destination_print_profile_id: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Tier Label
-                  <input
-                    value={variant.tier_label}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, tier_label: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Finish
-                  <input
-                    value={variant.finish}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, finish: event.target.value } : row,
                         ),
                       )
                     }
@@ -1042,7 +1107,7 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                     }
                   />
                 </label>
-                <label>
+                <label className={styles.spanFull}>
                   Fulfilment Notes
                   <textarea
                     rows={3}
@@ -1056,23 +1121,27 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                     }
                   />
                 </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={variant.is_active}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, is_active: event.target.checked } : row,
-                        ),
-                      )
-                    }
-                  />
-                  {" "}Active
-                </label>
+                <div className={styles.checkCell}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={variant.is_active}
+                      onChange={(event) =>
+                        setVariants((current) =>
+                          current.map((row, i) =>
+                            i === index ? { ...row, is_active: event.target.checked } : row,
+                          ),
+                        )
+                      }
+                    />
+                    Active
+                  </label>
+                </div>
               </div>
-            </div>
-          ))}
+              </div>
+            </details>
+            );
+          })}
         </section>
 
         <section className={styles.panel}>
@@ -1101,7 +1170,7 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                 </button>
               </div>
               <div className={styles.grid}>
-                <label>
+                <label className={styles.span2}>
                   Image URL
                   <input
                     value={image.image_url}
@@ -1135,14 +1204,16 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                     }
                   />
                 </label>
-                <label>
-                  <input
-                    type="radio"
-                    checked={image.is_primary}
-                    onChange={() => setPrimaryImage(index)}
-                  />
-                  {" "}Primary image
-                </label>
+                <div className={styles.checkCell}>
+                  <label>
+                    <input
+                      type="radio"
+                      checked={image.is_primary}
+                      onChange={() => setPrimaryImage(index)}
+                    />
+                    Primary image
+                  </label>
+                </div>
               </div>
             </div>
           ))}

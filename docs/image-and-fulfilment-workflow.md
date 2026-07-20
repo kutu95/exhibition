@@ -90,7 +90,7 @@ Workflow:
    - Inserts `products` (`product_type: print`, `is_available: true`)
    - Inserts `product_variants` by **copying active `variant_templates`** (width/height mm, border, paper, `print_dpi`, pricing, etc.) and sets **`master_filename`** on each variant
    - Inserts primary `product_images`
-   - Creates **Stripe** product + price per variant and stores `stripe_price_id`
+   - Checkout uses **inline Stripe pricing** from `product_variants.price_aud` (no Stripe catalog sync)
 
 ### Path B: PhotoLab / API registration
 

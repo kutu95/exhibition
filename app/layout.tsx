@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Script from "next/script";
 import { ReactNode } from "react";
 
+import { CartProvider } from "../components/CartProvider";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
 import { buildMetadata, siteConfig } from "../lib/metadata";
@@ -104,9 +105,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             Stripe bypass is ON. Checkout creates paid test orders directly (no Stripe charge).
           </div>
         ) : null}
-        {!isAdminRoute ? <SiteNav exhibitionTitle={exhibitionTitle} /> : null}
-        <main style={{ minHeight: "100vh", paddingTop: isAdminRoute ? "0" : "78px" }}>{children}</main>
-        {!isAdminRoute ? <SiteFooter exhibitionTitle={exhibitionTitle} /> : null}
+        {isAdminRoute ? (
+          <main style={{ minHeight: "100vh", paddingTop: 0 }}>{children}</main>
+        ) : (
+          <CartProvider>
+            <SiteNav exhibitionTitle={exhibitionTitle} />
+            <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
+            <SiteFooter exhibitionTitle={exhibitionTitle} />
+          </CartProvider>
+        )}
       </body>
     </html>
   );

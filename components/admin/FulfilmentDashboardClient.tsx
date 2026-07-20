@@ -53,12 +53,17 @@ export type FulfilmentDashboardItem = {
   price: number;
   edition_number_assigned: number | null;
   edition_size: number | null;
+  date_ordered?: string | null;
+  created_at?: string | null;
   fulfilment_status: string;
   cloud_file_url: string | null;
   cloud_folder_path: string | null;
   pixel_perfect_order_ref: string | null;
   tracking_number: string | null;
   fulfilment_notes: string | null;
+  file_ready_at?: string | null;
+  submitted_to_lab_at?: string | null;
+  shipped_at?: string | null;
   fulfilment_events: FulfilmentEvent[];
 };
 
@@ -78,6 +83,19 @@ const statusOptions = [
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
 ];
+
+const formatDateTime = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 const formatAddress = (item: FulfilmentDashboardItem): string =>
   [item.shipping_address.street, item.shipping_address.suburb, item.shipping_address.state, item.shipping_address.postcode]
@@ -105,6 +123,27 @@ const localFilePath = (item: FulfilmentDashboardItem): string => {
 const driveFileUrl = (item: FulfilmentDashboardItem): string | null => {
   const url = item.cloud_file_url?.trim();
   return url?.startsWith("https://drive.google.com/") ? url : null;
+};
+
+const orderDate = (item: FulfilmentDashboardItem): string | null =>
+  item.date_ordered ?? item.created_at ?? null;
+
+const statusTimeline = (item: FulfilmentDashboardItem) => {
+  const steps = [
+    { key: "ordered", label: "Ordered", at: orderDate(item) },
+    { key: "file_ready", label: "File ready", at: item.file_ready_at ?? null },
+    { key: "submitted_to_lab", label: "Submitted to lab", at: item.submitted_to_lab_at ?? null },
+    { key: "shipped", label: "Shipped", at: item.shipped_at ?? null },
+  ];
+
+  const eventLines = (item.fulfilment_events ?? []).map((event) => ({
+    key: event.id,
+    label: event.event_type.replaceAll("_", " "),
+    at: event.created_at,
+    notes: event.notes,
+  }));
+
+  return { steps, eventLines };
 };
 
 const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
@@ -138,6 +177,7 @@ const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
 export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashboardClientProps) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("in_process");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refs, setRefs] = useState<Record<string, string>>(
@@ -257,6 +297,20 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
         <button type="button" onClick={() => router.refresh()}>
           Refresh
         </button>
+        <button
+          type="button"
+          className={styles.buttonSecondary}
+          onClick={() => setExpandedIds(new Set(filteredItems.map((item) => item.order_item_id)))}
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          className={styles.buttonSecondary}
+          onClick={() => setExpandedIds(new Set())}
+        >
+          Collapse all
+        </button>
         <span className={styles.muted}>Fetched {new Date(fetchedAt).toLocaleString("en-AU")}</span>
       </div>
 
@@ -265,133 +319,194 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
 
       <div className={styles.grid}>
         {filteredItems.length === 0 ? <p className={styles.muted}>No orders match this filter.</p> : null}
-        {filteredItems.map((item) => (
-          <article className={styles.card} key={item.order_item_id}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h2>{item.order_number}</h2>
-                <p className={styles.muted}>{item.photo_title}</p>
-              </div>
-              <span className={styles.status}>{item.fulfilment_status.replaceAll("_", " ")}</span>
-            </div>
+        {filteredItems.map((item) => {
+          const isExpanded = expandedIds.has(item.order_item_id);
+          const timeline = statusTimeline(item);
+          const orderedAt = orderDate(item);
 
-            <div className={styles.details}>
-              <p><strong>Customer:</strong> {item.customer_name ?? item.customer_email}</p>
-              <p><strong>Email:</strong> {item.customer_email}</p>
-              <p><strong>Address:</strong> {formatAddress(item)}</p>
-              <p><strong>Variant:</strong> {item.variant_label}</p>
-              <p><strong>Range:</strong> {item.tier_label ?? "—"}</p>
-              <p><strong>Dimensions:</strong> {item.width_mm} x {item.height_mm} mm</p>
-              <p>
-                <strong>Framing:</strong>{" "}
-                {item.fit_mode === "custom_size"
-                  ? `Custom size (lock ${item.size_lock ?? "long_edge"})`
-                  : `Cover crop${item.crop_offset ? ` · pan ${Number(item.crop_offset).toFixed(2)}` : ""}`}
-              </p>
-              <p><strong>Paper:</strong> {item.paper_type ?? "—"}</p>
-              <p><strong>Finish:</strong> {item.finish ?? "—"}</p>
-              <p><strong>Frame:</strong> {item.is_framed ? item.frame_type ?? "Framed" : "No"}</p>
-              <p><strong>Shipping class:</strong> {item.shipping_class ?? "—"}</p>
-              <p><strong>Colour space:</strong> Adobe RGB 1998</p>
-              <p><strong>Edition:</strong> {item.edition_number_assigned ?? "—"} / {item.edition_size ?? "—"}</p>
-              <p><strong>Qty:</strong> {item.quantity}</p>
-              <p><strong>Price:</strong> {formatAUD(item.price)}</p>
-              <p><strong>Master file:</strong> {item.master_filename ?? "—"}</p>
-            </div>
-
-            <div className={styles.actions}>
-              {item.cloud_file_url ? (
-                <>
-                  <p>
-                    <strong>{driveFileUrl(item) ? "Drive file:" : "Local file:"}</strong>{" "}
-                    {driveFileUrl(item) ? (
-                      <>
-                        <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
-                          Open public TIFF in Google Drive
-                        </a>
-                        <button
-                          className={styles.button}
-                          type="button"
-                          onClick={() => copyToClipboard(driveFileUrl(item)!, "Pixel Perfect file link")}
-                        >
-                          Copy Pixel Perfect Link
-                        </button>
-                      </>
-                    ) : (
-                      <code>{localFilePath(item)}</code>
-                    )}
-                  </p>
-                  {driveFolderUrl(item) ? (
-                    <p>
-                      <strong>Drive folder:</strong>{" "}
-                      <a href={driveFolderUrl(item)!} target="_blank" rel="noreferrer">
-                        Open in Google Drive
-                      </a>
-                      <span className={styles.muted}>
-                        {driveFileUrl(item)
-                          ? " — TIFF uploaded automatically"
-                          : " — automatic upload was unavailable; upload the local TIFF manually"}
+          return (
+            <details
+              className={styles.card}
+              key={item.order_item_id}
+              open={isExpanded}
+              onToggle={(event) => {
+                const nextOpen = event.currentTarget.open;
+                setExpandedIds((current) => {
+                  const next = new Set(current);
+                  if (nextOpen) next.add(item.order_item_id);
+                  else next.delete(item.order_item_id);
+                  return next;
+                });
+              }}
+            >
+              <summary className={styles.cardSummary}>
+                <div className={styles.summaryMain}>
+                  <span className={styles.chevron} aria-hidden="true">
+                    {isExpanded ? "▾" : "▸"}
+                  </span>
+                  <div>
+                    <h2>
+                      {item.order_number}
+                      <span className={styles.summaryTitle}> {item.photo_title}</span>
+                    </h2>
+                    <p className={styles.summaryMeta}>
+                      <span className={styles.summaryCustomer}>
+                        {item.customer_name?.trim() || item.customer_email || "Unknown customer"}
                       </span>
+                      <span>·</span>
+                      <span>{item.variant_label}</span>
+                      <span>·</span>
+                      <span>Ordered {formatDateTime(orderedAt)}</span>
                     </p>
+                  </div>
+                </div>
+                <span className={styles.status}>{item.fulfilment_status.replaceAll("_", " ")}</span>
+              </summary>
+
+              <div className={styles.cardBody}>
+                <div className={styles.timeline}>
+                  <h3>Status dates</h3>
+                  <ul>
+                    {timeline.steps.map((step) => (
+                      <li key={step.key}>
+                        <strong>{step.label}:</strong> {formatDateTime(step.at)}
+                      </li>
+                    ))}
+                  </ul>
+                  {timeline.eventLines.length > 0 ? (
+                    <>
+                      <h3>Event log</h3>
+                      <ul>
+                        {timeline.eventLines.map((event) => (
+                          <li key={event.key}>
+                            <strong>{event.label}:</strong> {formatDateTime(event.at)}
+                            {event.notes ? ` — ${event.notes}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   ) : null}
-                  <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />
-                </>
-              ) : (
-                <p className={styles.muted}>Print file has not been prepared yet.</p>
-              )}
+                </div>
 
-              <div className={styles.actionRow}>
-                <button
-                  className={styles.button}
-                  type="button"
-                  disabled={!item.cloud_file_url}
-                  onClick={() => copyToClipboard(pixelPerfectText(item), "Pixel Perfect order text")}
-                >
-                  Copy Pixel Perfect Text
-                </button>
-                <a href="https://pixelperfect.com.au/order-form" target="_blank" rel="noreferrer">
-                  Open Pixel Perfect Form
-                </a>
-              </div>
+                <div className={styles.details}>
+                  <p><strong>Customer:</strong> {item.customer_name ?? item.customer_email}</p>
+                  <p><strong>Email:</strong> {item.customer_email}</p>
+                  <p><strong>Address:</strong> {formatAddress(item)}</p>
+                  <p><strong>Variant:</strong> {item.variant_label}</p>
+                  <p><strong>Range:</strong> {item.tier_label ?? "—"}</p>
+                  <p><strong>Dimensions:</strong> {item.width_mm} x {item.height_mm} mm</p>
+                  <p>
+                    <strong>Framing:</strong>{" "}
+                    {item.fit_mode === "custom_size"
+                      ? `Custom size (lock ${item.size_lock ?? "long_edge"})`
+                      : `Cover crop${item.crop_offset ? ` · pan ${Number(item.crop_offset).toFixed(2)}` : ""}`}
+                  </p>
+                  <p><strong>Paper:</strong> {item.paper_type ?? "—"}</p>
+                  <p><strong>Finish:</strong> {item.finish ?? "—"}</p>
+                  <p><strong>Frame:</strong> {item.is_framed ? item.frame_type ?? "Framed" : "No"}</p>
+                  <p><strong>Shipping class:</strong> {item.shipping_class ?? "—"}</p>
+                  <p><strong>Colour space:</strong> Adobe RGB 1998</p>
+                  <p><strong>Edition:</strong> {item.edition_number_assigned ?? "—"} / {item.edition_size ?? "—"}</p>
+                  <p><strong>Qty:</strong> {item.quantity}</p>
+                  <p><strong>Price:</strong> {formatAUD(item.price)}</p>
+                  <p><strong>Master file:</strong> {item.master_filename ?? "—"}</p>
+                </div>
 
-              <div className={styles.actionRow}>
-                <input
-                  className={styles.field}
-                  value={refs[item.order_item_id] ?? ""}
-                  onChange={(event) =>
-                    setRefs((prev) => ({ ...prev, [item.order_item_id]: event.target.value }))
-                  }
-                  placeholder="Pixel Perfect order reference"
-                />
-                <button className={styles.button} type="button" onClick={() => saveLabReference(item)}>
-                  Save Lab Reference
-                </button>
-              </div>
+                <div className={styles.actions}>
+                  {item.cloud_file_url ? (
+                    <>
+                      <p>
+                        <strong>{driveFileUrl(item) ? "Drive file:" : "Local file:"}</strong>{" "}
+                        {driveFileUrl(item) ? (
+                          <>
+                            <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
+                              Open public TIFF in Google Drive
+                            </a>
+                            <button
+                              className={styles.button}
+                              type="button"
+                              onClick={() => copyToClipboard(driveFileUrl(item)!, "Pixel Perfect file link")}
+                            >
+                              Copy Pixel Perfect Link
+                            </button>
+                          </>
+                        ) : (
+                          <code>{localFilePath(item)}</code>
+                        )}
+                      </p>
+                      {driveFolderUrl(item) ? (
+                        <p>
+                          <strong>Drive folder:</strong>{" "}
+                          <a href={driveFolderUrl(item)!} target="_blank" rel="noreferrer">
+                            Open in Google Drive
+                          </a>
+                          <span className={styles.muted}>
+                            {driveFileUrl(item)
+                              ? " — TIFF uploaded automatically"
+                              : " — automatic upload was unavailable; upload the local TIFF manually"}
+                          </span>
+                        </p>
+                      ) : null}
+                      <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />
+                    </>
+                  ) : (
+                    <p className={styles.muted}>Print file has not been prepared yet.</p>
+                  )}
 
-              <div className={styles.actionRow}>
-                <input
-                  className={styles.field}
-                  value={trackingNumbers[item.order_item_id] ?? ""}
-                  onChange={(event) =>
-                    setTrackingNumbers((prev) => ({ ...prev, [item.order_item_id]: event.target.value }))
-                  }
-                  placeholder="Tracking number"
-                />
-                <button className={styles.button} type="button" onClick={() => markShipped(item)}>
-                  Mark Shipped
-                </button>
-                <button
-                  className={styles.button}
-                  type="button"
-                  disabled={!item.tracking_number && !trackingNumbers[item.order_item_id]}
-                  onClick={() => notifyCustomer(item)}
-                >
-                  Notify Customer
-                </button>
+                  <div className={styles.actionRow}>
+                    <button
+                      className={styles.button}
+                      type="button"
+                      disabled={!item.cloud_file_url}
+                      onClick={() => copyToClipboard(pixelPerfectText(item), "Pixel Perfect order text")}
+                    >
+                      Copy Pixel Perfect Text
+                    </button>
+                    <a href="https://pixelperfect.com.au/order-form" target="_blank" rel="noreferrer">
+                      Open Pixel Perfect Form
+                    </a>
+                  </div>
+
+                  <div className={styles.actionRow}>
+                    <input
+                      className={styles.field}
+                      value={refs[item.order_item_id] ?? ""}
+                      onChange={(event) =>
+                        setRefs((prev) => ({ ...prev, [item.order_item_id]: event.target.value }))
+                      }
+                      placeholder="Pixel Perfect order reference"
+                    />
+                    <button className={styles.button} type="button" onClick={() => saveLabReference(item)}>
+                      Save Lab Reference
+                    </button>
+                  </div>
+
+                  <div className={styles.actionRow}>
+                    <input
+                      className={styles.field}
+                      value={trackingNumbers[item.order_item_id] ?? ""}
+                      onChange={(event) =>
+                        setTrackingNumbers((prev) => ({ ...prev, [item.order_item_id]: event.target.value }))
+                      }
+                      placeholder="Tracking number"
+                    />
+                    <button className={styles.button} type="button" onClick={() => markShipped(item)}>
+                      Mark Shipped
+                    </button>
+                    <button
+                      className={styles.button}
+                      type="button"
+                      disabled={!item.tracking_number && !trackingNumbers[item.order_item_id]}
+                      onClick={() => notifyCustomer(item)}
+                    >
+                      Notify Customer
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </details>
+          );
+        })}
       </div>
     </div>
   );

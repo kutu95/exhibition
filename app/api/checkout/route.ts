@@ -23,7 +23,6 @@ type VariantRecord = {
   id: string;
   variant_label: string;
   price_aud: number;
-  stripe_price_id: string | null;
   products:
     | {
         title: string;
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
 
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")
-      .select("id, variant_label, price_aud, stripe_price_id, products!inner(title, is_available)")
+      .select("id, variant_label, price_aud, products!inner(title, is_available)")
       .in("id", variantIds)
       .eq("is_active", true)
       .eq("products.is_available", true);
@@ -157,13 +156,6 @@ export async function POST(request: Request) {
       const product = variant ? extractProduct(variant.products) : null;
       if (!variant || !product) {
         throw new Error("Variant map mismatch.");
-      }
-
-      if (variant.stripe_price_id) {
-        return {
-          price: variant.stripe_price_id,
-          quantity: item.quantity,
-        };
       }
 
       return {
