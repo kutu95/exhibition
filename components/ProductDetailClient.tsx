@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ReactNode, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
 import { readCart } from "../lib/cart";
@@ -19,9 +19,16 @@ type ProductDetailClientProps = {
 
 export function ProductDetailClient({ product, shareButtons }: ProductDetailClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const primaryImage = product.product_images[0]?.image_url ?? "";
+  const preselectVariantId = searchParams.get("variant");
+  const initialVariantId =
+    product.product_variants.find((variant) => variant.id === preselectVariantId)?.id ??
+    product.product_variants[0]?.id ??
+    "";
+
   const [activeImage, setActiveImage] = useState(primaryImage);
-  const [selectedVariantId, setSelectedVariantId] = useState(product.product_variants[0]?.id ?? "");
+  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addItem, itemCount } = useCart();
@@ -37,6 +44,12 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       .filter((size): size is number => typeof size === "number");
     return sizes.length > 0 ? Math.max(...sizes) : null;
   }, [product.product_variants]);
+
+  useEffect(() => {
+    if (!preselectVariantId) return;
+    const match = product.product_variants.find((variant) => variant.id === preselectVariantId);
+    if (match) setSelectedVariantId(match.id);
+  }, [preselectVariantId, product.product_variants]);
 
   if (!primaryImage) {
     throw new Error(`Missing product image for product: ${product.slug}`);
@@ -65,7 +78,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       variant: selectedVariant.variant_label,
       price: selectedVariant.price_aud,
     });
-    router.push("/shop");
+    router.push("/cart");
   };
 
   const handleBuyNow = async () => {

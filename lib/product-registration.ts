@@ -16,6 +16,7 @@ export type RegisterPrintProductPayload = {
   edition_size: number;
   master_filename: string;
   web_image_url: string;
+  visibility?: "public" | "vault";
   theme_ids?: string[];
   variant_template_ids?: string[];
   variant_template_prices?: Record<string, number>;
@@ -148,9 +149,10 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
           installation_tag,
           photo_type_tag,
           is_available,
-          is_featured
+          is_featured,
+          visibility
         )
-        values ($1, $2, $3, 'print', $4, $5, $6, true, $7)
+        values ($1, $2, $3, 'print', $4, $5, $6, true, $7, $8)
         returning *
       `,
       [
@@ -161,6 +163,7 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
         payload.installation_tag,
         payload.photo_type_tag,
         payload.is_featured,
+        payload.visibility ?? "public",
       ],
     );
 

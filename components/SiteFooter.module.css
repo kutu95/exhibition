@@ -59,6 +59,48 @@
   font-size: 0.9rem;
 }
 
+.collectionsBand {
+  align-items: center;
+  border-top: 1px solid rgba(245, 240, 232, 0.24);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.5rem;
+  justify-content: space-between;
+  padding-top: 1.4rem;
+  padding-bottom: 1.4rem;
+}
+
+.collectionsBand p {
+  color: var(--color-sand);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 38rem;
+}
+
+.collectionsLead {
+  color: var(--color-cream);
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  margin-right: 0.35rem;
+}
+
+.collectionsLink {
+  border: 1px solid var(--color-gold);
+  color: var(--color-gold);
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  padding: 0.55rem 1.1rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.collectionsLink:hover {
+  background: var(--color-gold);
+  color: var(--color-navy);
+}
+
 @media (min-width: 900px) {
   .top {
     grid-template-columns: 1.2fr 0.8fr 1fr;

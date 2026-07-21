@@ -42,6 +42,16 @@ export function SiteFooter({ exhibitionTitle }: SiteFooterProps) {
         </div>
       </div>
 
+      <div className={`container ${styles.collectionsBand}`}>
+        <p>
+          <span className={styles.collectionsLead}>Further collections.</span> Very limited edition work, reserved for
+          collectors and invited guests.
+        </p>
+        <Link className={styles.collectionsLink} href="/collections/request">
+          Request access
+        </Link>
+      </div>
+
       <div className={`container ${styles.bottom}`}>
         <p>Photographs by John Bowskill · Margaret River Region Open Studios 2026</p>
       </div>

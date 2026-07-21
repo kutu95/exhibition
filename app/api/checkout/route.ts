@@ -5,6 +5,7 @@ import { z } from "zod";
 import { assignEditionsToOrder } from "../../../lib/edition-assignment";
 import { stripe } from "../../../lib/stripe";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
+import { hasActiveVaultSessionFromRequest } from "../../../lib/vault-access";
 
 export const runtime = "nodejs";
 
@@ -27,17 +28,19 @@ type VariantRecord = {
     | {
         title: string;
         is_available: boolean;
+        visibility: "public" | "vault";
       }
     | Array<{
         title: string;
         is_available: boolean;
+        visibility: "public" | "vault";
       }>
     | null;
 };
 
 const extractProduct = (
   products: VariantRecord["products"],
-): { title: string; is_available: boolean } | null => {
+): { title: string; is_available: boolean; visibility: "public" | "vault" } | null => {
   if (!products) return null;
   return Array.isArray(products) ? products[0] ?? null : products;
 };
@@ -64,9 +67,11 @@ export async function POST(request: Request) {
     const requestedItems = parsed.data.items;
     const variantIds = [...new Set(requestedItems.map((item) => item.variant_id))];
 
+    const includeVault = await hasActiveVaultSessionFromRequest(request);
+
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")
-      .select("id, variant_label, price_aud, products!inner(title, is_available)")
+      .select("id, variant_label, price_aud, products!inner(title, is_available, visibility)")
       .in("id", variantIds)
       .eq("is_active", true)
       .eq("products.is_available", true);
@@ -76,7 +81,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Could not prepare checkout." }, { status: 500 });
     }
 
-    const variantRows = (variants ?? []) as unknown as VariantRecord[];
+    const variantRows = ((variants ?? []) as unknown as VariantRecord[]).filter((variant) => {
+      const product = extractProduct(variant.products);
+      return product && (product.visibility !== "vault" || includeVault);
+    });
     const variantMap = new Map<string, VariantRecord>(
       variantRows.map((variant) => [variant.id, variant]),
     );

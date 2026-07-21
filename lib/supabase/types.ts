@@ -1,7 +1,9 @@
 export type ProductType = "print" | "merchandise";
+export type ProductVisibility = "public" | "vault";
 export type LocationTag = string;
 export type InstallationTag = "Cubarama" | "Captain Godfrey AI" | "Drift";
 export type PhotoTypeTag = "Still camera" | "Drone" | "Underwater";
+export type VaultAccessRequestStatus = "pending" | "approved" | "declined";
 export type OrderStatus =
   | "pending"
   | "paid"
@@ -22,6 +24,32 @@ export type Product = {
   photo_type_tag: PhotoTypeTag | null;
   is_available: boolean;
   is_featured: boolean;
+  visibility: ProductVisibility;
+  created_at: string;
+};
+
+export type VaultAccessRequest = {
+  id: string;
+  name: string;
+  email: string;
+  interest: string;
+  organisation: string | null;
+  status: VaultAccessRequestStatus;
+  admin_note: string | null;
+  invite_id: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
+export type VaultInvite = {
+  id: string;
+  token_hash: string;
+  label: string;
+  email: string | null;
+  access_request_id: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  last_used_at: string | null;
   created_at: string;
 };
 

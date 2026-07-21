@@ -50,9 +50,11 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
   const [editionSize, setEditionSize] = useState("10");
   const [masterFilename, setMasterFilename] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
+  const [visibility, setVisibility] = useState<"public" | "vault">("public");
   const [webImage, setWebImage] = useState<File | null>(null);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
+  const [themeOptions, setThemeOptions] = useState(themes);
   const [templatePrices, setTemplatePrices] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       variantTemplates
@@ -96,6 +98,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
     formData.set("edition_size", editionSize);
     formData.set("master_filename", masterFilename.trim());
     formData.set("is_featured", String(isFeatured));
+    formData.set("visibility", visibility);
     formData.set("variant_template_ids", JSON.stringify(selectedTemplateIds));
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
     formData.set(
@@ -265,7 +268,12 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
 
           <div>
             <h3>Themes</h3>
-            <ThemeSelector themes={themes} selectedThemeIds={selectedThemeIds} onChange={setSelectedThemeIds} />
+            <ThemeSelector
+              themes={themeOptions}
+              selectedThemeIds={selectedThemeIds}
+              onChange={setSelectedThemeIds}
+              onThemesChange={setThemeOptions}
+            />
           </div>
 
           <label>
@@ -276,6 +284,17 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
               onChange={(event) => setWebImage(event.target.files?.[0] ?? null)}
             />
             <span className={styles.muted}>Optional. Leave blank to auto-generate from the selected TIFF.</span>
+          </label>
+
+          <label>
+            Visibility
+            <select
+              value={visibility}
+              onChange={(event) => setVisibility(event.target.value as "public" | "vault")}
+            >
+              <option value="public">Public gallery</option>
+              <option value="vault">Private collections only</option>
+            </select>
           </label>
 
           <label>

@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 import { JsonLd } from "../../components/JsonLd";
 import { ShopProductBrowser } from "../../components/ShopProductBrowser";
+import { VaultCollectionsBanner } from "../../components/VaultCollectionsBanner";
 import { buildMetadata, siteConfig } from "../../lib/metadata";
 import { buildBreadcrumb } from "../../lib/structured-data";
 import type { ProductWithVariantsAndImages } from "../../lib/supabase/types";
+import { hasActiveVaultSession } from "../../lib/vault-access";
 import styles from "./page.module.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3007";
@@ -19,7 +22,16 @@ export const metadata: Metadata = buildMetadata({
 
 async function fetchProducts(): Promise<ProductWithVariantsAndImages[]> {
   try {
-    const response = await fetch(`${siteUrl}/api/products`, { cache: "no-store" });
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map((cookie) => `${cookie.name}=${cookie.value}`)
+      .join("; ");
+
+    const response = await fetch(`${siteUrl}/api/products`, {
+      cache: "no-store",
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    });
     if (!response.ok) return [];
     return (await response.json()) as ProductWithVariantsAndImages[];
   } catch {
@@ -28,7 +40,7 @@ async function fetchProducts(): Promise<ProductWithVariantsAndImages[]> {
 }
 
 export default async function ShopPage() {
-  const products = await fetchProducts();
+  const [products, vaultOpen] = await Promise.all([fetchProducts(), hasActiveVaultSession()]);
 
   return (
     <section className="section container">
@@ -46,6 +58,8 @@ export default async function ShopPage() {
           numbered by John Bowskill.
         </p>
       </header>
+
+      {vaultOpen ? <VaultCollectionsBanner /> : null}
 
       <ShopProductBrowser products={products} />
 

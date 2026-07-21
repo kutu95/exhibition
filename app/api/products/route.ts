@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { isProductVisibleInCatalog, mapProductRow } from "../../../lib/catalog-products";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type {
   Product,
@@ -10,6 +11,7 @@ import type {
   ProductWithVariantsAndImages,
 } from "../../../lib/supabase/types";
 import { slugify } from "../../../lib/utils/slugify";
+import { hasActiveVaultSessionFromRequest } from "../../../lib/vault-access";
 
 const productsQuerySchema = z.object({
   type: z.enum(["print", "merchandise"]).optional(),
@@ -47,6 +49,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid query params." }, { status: 400 });
   }
 
+  const includeVault = await hasActiveVaultSessionFromRequest(request);
   const supabase = await createSupabaseServerClient();
 
   let query = supabase
@@ -62,6 +65,10 @@ export async function GET(request: Request) {
     query = query.eq("is_featured", true);
   }
 
+  if (!includeVault) {
+    query = query.eq("visibility", "public");
+  }
+
   const { data, error } = await query
     .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false });
@@ -71,16 +78,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to fetch products." }, { status: 500 });
   }
 
-  let products: ProductWithVariantsAndImages[] = ((data ?? []) as unknown as ProductRow[]).map(
-    (product) => ({
-      ...product,
-      product_variants: (product.product_variants ?? []).filter((variant) => variant.is_active),
-      product_images: (product.product_images ?? [])
-        .filter((image) => image.is_primary)
-        .sort((a, b) => a.sort_order - b.sort_order),
-      product_themes: product.product_themes ?? [],
-    }),
-  );
+  let products: ProductWithVariantsAndImages[] = ((data ?? []) as unknown as ProductRow[])
+    .map((product) => mapProductRow(product, { primaryImagesOnly: true }))
+    .filter((product) => isProductVisibleInCatalog(product, includeVault));
 
   if (parsedQuery.data.location) {
     const location = parsedQuery.data.location;

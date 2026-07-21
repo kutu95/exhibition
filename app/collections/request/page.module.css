@@ -1,0 +1,23 @@
+.page {
+  padding-bottom: 4rem;
+}
+
+.intro {
+  margin-bottom: 2rem;
+  max-width: 40rem;
+}
+
+.lead {
+  color: #445566;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin: 0.75rem 0 0;
+}
+
+.notice {
+  background: rgba(139, 31, 22, 0.06);
+  border: 1px solid rgba(139, 31, 22, 0.2);
+  margin: 0 0 1.5rem;
+  max-width: 36rem;
+  padding: 0.8rem 1rem;
+}

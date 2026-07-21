@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProductEditorForm } from "../../../../../components/admin/ProductEditorForm";
+import { getMasterFileDimensions } from "../../../../../lib/master-files";
 import type { Theme, VariantTemplate } from "../../../../../lib/supabase/types";
 import { fetchAdminJson } from "../../../_lib/fetch-admin";
 
@@ -15,6 +16,7 @@ type ProductDetailResponse = {
   photo_type_tag: string | null;
   is_available: boolean;
   is_featured: boolean;
+  visibility?: "public" | "vault";
   product_variants: Array<{
     id: string;
     variant_label: string;
@@ -46,6 +48,7 @@ type ProductDetailResponse = {
     wrap_style: string | null;
     front_face_width_mm: number | null;
     front_face_height_mm: number | null;
+    master_filename: string | null;
     fit_mode?: "cover_crop" | "custom_size" | null;
     crop_offset?: number | null;
     size_lock?: "long_edge" | "width" | "height" | null;
@@ -82,9 +85,18 @@ export default async function AdminEditProductPage({ params }: PageProps) {
     notFound();
   }
 
+  const masterFilename =
+    product.product_variants.find((variant) => variant.master_filename)?.master_filename ?? null;
+  const masterDimensions = masterFilename
+    ? await getMasterFileDimensions(masterFilename).catch(() => null)
+    : null;
+
   return (
     <ProductEditorForm
       mode="edit"
+      masterPixelWidth={masterDimensions?.pixel_width ?? null}
+      masterPixelHeight={masterDimensions?.pixel_height ?? null}
+      masterFilename={masterFilename}
       initialData={{
         id: product.id,
         title: product.title,
@@ -96,6 +108,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
         photo_type_tag: product.photo_type_tag ?? "",
         is_available: product.is_available,
         is_featured: product.is_featured,
+        visibility: product.visibility ?? "public",
         theme_ids: product.product_themes.map((assignment) => assignment.theme_id),
         variants: product.product_variants.map((variant) => ({
           id: variant.id,

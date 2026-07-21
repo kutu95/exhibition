@@ -5,52 +5,20 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
-import type { VariantFramingInput } from "../../lib/print-framing";
+import {
+  deriveAspectPreservingSizeMm,
+} from "../../lib/print-size";
+import {
+  formatVariantLabel,
+  PAPER_OPTIONS,
+} from "../../lib/print-catalogue";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import { isValidProductImageUrl } from "../../lib/utils/site-content-image";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ProductEditorForm.module.css";
-import { PrintFramingControls } from "./PrintFramingControls";
+import { ProductVariantPanel, type VariantInput } from "./ProductVariantPanel";
+import { ProductWallQrCodes } from "./ProductWallQrCodes";
 import { ThemeSelector } from "./ThemeSelector";
-
-type VariantInput = {
-  id?: string;
-  has_order_items?: boolean;
-  template_id: string;
-  variant_label: string;
-  price_dollars: string;
-  edition_size: string;
-  stock_quantity: string;
-  stripe_price_id: string;
-  width_mm: string;
-  height_mm: string;
-  border_mm: string;
-  paper_type: string;
-  print_type: string;
-  print_dpi: string;
-  source_print_profile_id: string;
-  destination_print_profile_id: string;
-  tier_label: string;
-  finish: string;
-  is_framed: boolean;
-  frame_type: string;
-  lab_cost_dollars: string;
-  suggested_retail_min_dollars: string;
-  suggested_retail_max_dollars: string;
-  turnaround_days_min: string;
-  turnaround_days_max: string;
-  shipping_class: string;
-  fulfilment_notes: string;
-  aspect_ratio: string;
-  canvas_wrap_mm: string;
-  wrap_style: string;
-  front_face_width_mm: string;
-  front_face_height_mm: string;
-  fit_mode: "cover_crop" | "custom_size";
-  crop_offset: string;
-  size_lock: "" | "long_edge" | "width" | "height";
-  is_active: boolean;
-};
 
 type ImageInput = {
   id?: string;
@@ -71,6 +39,7 @@ type ProductEditorInitialData = {
   photo_type_tag: string;
   is_available: boolean;
   is_featured: boolean;
+  visibility: "public" | "vault";
   theme_ids: string[];
   variants: VariantInput[];
   images: ImageInput[];
@@ -81,7 +50,12 @@ type ProductEditorFormProps = {
   initialData?: ProductEditorInitialData;
   variantTemplates: VariantTemplate[];
   themes: Theme[];
+  masterPixelWidth?: number | null;
+  masterPixelHeight?: number | null;
+  masterFilename?: string | null;
 };
+
+const defaultFineArtPaper = PAPER_OPTIONS.find((paper) => paper.printType === "fine_art")?.label ?? "";
 
 const createBlankVariant = (): VariantInput => ({
   template_id: "",
@@ -93,8 +67,8 @@ const createBlankVariant = (): VariantInput => ({
   width_mm: "",
   height_mm: "",
   border_mm: "0",
-  paper_type: "",
-  print_type: "",
+  paper_type: defaultFineArtPaper,
+  print_type: "fine_art",
   print_dpi: "300",
   source_print_profile_id: "",
   destination_print_profile_id: "",
@@ -114,9 +88,9 @@ const createBlankVariant = (): VariantInput => ({
   wrap_style: "",
   front_face_width_mm: "",
   front_face_height_mm: "",
-  fit_mode: "cover_crop",
+  fit_mode: "custom_size",
   crop_offset: "0",
-  size_lock: "",
+  size_lock: "long_edge",
   is_active: true,
 });
 
@@ -129,42 +103,73 @@ const createBlankImage = (): ImageInput => ({
 
 const centsToDollars = (value: number | null): string => (value === null ? "" : (value / 100).toFixed(2));
 
-const applyTemplateToVariant = (variant: VariantInput, template: VariantTemplate): VariantInput => ({
-  ...variant,
-  template_id: template.id,
-  variant_label: template.variant_label,
-  price_dollars: (template.base_price_aud / 100).toFixed(2),
-  edition_size: template.edition_size?.toString() ?? "",
-  width_mm: template.width_mm.toString(),
-  height_mm: template.height_mm.toString(),
-  border_mm: template.border_mm.toString(),
-  paper_type: template.paper_type,
-  print_type: template.print_type,
-  print_dpi: template.print_dpi.toString(),
-  source_print_profile_id: template.source_print_profile_id ?? "",
-  destination_print_profile_id: template.destination_print_profile_id ?? "",
-  tier_label: template.tier_label ?? "",
-  finish: template.finish ?? "",
-  is_framed: template.is_framed,
-  frame_type: template.frame_type ?? "",
-  lab_cost_dollars: centsToDollars(template.lab_cost_aud),
-  suggested_retail_min_dollars: centsToDollars(template.suggested_retail_min_aud),
-  suggested_retail_max_dollars: centsToDollars(template.suggested_retail_max_aud),
-  turnaround_days_min: template.turnaround_days_min?.toString() ?? "",
-  turnaround_days_max: template.turnaround_days_max?.toString() ?? "",
-  shipping_class: template.shipping_class ?? "",
-  fulfilment_notes: template.fulfilment_notes ?? "",
-  aspect_ratio: template.aspect_ratio ?? "",
-  canvas_wrap_mm: template.canvas_wrap_mm?.toString() ?? "",
-  wrap_style: template.wrap_style ?? "",
-  front_face_width_mm: template.front_face_width_mm?.toString() ?? "",
-  front_face_height_mm: template.front_face_height_mm?.toString() ?? "",
-  fit_mode: "cover_crop",
-  crop_offset: "0",
-  size_lock: "",
-});
+const applyTemplateToVariant = (
+  variant: VariantInput,
+  template: VariantTemplate,
+  masterPixelWidth: number | null,
+  masterPixelHeight: number | null,
+): VariantInput => {
+  const base: VariantInput = {
+    ...variant,
+    template_id: template.id,
+    variant_label: template.variant_label,
+    price_dollars: (template.base_price_aud / 100).toFixed(2),
+    edition_size: template.edition_size?.toString() ?? "",
+    border_mm: template.border_mm.toString(),
+    paper_type: template.paper_type,
+    print_type: template.print_type || "fine_art",
+    print_dpi: template.print_dpi.toString(),
+    source_print_profile_id: template.source_print_profile_id ?? "",
+    destination_print_profile_id: template.destination_print_profile_id ?? "",
+    tier_label: template.tier_label ?? "",
+    finish: template.finish ?? "",
+    is_framed: template.is_framed,
+    frame_type: template.frame_type ?? "",
+    lab_cost_dollars: centsToDollars(template.lab_cost_aud),
+    suggested_retail_min_dollars: centsToDollars(template.suggested_retail_min_aud),
+    suggested_retail_max_dollars: centsToDollars(template.suggested_retail_max_aud),
+    turnaround_days_min: template.turnaround_days_min?.toString() ?? "",
+    turnaround_days_max: template.turnaround_days_max?.toString() ?? "",
+    shipping_class: template.shipping_class ?? "",
+    fulfilment_notes: template.fulfilment_notes ?? "",
+    canvas_wrap_mm: template.canvas_wrap_mm?.toString() ?? "",
+    wrap_style: template.wrap_style ?? "",
+    front_face_width_mm: template.front_face_width_mm?.toString() ?? "",
+    front_face_height_mm: template.front_face_height_mm?.toString() ?? "",
+    fit_mode: "custom_size",
+    crop_offset: "0",
+    size_lock: "long_edge",
+  };
 
-export function ProductEditorForm({ mode, initialData, variantTemplates, themes }: ProductEditorFormProps) {
+  if (masterPixelWidth && masterPixelHeight && masterPixelWidth > 0 && masterPixelHeight > 0) {
+    const longEdge = Math.max(template.width_mm, template.height_mm);
+    const size = deriveAspectPreservingSizeMm(longEdge, masterPixelWidth, masterPixelHeight);
+    return {
+      ...base,
+      width_mm: String(size.width_mm),
+      height_mm: String(size.height_mm),
+      aspect_ratio: size.aspect_ratio ?? "",
+      variant_label: formatVariantLabel(size.width_mm, size.height_mm, template.paper_type),
+    };
+  }
+
+  return {
+    ...base,
+    width_mm: template.width_mm.toString(),
+    height_mm: template.height_mm.toString(),
+    aspect_ratio: template.aspect_ratio ?? "",
+  };
+};
+
+export function ProductEditorForm({
+  mode,
+  initialData,
+  variantTemplates,
+  themes,
+  masterPixelWidth = null,
+  masterPixelHeight = null,
+  masterFilename = null,
+}: ProductEditorFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
@@ -175,7 +180,9 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
   const [photoTypeTag, setPhotoTypeTag] = useState(initialData?.photo_type_tag ?? "");
   const [isAvailable, setIsAvailable] = useState(initialData?.is_available ?? true);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? false);
+  const [visibility, setVisibility] = useState<"public" | "vault">(initialData?.visibility ?? "public");
   const [selectedThemeIds, setSelectedThemeIds] = useState(initialData?.theme_ids ?? []);
+  const [themeOptions, setThemeOptions] = useState(themes);
   const [variants, setVariants] = useState<VariantInput[]>(
     initialData?.variants.length ? initialData.variants : [createBlankVariant()],
   );
@@ -277,7 +284,7 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
           variant.print_dpi <= 0,
       )
     ) {
-      setError("Each print variant must have positive width, height, and print DPI. Select a template first.");
+      setError("Each print variant must have positive width, height, and print DPI.");
       return;
     }
 
@@ -304,6 +311,7 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
       photo_type_tag: photoTypeTag ? photoTypeTag : null,
       is_available: isAvailable,
       is_featured: isFeatured,
+      visibility,
       theme_ids: selectedThemeIds,
       variants: normalizedVariants,
       images: normalizedImages.filter((image) => image.image_url),
@@ -541,10 +549,26 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                 Is Featured
               </label>
             </div>
+
+            <label>
+              Visibility
+              <select
+                value={visibility}
+                onChange={(event) => setVisibility(event.target.value as "public" | "vault")}
+              >
+                <option value="public">Public gallery</option>
+                <option value="vault">Private collections only</option>
+              </select>
+            </label>
           </div>
           <h3>Themes</h3>
           <p className={styles.muted}>A photograph can belong to any number of themes.</p>
-          <ThemeSelector themes={themes} selectedThemeIds={selectedThemeIds} onChange={setSelectedThemeIds} />
+          <ThemeSelector
+            themes={themeOptions}
+            selectedThemeIds={selectedThemeIds}
+            onChange={setSelectedThemeIds}
+            onThemesChange={setThemeOptions}
+          />
           </div>
         </details>
 
@@ -632,512 +656,32 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
                 </span>
               </summary>
               <div className={styles.variantBody}>
-              {mode === "edit" ? (
-                <div className={styles.inlineActions}>
-                  <button
-                    className={styles.btnSecondary}
-                    type="button"
-                    onClick={() => createTestOrder(variant)}
-                    disabled={
-                      !variant.id ||
-                      !variant.is_active ||
-                      creatingTestOrderVariantId === variant.id
-                    }
-                  >
-                    {creatingTestOrderVariantId === variant.id
-                      ? "Creating test order..."
-                      : "Create Test Order (No Stripe)"}
-                  </button>
-                </div>
-              ) : null}
-              <div className={styles.grid}>
-                <label>
-                  Label
-                  <input
-                    value={variant.variant_label}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, variant_label: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Print Template
-                  <select
-                    value={variant.template_id}
-                    onChange={(event) => {
-                      const template = activeVariantTemplates.find((item) => item.id === event.target.value);
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index && template
-                            ? applyTemplateToVariant(row, template)
-                            : i === index
-                              ? { ...row, template_id: event.target.value }
-                              : row,
-                        ),
-                      );
-                    }}
-                  >
-                    <option value="">none</option>
-                    {activeVariantTemplates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.variant_label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Price AUD (dollars)
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={variant.price_dollars}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, price_dollars: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Edition Size
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.edition_size}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, edition_size: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Stock Quantity
-                  <input
-                    type="number"
-                    min="0"
-                    value={variant.stock_quantity}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, stock_quantity: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Width (mm)
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.width_mm}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, width_mm: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Height (mm)
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.height_mm}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, height_mm: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Border (mm)
-                  <input
-                    type="number"
-                    min="0"
-                    value={variant.border_mm}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, border_mm: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Print DPI
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.print_dpi}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, print_dpi: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <div className={styles.framingBlock}>
-                  <PrintFramingControls
-                    label="Print framing"
-                    templateWidthMm={Number.parseInt(variant.width_mm || "0", 10) || 1}
-                    templateHeightMm={Number.parseInt(variant.height_mm || "0", 10) || 1}
-                    pixelWidth={null}
-                    pixelHeight={null}
-                    previewUrl={images.find((image) => image.is_primary)?.image_url || images[0]?.image_url || null}
-                    value={{
-                      fit_mode: variant.fit_mode === "custom_size" ? "custom_size" : "cover_crop",
-                      crop_offset: Number.parseFloat(variant.crop_offset || "0") || 0,
-                      size_lock:
-                        variant.size_lock === "long_edge" ||
-                        variant.size_lock === "width" ||
-                        variant.size_lock === "height"
-                          ? variant.size_lock
-                          : null,
-                    }}
-                    onChange={(next: VariantFramingInput) => {
-                      setVariants((current) =>
-                        current.map((row, i) => {
-                          if (i !== index) return row;
-                          const updated = {
-                            ...row,
-                            fit_mode: next.fit_mode,
-                            crop_offset: String(next.crop_offset),
-                            size_lock: (next.size_lock ?? "") as VariantInput["size_lock"],
-                          };
-                          // When switching to custom with known template mm, keep current mm
-                          // (editor has no master pixels; admin can edit width/height manually).
-                          if (next.fit_mode === "cover_crop" && row.template_id) {
-                            const template = variantTemplates.find((item) => item.id === row.template_id);
-                            if (template) {
-                              updated.width_mm = template.width_mm.toString();
-                              updated.height_mm = template.height_mm.toString();
-                            }
-                          }
-                          return updated;
-                        }),
-                      );
-                    }}
-                  />
-                </div>
-                <label>
-                  Paper Type
-                  <input
-                    value={variant.paper_type}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, paper_type: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Print Type
-                  <input
-                    value={variant.print_type}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, print_type: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Tier Label
-                  <input
-                    value={variant.tier_label}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, tier_label: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Finish
-                  <input
-                    value={variant.finish}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, finish: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <div className={styles.checkCell}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={variant.is_framed}
-                      onChange={(event) =>
-                        setVariants((current) =>
-                          current.map((row, i) =>
-                            i === index ? { ...row, is_framed: event.target.checked } : row,
-                          ),
-                        )
-                      }
-                    />
-                    Framed
-                  </label>
-                </div>
-                <label>
-                  Frame Type
-                  <input
-                    value={variant.frame_type}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, frame_type: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Source Print Profile ID
-                  <input
-                    value={variant.source_print_profile_id}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, source_print_profile_id: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Destination Print Profile ID
-                  <input
-                    value={variant.destination_print_profile_id}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, destination_print_profile_id: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Lab Cost AUD (dollars)
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={variant.lab_cost_dollars}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, lab_cost_dollars: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Suggested Retail Min AUD
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={variant.suggested_retail_min_dollars}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, suggested_retail_min_dollars: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Suggested Retail Max AUD
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={variant.suggested_retail_max_dollars}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, suggested_retail_max_dollars: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Turnaround Days Min
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.turnaround_days_min}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, turnaround_days_min: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Turnaround Days Max
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.turnaround_days_max}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, turnaround_days_max: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Shipping Class
-                  <input
-                    value={variant.shipping_class}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, shipping_class: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Aspect Ratio
-                  <input
-                    value={variant.aspect_ratio}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, aspect_ratio: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Canvas Wrap (mm)
-                  <input
-                    type="number"
-                    min="0"
-                    value={variant.canvas_wrap_mm}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, canvas_wrap_mm: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Wrap Style
-                  <input
-                    value={variant.wrap_style}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, wrap_style: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Front Face Width (mm)
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.front_face_width_mm}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, front_face_width_mm: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Front Face Height (mm)
-                  <input
-                    type="number"
-                    min="1"
-                    value={variant.front_face_height_mm}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, front_face_height_mm: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label className={styles.spanFull}>
-                  Fulfilment Notes
-                  <textarea
-                    rows={3}
-                    value={variant.fulfilment_notes}
-                    onChange={(event) =>
-                      setVariants((current) =>
-                        current.map((row, i) =>
-                          i === index ? { ...row, fulfilment_notes: event.target.value } : row,
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <div className={styles.checkCell}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={variant.is_active}
-                      onChange={(event) =>
-                        setVariants((current) =>
-                          current.map((row, i) =>
-                            i === index ? { ...row, is_active: event.target.checked } : row,
-                          ),
-                        )
-                      }
-                    />
-                    Active
-                  </label>
-                </div>
-              </div>
+                <ProductVariantPanel
+                  variant={variant}
+                  productType={productType}
+                  mode={mode}
+                  masterPixelWidth={masterPixelWidth}
+                  masterPixelHeight={masterPixelHeight}
+                  masterFilename={masterFilename}
+                  previewUrl={
+                    images.find((image) => image.is_primary)?.image_url || images[0]?.image_url || null
+                  }
+                  activeVariantTemplates={activeVariantTemplates}
+                  creatingTestOrderVariantId={creatingTestOrderVariantId}
+                  onChange={(next) =>
+                    setVariants((current) => current.map((row, i) => (i === index ? next : row)))
+                  }
+                  onApplyTemplate={(template) =>
+                    setVariants((current) =>
+                      current.map((row, i) =>
+                        i === index
+                          ? applyTemplateToVariant(row, template, masterPixelWidth, masterPixelHeight)
+                          : row,
+                      ),
+                    )
+                  }
+                  onCreateTestOrder={() => createTestOrder(variant)}
+                />
               </div>
             </details>
             );
@@ -1218,6 +762,8 @@ export function ProductEditorForm({ mode, initialData, variantTemplates, themes 
             </div>
           ))}
         </section>
+
+        {mode === "edit" ? <ProductWallQrCodes slug={slug} title={title} /> : null}
 
         {error ? <p className={styles.error}>{error}</p> : null}
         {testOrderMessage ? <p className={styles.success}>{testOrderMessage}</p> : null}

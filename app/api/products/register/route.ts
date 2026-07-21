@@ -21,6 +21,7 @@ const registerProductSchema = z.object({
   installation_tag: z.enum(installationOptions).nullable(),
   photo_type_tag: z.enum(photoTypeOptions).nullable().default(null),
   is_featured: z.boolean(),
+  visibility: z.enum(["public", "vault"]).optional().default("public"),
   edition_size: z.number().int().positive(),
   master_filename: z.string().min(1),
   web_image_url: z.string().url(),

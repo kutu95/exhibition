@@ -1,0 +1,24 @@
+.banner {
+  align-items: center;
+  background: linear-gradient(135deg, rgba(10, 22, 40, 0.06), rgba(180, 140, 80, 0.12));
+  border: 1px solid rgba(10, 22, 40, 0.12);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  justify-content: space-between;
+  margin: 0 0 1.75rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.banner p {
+  margin: 0;
+  max-width: 42rem;
+}
+
+.banner a {
+  color: var(--color-navy, #0a1628);
+  font-size: 0.92rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  white-space: nowrap;
+}

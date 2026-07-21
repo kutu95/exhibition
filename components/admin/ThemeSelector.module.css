@@ -3,27 +3,61 @@
   gap: 0.75rem;
 }
 
-.options {
+.pickerRow {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem 1rem;
+  gap: 0.5rem;
+  max-width: 36rem;
 }
 
-.option {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.4rem;
+.select {
+  flex: 1;
+  min-width: 12rem;
 }
 
 .create {
   align-items: center;
   display: flex;
   gap: 0.5rem;
-  max-width: 30rem;
+  max-width: 36rem;
 }
 
 .create input {
   flex: 1;
+}
+
+.secondary {
+  background: transparent;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chip {
+  align-items: center;
+  background: #eef2f6;
+  border: 1px solid #c9d3de;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.7rem;
+}
+
+.chip button {
+  background: transparent;
+  border: 0;
+  color: #445566;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.35rem;
 }
 
 .muted {

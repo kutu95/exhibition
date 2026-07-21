@@ -1,0 +1,128 @@
+.wrap {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.spanFull {
+  grid-column: 1 / -1;
+}
+
+.grid label {
+  display: grid;
+  font-size: 0.9rem;
+  gap: 0.2rem;
+}
+
+.grid input,
+.grid select,
+.output {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+.readOnly output {
+  background: #f7f7f7;
+  color: #333;
+  display: block;
+}
+
+.aspectBanner {
+  background: #f4f8f4;
+  border: 1px solid #c8dcc8;
+  color: #2a4a2a;
+  font-size: 0.88rem;
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+}
+
+.warning {
+  background: #fff8f0;
+  border: 1px solid #e8c89a;
+  color: #6b4510;
+  font-size: 0.88rem;
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+}
+
+.unitToggle {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.unitLabel {
+  color: #555;
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+}
+
+.unitBtn,
+.unitActive {
+  border: 1px solid #111;
+  border-radius: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.unitBtn {
+  background: transparent;
+  color: #111;
+}
+
+.unitActive {
+  background: #111;
+  color: #fff;
+}
+
+.marginPanel {
+  background: #f7f9fc;
+  border: 1px solid #c9d6e8;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.marginTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.marginRow {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.marginMeta {
+  color: #555;
+  display: inline-block;
+  font-size: 0.82rem;
+  margin-left: 0.5rem;
+}
+
+.marginNote {
+  color: #666;
+  font-size: 0.78rem;
+  margin: 0.15rem 0 0;
+}
+
+.marginNegative {
+  color: #b01818;
+}
+
+.fieldHint {
+  color: #555;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}

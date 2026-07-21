@@ -65,6 +65,7 @@ const productSchema = z.object({
   photo_type_tag: z.enum(photoTypeOptions).nullable(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
+  visibility: z.enum(["public", "vault"]).default("public"),
   theme_ids: z.array(z.string().uuid()),
   variants: z.array(variantSchema).min(1),
   images: z.array(imageSchema),
@@ -142,6 +143,7 @@ export async function POST(request: Request) {
       photo_type_tag: payload.photo_type_tag,
       is_available: payload.is_available,
       is_featured: payload.is_featured,
+      visibility: payload.visibility,
     })
     .select("id")
     .single();

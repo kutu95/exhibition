@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { isProductVisibleInCatalog, mapProductRow } from "../../../../lib/catalog-products";
 import { createSupabaseServerClient } from "../../../../lib/supabase/server";
 import type {
   Product,
   ProductImage,
   ProductTheme,
   ProductVariant,
-  ProductWithVariantsAndImages,
 } from "../../../../lib/supabase/types";
+import { hasActiveVaultSessionFromRequest } from "../../../../lib/vault-access";
 
 type ProductRow = Product & {
   product_variants: ProductVariant[] | null;
@@ -21,8 +22,9 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { slug } = await context.params;
+  const includeVault = await hasActiveVaultSessionFromRequest(request);
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
@@ -41,14 +43,10 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 
-  const product = data as ProductRow;
+  const product = mapProductRow(data as ProductRow);
+  if (!isProductVisibleInCatalog(product, includeVault)) {
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
+  }
 
-  const response: ProductWithVariantsAndImages = {
-    ...product,
-    product_variants: product.product_variants ?? [],
-    product_images: (product.product_images ?? []).sort((a, b) => a.sort_order - b.sort_order),
-    product_themes: product.product_themes ?? [],
-  };
-
-  return NextResponse.json(response);
+  return NextResponse.json(product);
 }

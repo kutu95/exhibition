@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { queryPostgres } from "../../../../lib/postgres";
 import { stripe } from "../../../../lib/stripe";
+import { hasActiveVaultSessionFromRequest } from "../../../../lib/vault-access";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,7 @@ type VariantCheckoutRow = {
   variant_label: string;
   price_aud: number;
   product_title: string;
+  visibility: "public" | "vault";
   edition_size: number | null;
   editions_remaining: number | null;
 };
@@ -31,6 +33,7 @@ export async function POST(request: Request) {
     }
 
     const { variant_id, quantity, customer_email } = parsed.data;
+    const includeVault = await hasActiveVaultSessionFromRequest(request);
 
     const { rows } = await queryPostgres<VariantCheckoutRow>(
       `
@@ -39,6 +42,7 @@ export async function POST(request: Request) {
           pv.variant_label,
           pv.price_aud,
           p.title as product_title,
+          p.visibility,
           pv.edition_size,
           case
             when pv.edition_size is null then null
@@ -50,14 +54,14 @@ export async function POST(request: Request) {
         where pv.id = $1
           and pv.is_active = true
           and p.is_available = true
-        group by pv.id, p.title
+        group by pv.id, p.title, p.visibility
         limit 1
       `,
       [variant_id],
     );
 
     const variant = rows[0];
-    if (!variant) {
+    if (!variant || (variant.visibility === "vault" && !includeVault)) {
       return NextResponse.json({ error: "Variant unavailable." }, { status: 400 });
     }
 
@@ -94,7 +98,7 @@ export async function POST(request: Request) {
     });
 
     if (!session.url) {
-      return NextResponse.json({ error: "Failed to create checkout URL." }, { status: 500 });
+      return NextResponse.json({ error: "Failed to create checkout session." }, { status: 500 });
     }
 
     return NextResponse.json({ checkout_url: session.url });

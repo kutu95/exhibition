@@ -1,0 +1,102 @@
+.wrap {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.summary {
+  margin: 0;
+}
+
+.message {
+  background: #eef6ef;
+  border: 1px solid #b7d4bc;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+}
+
+.error {
+  background: #f8eceb;
+  border: 1px solid #e0b4af;
+  color: #8b1f16;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+}
+
+.linkBox {
+  background: #f4f1ea;
+  border: 1px solid #d7d0c3;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+}
+
+.linkBox p {
+  margin: 0;
+}
+
+.linkBox code {
+  word-break: break-all;
+}
+
+.panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.panel h2 {
+  margin: 0;
+}
+
+.muted {
+  color: #667788;
+  margin: 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #dde3ea;
+  padding: 0.55rem 0.45rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.interest {
+  max-width: 22rem;
+  white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.createRow {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 36rem;
+}
+
+.createRow label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.check {
+  align-items: center;
+  display: flex !important;
+  gap: 0.45rem;
+}
+
+.secondary {
+  background: transparent;
+}

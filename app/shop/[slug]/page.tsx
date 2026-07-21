@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "../../../components/JsonLd";
@@ -14,7 +16,16 @@ type PageProps = {
 
 async function fetchProductBySlug(slug: string): Promise<ProductWithVariantsAndImages | null> {
   try {
-    const response = await fetch(`${siteConfig.url}/api/products/${slug}`, { cache: "no-store" });
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map((cookie) => `${cookie.name}=${cookie.value}`)
+      .join("; ");
+
+    const response = await fetch(`${siteConfig.url}/api/products/${slug}`, {
+      cache: "no-store",
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    });
     if (!response.ok) {
       return null;
     }
@@ -66,16 +77,18 @@ export default async function ProductPage({ params }: PageProps) {
           { name: product.title, path: `/shop/${product.slug}` },
         ])}
       />
-      <ProductDetailClient
-        product={product}
-        shareButtons={
-          <ShareButtons
-            url={`${siteConfig.url}/shop/${product.slug}`}
-            title={`${product.title} — The Georgette 150th`}
-            description={product.description || ""}
-          />
-        }
-      />
+      <Suspense fallback={<p className="section container">Loading print…</p>}>
+        <ProductDetailClient
+          product={product}
+          shareButtons={
+            <ShareButtons
+              url={`${siteConfig.url}/shop/${product.slug}`}
+              title={`${product.title} — The Georgette 150th`}
+              description={product.description || ""}
+            />
+          }
+        />
+      </Suspense>
     </>
   );
 }

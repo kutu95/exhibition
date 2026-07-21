@@ -64,6 +64,18 @@ export const safeMasterFilename = (filename: string): string => {
 export const resolveMasterFilePath = (filename: string): string =>
   path.join(getMasterFilesDir(), safeMasterFilename(filename));
 
+export const getMasterFileDimensions = async (
+  filename: string,
+): Promise<{ pixel_width: number; pixel_height: number; aspect_ratio: string } | null> => {
+  const dimensions = await readTiffDimensions(resolveMasterFilePath(filename)).catch(() => null);
+  if (!dimensions) return null;
+  return {
+    pixel_width: dimensions.width,
+    pixel_height: dimensions.height,
+    aspect_ratio: formatAspectRatio(dimensions.width, dimensions.height),
+  };
+};
+
 export const suggestTitleFromMasterFilename = (filename: string): string => {
   const stem = path.basename(filename, path.extname(filename));
   return stem
@@ -132,7 +144,7 @@ const readTiffEntryValue = (
   return null;
 };
 
-const readTiffDimensions = async (filePath: string): Promise<TiffDimensions | null> => {
+export const readTiffDimensions = async (filePath: string): Promise<TiffDimensions | null> => {
   const handle = await fs.open(filePath, "r");
 
   try {

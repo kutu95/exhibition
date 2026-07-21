@@ -117,8 +117,10 @@ export function ImportPhotoWizardClient({
   const [photoTypeTag, setPhotoTypeTag] = useState("");
   const [editionSize, setEditionSize] = useState("10");
   const [isFeatured, setIsFeatured] = useState(false);
+  const [visibility, setVisibility] = useState<"public" | "vault">("public");
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
+  const [themeOptions, setThemeOptions] = useState(themes);
   const [templatePrices, setTemplatePrices] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       variantTemplates
@@ -321,7 +323,10 @@ export function ImportPhotoWizardClient({
     setPhotoTypeTag("");
     setEditionSize("10");
     setIsFeatured(false);
+    setVisibility("public");
     setSelectedTemplateIds([]);
+    setSelectedThemeIds([]);
+    setThemeOptions(themes);
     setTemplateFraming({});
     setWebImageMode("generate");
     setWebImage(null);
@@ -356,6 +361,7 @@ export function ImportPhotoWizardClient({
       formData.set("master_pixel_height", String(selectedMaster.pixel_height));
     }
     formData.set("is_featured", String(isFeatured));
+    formData.set("visibility", visibility);
     formData.set("variant_template_ids", JSON.stringify(selectedTemplateIds));
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
     formData.set(
@@ -614,7 +620,12 @@ export function ImportPhotoWizardClient({
             </label>
             <div>
               <h3>Themes</h3>
-              <ThemeSelector themes={themes} selectedThemeIds={selectedThemeIds} onChange={setSelectedThemeIds} />
+              <ThemeSelector
+                themes={themeOptions}
+                selectedThemeIds={selectedThemeIds}
+                onChange={setSelectedThemeIds}
+                onThemesChange={setThemeOptions}
+              />
             </div>
             <label className={styles.checkboxRow}>
               <input
@@ -623,6 +634,16 @@ export function ImportPhotoWizardClient({
                 onChange={(event) => setIsFeatured(event.target.checked)}
               />
               <span>Feature on shop / home surfaces</span>
+            </label>
+            <label>
+              Visibility
+              <select
+                value={visibility}
+                onChange={(event) => setVisibility(event.target.value as "public" | "vault")}
+              >
+                <option value="public">Public gallery</option>
+                <option value="vault">Private collections only</option>
+              </select>
             </label>
           </div>
         </section>
@@ -813,7 +834,7 @@ export function ImportPhotoWizardClient({
               <tr>
                 <th>Themes</th>
                 <td>
-                  {themes
+                  {themeOptions
                     .filter((theme) => selectedThemeIds.includes(theme.id))
                     .map((theme) => theme.name)
                     .join(", ") || "—"}
@@ -822,6 +843,10 @@ export function ImportPhotoWizardClient({
               <tr>
                 <th>Featured</th>
                 <td>{isFeatured ? "Yes" : "No"}</td>
+              </tr>
+              <tr>
+                <th>Visibility</th>
+                <td>{visibility === "vault" ? "Private collections" : "Public gallery"}</td>
               </tr>
               <tr>
                 <th>Web image</th>

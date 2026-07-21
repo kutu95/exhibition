@@ -110,6 +110,25 @@
   text-decoration: underline;
 }
 
+.wallBanner {
+  background: rgba(16, 64, 40, 0.08);
+  border: 1px solid rgba(16, 64, 40, 0.28);
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.wallBanner p {
+  margin: 0;
+}
+
+.wallBanner p + p {
+  margin-top: 0.4rem;
+}
+
+.wallBanner a {
+  text-decoration: underline;
+}
+
 .error {
   color: var(--color-rust);
 }

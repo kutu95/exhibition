@@ -1,0 +1,44 @@
+.form {
+  display: grid;
+  gap: 1rem;
+  max-width: 32rem;
+}
+
+.form label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+.form input,
+.form textarea {
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  width: 100%;
+}
+
+.form button {
+  justify-self: start;
+  margin-top: 0.25rem;
+  padding: 0.7rem 1.2rem;
+}
+
+.optional {
+  color: #667788;
+  font-weight: 400;
+}
+
+.error {
+  color: #8b1f16;
+  margin: 0;
+}
+
+.success {
+  border: 1px solid rgba(10, 22, 40, 0.14);
+  max-width: 36rem;
+  padding: 1.1rem 1.2rem;
+}
+
+.success p {
+  margin: 0;
+}

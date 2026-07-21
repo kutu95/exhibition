@@ -57,6 +57,21 @@ export async function POST(request: Request) {
 
     if (error) {
       const duplicate = error.code === "23505";
+      if (duplicate) {
+        const { data: existing } = await supabaseAdmin
+          .from("themes")
+          .select("*")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (existing) {
+          return NextResponse.json(
+            { error: "A theme with that name already exists.", theme: existing },
+            { status: 409 },
+          );
+        }
+      }
+
       return NextResponse.json(
         { error: duplicate ? "A theme with that name already exists." : error.message },
         { status: duplicate ? 409 : 500 },

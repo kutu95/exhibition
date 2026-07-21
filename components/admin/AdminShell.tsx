@@ -17,6 +17,7 @@ const links = [
   { href: "/admin/content", label: "Content" },
   { href: "/admin/content?tab=media", label: "Media" },
   { href: "/admin/subscribers", label: "Subscribers" },
+  { href: "/admin/vault", label: "Private collections" },
   { href: "/admin/events", label: "Events" },
   { href: "/admin/sales", label: "Sales" },
 ];
