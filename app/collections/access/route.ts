@@ -8,13 +8,17 @@ import {
   VAULT_SESSION_MAX_AGE_SECONDS,
 } from "../../../lib/vault-auth";
 
+const redirectBase = (request: Request): string =>
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || request.url;
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const leave = url.searchParams.get("leave") === "1";
   const rawToken = url.searchParams.get("t")?.trim();
+  const base = redirectBase(request);
 
   if (leave) {
-    const response = NextResponse.redirect(new URL("/shop", request.url));
+    const response = NextResponse.redirect(new URL("/shop", base));
     response.cookies.set({
       ...getVaultCookieConfig(0),
       value: "",
@@ -24,7 +28,7 @@ export async function GET(request: Request) {
   }
 
   if (!rawToken) {
-    return NextResponse.redirect(new URL("/collections/request", request.url));
+    return NextResponse.redirect(new URL("/collections/request", base));
   }
 
   const tokenHash = hashVaultToken(rawToken);
@@ -35,11 +39,11 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (error || !invite || invite.revoked_at) {
-    return NextResponse.redirect(new URL("/collections/request?invalid=1", request.url));
+    return NextResponse.redirect(new URL("/collections/request?invalid=1", base));
   }
 
   if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) {
-    return NextResponse.redirect(new URL("/collections/request?expired=1", request.url));
+    return NextResponse.redirect(new URL("/collections/request?expired=1", base));
   }
 
   await supabaseAdmin
@@ -53,7 +57,7 @@ export async function GET(request: Request) {
     ? Math.max(60, Math.floor((expiresAt.getTime() - Date.now()) / 1000))
     : VAULT_SESSION_MAX_AGE_SECONDS;
 
-  const response = NextResponse.redirect(new URL("/shop?collections=open", request.url));
+  const response = NextResponse.redirect(new URL("/shop?collections=open", base));
   response.cookies.set({
     ...getVaultCookieConfig(maxAge),
     value: sessionToken,
