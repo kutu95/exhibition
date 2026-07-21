@@ -11,9 +11,12 @@
 .mainImageWrap {
   position: relative;
   width: 100%;
-  /* Tall enough for portrait masters; landscape letterboxes within the same frame */
-  height: min(70vh, 52rem);
-  min-height: 22rem;
+  /* Until the image loads and reports its ratio, hold a neutral 3:2 frame.
+     Once loaded, inline aspect-ratio + max-width shrink the frame to the
+     photograph itself, so there is no dead space above or below. */
+  aspect-ratio: 3 / 2;
+  max-height: min(70vh, 52rem);
+  margin: 0 auto;
   border: 1px solid rgba(10, 22, 40, 0.2);
   background: rgba(10, 22, 40, 0.04);
 }

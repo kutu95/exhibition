@@ -28,6 +28,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
     "";
 
   const [activeImage, setActiveImage] = useState(primaryImage);
+  const [imageRatio, setImageRatio] = useState<number | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +130,17 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   return (
     <section className={`section container ${styles.wrap}`}>
       <div className={styles.gallery}>
-        <div className={styles.mainImageWrap}>
+        <div
+          className={styles.mainImageWrap}
+          style={
+            imageRatio
+              ? {
+                  aspectRatio: `${imageRatio}`,
+                  maxWidth: `calc(min(70vh, 52rem) * ${imageRatio})`,
+                }
+              : undefined
+          }
+        >
           <Image
             src={activeImage}
             alt={product.title}
@@ -137,6 +148,12 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             priority
             className={styles.mainImage}
             sizes="(max-width: 950px) 100vw, 60vw"
+            onLoad={(event) => {
+              const img = event.currentTarget;
+              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                setImageRatio(img.naturalWidth / img.naturalHeight);
+              }
+            }}
           />
         </div>
 
@@ -147,7 +164,12 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                 key={image.id}
                 type="button"
                 className={`${styles.thumb} ${activeImage === image.image_url ? styles.thumbActive : ""}`}
-                onClick={() => setActiveImage(image.image_url)}
+                onClick={() => {
+                  if (image.image_url !== activeImage) {
+                    setImageRatio(null);
+                    setActiveImage(image.image_url);
+                  }
+                }}
                 aria-label={`Show image ${image.alt_text ?? product.title}`}
               >
                 <Image
