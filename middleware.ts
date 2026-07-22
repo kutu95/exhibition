@@ -22,8 +22,13 @@ function shouldForceHttps(request: NextRequest): boolean {
 
 export async function middleware(request: NextRequest) {
   if (shouldForceHttps(request)) {
-    const httpsUrl = request.nextUrl.clone();
-    httpsUrl.protocol = "https:";
+    // Use the public Host header — request.nextUrl can be the internal
+    // bind address (e.g. localhost:3007) behind Cloudflare/nginx.
+    const host = request.headers.get("host") ?? "exhibition.margies.app";
+    const httpsUrl = new URL(
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      `https://${host}`,
+    );
     return NextResponse.redirect(httpsUrl, 301);
   }
 
