@@ -14,12 +14,14 @@ export function buildExhibitionEvent(): Record<string, unknown> {
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     location: {
       "@type": "Place",
-      name: "Margaret River Region Open Studios 2026",
+      name: "The Georgette 150th",
       address: {
         "@type": "PostalAddress",
-        addressRegion: "Western Australia",
+        streetAddress: "20 Morris Rd",
+        addressLocality: "Forest Grove",
+        addressRegion: "WA",
+        postalCode: "6286",
         addressCountry: "AU",
-        addressLocality: "Margaret River",
       },
     },
     organizer: {

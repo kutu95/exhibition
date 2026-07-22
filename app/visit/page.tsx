@@ -10,7 +10,7 @@ import styles from "./page.module.css";
 export const metadata: Metadata = buildMetadata({
   title: "Visit",
   description:
-    "The Georgette 150th — open daily 10am–5pm, 12–27 September 2026. Margaret River Region Open Studios, Western Australia. Free admission.",
+    "The Georgette 150th at 20 Morris Rd, Forest Grove WA 6286 — open daily 10am–5pm, 12–27 September 2026. Margaret River Region Open Studios. Free admission.",
   path: "/visit",
   ogImage: siteConfig.ogImage.visit,
 });
@@ -31,6 +31,27 @@ export default function VisitPage() {
         </FadeInSection>
 
         <FadeInSection className={styles.block}>
+          <h2>Where</h2>
+          <p>
+            <strong>The Georgette 150th</strong>
+            <br />
+            20 Morris Rd
+            <br />
+            Forest Grove WA 6286
+          </p>
+          <p>
+            <a
+              className="text-link"
+              href="https://www.google.com/maps/search/?api=1&query=20+Morris+Rd,+Forest+Grove+WA+6286"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open in Google Maps →
+            </a>
+          </p>
+        </FadeInSection>
+
+        <FadeInSection className={styles.block}>
           <h2>12–27 September 2026</h2>
           <p>
             The Georgette 150th is part of Margaret River Region Open Studios 2026 — a region-wide open studios event
@@ -47,13 +68,13 @@ export default function VisitPage() {
         <FadeInSection className={styles.block}>
           <h2>Getting here</h2>
           <p>
-            The exhibition is located in the Margaret River region of Western Australia, approximately three hours south
-            of Perth by car. Venue address and detailed directions will be confirmed and published here closer to the
-            opening date.
+            The exhibition is at 20 Morris Rd, Forest Grove, in the Margaret River region of Western Australia —
+            approximately three hours south of Perth by car. Forest Grove sits between Margaret River township and
+            the southern forests; allow a few extra minutes from town for the final stretch along Morris Road.
           </p>
           <p>
             Margaret River township is the nearest service centre — fuel, food, and accommodation are readily
-            available. The exhibition venue has free on-site parking.
+            available. Free on-site parking at the venue.
           </p>
         </FadeInSection>
 

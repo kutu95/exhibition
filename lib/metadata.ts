@@ -10,7 +10,7 @@ export const siteConfig = {
   exhibition: {
     opens: "2026-09-12",
     closes: "2026-09-27",
-    location: "Margaret River Region, Western Australia",
+    location: "20 Morris Rd, Forest Grove WA 6286",
     event: "Margaret River Region Open Studios 2026",
   },
   social: {
