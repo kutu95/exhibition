@@ -40,9 +40,13 @@ export default function VisitPage() {
             Forest Grove WA 6286
           </p>
           <p>
+            Drive straight through the front gate and stop at the first house on the right. There are two stone pillars
+            at the front of the gallery.
+          </p>
+          <p>
             <a
               className="text-link"
-              href="https://www.google.com/maps/search/?api=1&query=20+Morris+Rd,+Forest+Grove+WA+6286"
+              href="https://maps.app.goo.gl/K7cW5Xro8tSXhSoUA"
               target="_blank"
               rel="noopener noreferrer"
             >
