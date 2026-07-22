@@ -24,13 +24,26 @@ export type SiteContentImageRow = {
   media_files?: ImageMedia | ImageMedia[] | null;
 };
 
+const CONTENT_IMAGE_ALT_FALLBACKS: Record<string, string> = {
+  installation_cubarama_image: "Cubarama 360° immersive video installation at The Georgette 150th",
+  installation_captain_godfrey_image:
+    "Captain Godfrey interactive AI MetaHuman installation at The Georgette 150th",
+  installation_drift_image: "Drift interactive installation at The Georgette 150th",
+  author_talk_image: "Marcia van Zeller",
+};
+
 export function resolveOptionalContentImage(
   row: SiteContentImageRow | undefined,
+  key?: string,
 ): { src: string; alt: string } | null {
   const media = Array.isArray(row?.media_files) ? row.media_files[0] : row?.media_files;
   const src = row?.content_value?.trim() || media?.url_path?.trim();
   if (!src) return null;
-  return { src, alt: media?.alt_text?.trim() || "" };
+  const alt =
+    media?.alt_text?.trim() ||
+    (key ? CONTENT_IMAGE_ALT_FALLBACKS[key] : "") ||
+    "";
+  return { src, alt };
 }
 
 /**
@@ -49,6 +62,7 @@ export function resolveContentImage(
     );
   }
 
-  const alt = media?.alt_text?.trim() || "";
+  const alt =
+    media?.alt_text?.trim() || CONTENT_IMAGE_ALT_FALLBACKS[key] || key.replace(/_/g, " ");
   return { src, alt };
 }

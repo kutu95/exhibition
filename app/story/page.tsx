@@ -67,7 +67,7 @@ export default async function StoryPage() {
       <article className="section container-narrow">
         <header className={styles.intro}>
           <p className="eyebrow">1 December 1876 · South-West Western Australia</p>
-          <h1 className={`heading-section ${styles.title}`}>The Wreck of the SS Georgette</h1>
+          <h1 className={`heading-section ${styles.title}`}>The Story of the Georgette</h1>
         </header>
 
         <FadeInSection className={styles.prose}>

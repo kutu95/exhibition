@@ -52,7 +52,7 @@ export default async function ShopPage() {
       />
       <header className={styles.intro}>
         <p className="eyebrow">Limited Edition · Archival Prints</p>
-        <h1 className="heading-section">The photographs</h1>
+        <h1 className="heading-section">Limited Edition Prints</h1>
         <p className={styles.subheading}>
           Each print is made to order on archival paper. Edition sizes are strictly limited. All prints are signed and
           numbered by John Bowskill.

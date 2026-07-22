@@ -39,7 +39,8 @@ export function buildMetadata({
   noIndex?: boolean;
 }): Metadata {
   const url = `${siteConfig.url}${path}`;
-  const image = ogImage || siteConfig.ogImage.default;
+  const rawImage = ogImage || siteConfig.ogImage.default;
+  const image = rawImage.startsWith("http") ? rawImage : `${siteConfig.url}${rawImage}`;
   const resolvedTitle = title ? `${title} | ${siteConfig.name}` : siteConfig.name;
   const resolvedDescription = description || siteConfig.description;
 

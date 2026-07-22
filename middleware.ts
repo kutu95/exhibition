@@ -6,7 +6,27 @@ import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "./lib/admin-auth"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+function shouldForceHttps(request: NextRequest): boolean {
+  const host = request.headers.get("host") ?? "";
+  if (!host.includes("exhibition.margies.app")) {
+    return false;
+  }
+
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0]?.trim() === "http";
+  }
+
+  return request.nextUrl.protocol === "http:";
+}
+
 export async function middleware(request: NextRequest) {
+  if (shouldForceHttps(request)) {
+    const httpsUrl = request.nextUrl.clone();
+    httpsUrl.protocol = "https:";
+    return NextResponse.redirect(httpsUrl, 301);
+  }
+
   const pathname = request.nextUrl.pathname;
   const isAdminRoute = pathname.startsWith("/admin");
   const isAdminLogin = pathname === "/admin/login";

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { siteConfig } from "../lib/metadata";
-import { createClient } from "../lib/supabase/server";
+import { supabaseAdmin } from "../lib/supabase/admin";
 
 type ProductSitemapRow = {
   slug: string;
@@ -9,10 +9,8 @@ type ProductSitemapRow = {
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient();
-
-  // Public catalogue only — vault products must never appear in the sitemap.
-  const { data: products, error } = await supabase
+  // Service role: public catalogue only — vault products must never appear.
+  const { data: products, error } = await supabaseAdmin
     .from("products")
     .select("slug, created_at")
     .eq("is_available", true)

@@ -41,13 +41,23 @@ export function buildExhibitionEvent(): Record<string, unknown> {
 }
 
 export function buildProduct(product: ProductWithVariantsAndImages): Record<string, unknown> {
+  const primaryImage =
+    product.product_images.find((image) => image.is_primary)?.image_url ||
+    product.product_images[0]?.image_url ||
+    "";
+  const imageUrl = primaryImage
+    ? primaryImage.startsWith("http")
+      ? primaryImage
+      : `${siteConfig.url}${primaryImage}`
+    : `${siteConfig.url}${siteConfig.ogImage.shop}`;
+
   return {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.title,
     description: product.description || "",
     url: `${siteConfig.url}/shop/${product.slug}`,
-    image: product.product_images.find((image) => image.is_primary)?.image_url || "",
+    image: imageUrl,
     brand: {
       "@type": "Person",
       name: "John Bowskill",
@@ -60,6 +70,7 @@ export function buildProduct(product: ProductWithVariantsAndImages): Record<stri
         price: (variant.price_aud / 100).toFixed(2),
         priceCurrency: "AUD",
         availability: "https://schema.org/InStock",
+        url: `${siteConfig.url}/shop/${product.slug}`,
         seller: {
           "@type": "Person",
           name: "John Bowskill",

@@ -79,6 +79,7 @@ export default async function InstallationsPage() {
   );
   const authorTalkImage = resolveOptionalContentImage(
     rowByKey.get("author_talk_image") as SiteContentImageRow | undefined,
+    "author_talk_image",
   );
 
   return (
@@ -91,14 +92,14 @@ export default async function InstallationsPage() {
         ])}
       />
       <div className="container">
-        <FadeInSection className={styles.pageIntro}>
+        <header className={styles.pageIntro}>
           <p className="eyebrow">At the Exhibition</p>
-          <h1 className="heading-section">Three immersive installations</h1>
+          <h1 className="heading-section">Installations at The Georgette 150th</h1>
           <p>
             The Georgette 150th is not only wall-hung photographs. Three installations use different technologies to
             place visitors inside the story — the place, the character, the act of looking.
           </p>
-        </FadeInSection>
+        </header>
 
         <FadeInSection className={styles.sectionBlock} id="cubarama">
           <div className={styles.imageWrap}>
