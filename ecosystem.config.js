@@ -19,6 +19,8 @@ module.exports = {
         PORT: 3007,
         HOSTNAME: "127.0.0.1",
         APP_ROOT: root,
+        // Explicit: PM2 process env overrides .env* files. Keep Stripe live in production.
+        CHECKOUT_BYPASS_STRIPE: "false",
       },
       error_file: "./logs/pm2-error.log",
       out_file: "./logs/pm2-out.log",
