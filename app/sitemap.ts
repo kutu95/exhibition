@@ -5,20 +5,26 @@ import { createClient } from "../lib/supabase/server";
 
 type ProductSitemapRow = {
   slug: string;
-  updated_at: string | null;
+  created_at: string | null;
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
 
-  const { data: products } = await supabase
+  // Public catalogue only — vault products must never appear in the sitemap.
+  const { data: products, error } = await supabase
     .from("products")
-    .select("slug, updated_at")
-    .eq("is_available", true);
+    .select("slug, created_at")
+    .eq("is_available", true)
+    .eq("visibility", "public");
+
+  if (error) {
+    console.error("Sitemap product query failed", error);
+  }
 
   const productUrls = ((products ?? []) as ProductSitemapRow[]).map((product) => ({
     url: `${siteConfig.url}/shop/${product.slug}`,
-    lastModified: new Date(product.updated_at || Date.now()),
+    lastModified: new Date(product.created_at || Date.now()),
     changeFrequency: "weekly" as const,
     priority: 0.7,
   }));
