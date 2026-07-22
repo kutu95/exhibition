@@ -15,7 +15,7 @@ import {
   resolveOptionalContentImage,
   type SiteContentImageRow,
 } from "../../lib/utils/site-content-image";
-import { buildBreadcrumb } from "../../lib/structured-data";
+import { buildBreadcrumb, buildExhibitionEvent } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = buildMetadata({
@@ -85,6 +85,7 @@ export default async function InstallationsPage() {
   return (
     <div className="section">
       <InstallationPageTracker />
+      <JsonLd data={buildExhibitionEvent()} />
       <JsonLd
         data={buildBreadcrumb([
           { name: "Home", path: "/" },

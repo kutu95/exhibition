@@ -7,14 +7,25 @@ type FadeInSectionProps = {
   className?: string;
 } & HTMLAttributes<HTMLDivElement>;
 
+/**
+ * Fade-in on scroll. SSR and no-JS: content stays visible (opacity 1).
+ * Only elements that start below the fold are hidden then animated in.
+ */
 export function FadeInSection({ children, className, ...rest }: FadeInSectionProps) {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
 
+    const initiallyInView = node.getBoundingClientRect().top < window.innerHeight * 0.9;
+    if (initiallyInView) {
+      setVisible(true);
+      return;
+    }
+
+    setVisible(false);
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

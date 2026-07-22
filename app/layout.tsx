@@ -7,7 +7,6 @@ import { CartProvider } from "../components/CartProvider";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
 import { buildMetadata, siteConfig } from "../lib/metadata";
-import { createSupabaseServerClient } from "../lib/supabase/server";
 import "./globals.css";
 
 const baseMetadata = buildMetadata({});
@@ -55,19 +54,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     (process.env.CHECKOUT_BYPASS_STRIPE ?? "").trim().toLowerCase(),
   );
 
-  let exhibitionTitle = siteConfig.name;
-  if (!isAdminRoute) {
-    const supabase = await createSupabaseServerClient();
-    const { data } = await supabase
-      .from("site_content")
-      .select("content_value")
-      .eq("content_key", "hero_headline")
-      .maybeSingle();
-    const headline = data?.content_value?.trim();
-    if (headline) {
-      exhibitionTitle = headline;
-    }
-  }
+  // Use the static site name here — awaiting Supabase in the root layout delayed
+  // the entire document and left crawlers with only the loading shell.
+  const exhibitionTitle = siteConfig.name;
 
   return (
     <html lang="en">

@@ -17,6 +17,18 @@ function shouldForceHttps(request: NextRequest): boolean {
     return forwardedProto.split(",")[0]?.trim() === "http";
   }
 
+  // Cloudflare: {"scheme":"http"} or {"scheme":"https"}
+  const cfVisitor = request.headers.get("cf-visitor");
+  if (cfVisitor) {
+    try {
+      const parsed = JSON.parse(cfVisitor) as { scheme?: string };
+      if (parsed.scheme === "http") return true;
+      if (parsed.scheme === "https") return false;
+    } catch {
+      // ignore malformed header
+    }
+  }
+
   return request.nextUrl.protocol === "http:";
 }
 
