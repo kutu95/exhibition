@@ -90,7 +90,7 @@ export default async function HomePage() {
               </p>
               <p style={{ margin: "0 0 0.9rem", fontSize: "0.88rem", lineHeight: 1.6, color: "var(--color-sand)" }}>
                 The author and historian behind the research into what really happened at Calgardup Bay gives a free
-                public talk during the exhibition. Date and time to be confirmed.
+                public talk on Sunday 20 September, 11am–12pm. All welcome.
               </p>
               <a
                 href="/installations#talk"
@@ -101,14 +101,15 @@ export default async function HomePage() {
                   paddingBottom: "0.1rem",
                 }}
               >
-                About the talk →
+                About the talk / reserve a place →
               </a>
             </div>
 
             <hr style={{ border: 0, height: "1px", background: "var(--color-sand)", opacity: 0.3, margin: "2.2rem 0" }} />
 
             <p style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "var(--color-sand)", marginBottom: "0.9rem" }}>
-              Be first to hear about new print releases, exhibition details, and Marcia van Zeller&apos;s talk date.
+              Be first to hear about new print releases, exhibition details, and reminders for Marcia van Zeller&apos;s
+              talk.
             </p>
 
             <div id="holding-signup" className="holding-signup">

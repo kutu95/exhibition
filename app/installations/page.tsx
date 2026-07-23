@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 
-import { EmailSignupForm } from "../../components/EmailSignupForm";
 import { FadeInSection } from "../../components/FadeInSection";
 import { InstallationPageTracker } from "../../components/InstallationPageTracker";
 import { JsonLd } from "../../components/JsonLd";
 import { SectionDivider } from "../../components/SectionDivider";
+import { TalkRegistrationForm } from "../../components/TalkRegistrationForm";
 import { buildMetadata, siteConfig } from "../../lib/metadata";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getInstallationBody } from "../../lib/utils/installation-content";
@@ -199,17 +199,16 @@ export default async function InstallationsPage() {
               <p>
                 Her work excavated the contradictions in the historical record: the eyewitness accounts that
                 contradicted the press; the contested role of Sam Isaacs; the captain who was found guilty and never
-                accepted the verdict. She will give a public talk during the first week of the exhibition — drawing on
-                her research, her novel, and what fifteen years of living with this story has taught her about the gap
-                between history and truth.
+                accepted the verdict. She will give a free public talk on Sunday 20 September at 11am — drawing on her
+                research, her novel, and what fifteen years of living with this story has taught her about the gap
+                between history and truth. The talk runs for one hour and finishes at midday. All welcome.
               </p>
-              <p className={styles.dateLine}>Date and time to be confirmed · Free entry · Venue as exhibition</p>
-              <p className={styles.signupLabel}>Notify me when the talk date is confirmed</p>
+              <p className={styles.dateLine}>
+                Sunday 20 September · 11am–12pm · Free · All welcome · Venue as exhibition
+              </p>
+              <p className={styles.signupLabel}>Reserve a free place</p>
               <div className={styles.signupWrap}>
-                <EmailSignupForm
-                  source="installations_talk"
-                  buttonLabel="Notify me when the talk date is confirmed"
-                />
+                <TalkRegistrationForm source="installations_talk" />
               </div>
             </div>
           </FadeInSection>

@@ -26,5 +26,6 @@ export const PlausibleEvents = {
   SHOP_FAVOURITE_TOGGLE: "Favourite Toggle",
   INSTALLATION_INTEREST: "Installation Interest",
   TALK_SIGNUP: "Talk Signup",
+  TALK_REGISTER: "Talk Register",
   SHARE_CLICK: "Share Click",
 } as const;

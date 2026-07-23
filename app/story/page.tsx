@@ -141,10 +141,10 @@ export default async function StoryPage() {
           <p className={styles.talkHook}>What really happened at Calgardup Bay?</p>
           <p className={styles.talkCopy}>
             Author and historian Marcia van Zeller — whose research into the Georgette formed the basis of her novel
-            The Capes — gives a free public talk during the exhibition. Date and time to be confirmed.
+            The Capes — gives a free public talk on Sunday 20 September, 11am–12pm. All welcome.
           </p>
           <Link className={styles.talkLink} href="/installations#talk">
-            About the talk →
+            About the talk / reserve a place →
           </Link>
         </aside>
 

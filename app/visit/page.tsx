@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-import { EmailSignupForm } from "../../components/EmailSignupForm";
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
+import { TalkRegistrationForm } from "../../components/TalkRegistrationForm";
 import { buildMetadata, siteConfig } from "../../lib/metadata";
 import { buildBreadcrumb, buildExhibitionEvent } from "../../lib/structured-data";
 import styles from "./page.module.css";
@@ -106,15 +106,15 @@ export default function VisitPage() {
         <FadeInSection className={styles.block}>
           <h2>Public talk — Marcia van Zeller</h2>
           <p>
-            Author and researcher Marcia van Zeller will give a public talk during the first week of the exhibition.
-            Van Zeller spent years researching the Georgette wreck for her doctoral novel Cruel Capes (Curtin
-            University, 2014) — the first long-form adult narrative about the incident, and the research foundation for
-            the Captain Godfrey AI installation.
+            Author and researcher Marcia van Zeller will give a free public talk on Sunday 20 September at 11am
+            (finishing at midday). All welcome. Van Zeller spent years researching the Georgette wreck for her doctoral
+            novel Cruel Capes (Curtin University, 2014) — the first long-form adult narrative about the incident, and
+            the research foundation for the Captain Godfrey AI installation.
           </p>
-          <p>The talk is free. Date and time to be confirmed.</p>
+          <p>Sunday 20 September · 11am–12pm · Free · All welcome · Venue as exhibition</p>
           <div className={styles.signup}>
-            <p className={styles.signupLabel}>Notify me when the talk is scheduled</p>
-            <EmailSignupForm source="visit_talk" buttonLabel="Notify me when the talk is scheduled" />
+            <p className={styles.signupLabel}>Reserve a free place</p>
+            <TalkRegistrationForm source="visit_talk" />
           </div>
         </FadeInSection>
 
