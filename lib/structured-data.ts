@@ -97,6 +97,7 @@ export function buildPhotographerPerson(): Record<string, unknown> {
     "@type": "Person",
     name: siteConfig.artist,
     url: `${siteConfig.url}/about-the-photographer`,
+    image: `${siteConfig.url}/images/john-bowskill-portrait.jpg`,
     jobTitle: "Photographer",
     description:
       "Photographer behind The Georgette 150th, a photographic exhibition commemorating the 150th anniversary of the SS Georgette shipwreck near Margaret River, Western Australia.",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import { FadeInSection } from "../../components/FadeInSection";
@@ -10,6 +11,8 @@ import {
   buildPhotographerPerson,
 } from "../../lib/structured-data";
 import styles from "./page.module.css";
+
+const PORTRAIT_SRC = "/images/john-bowskill-portrait.jpg";
 
 export const metadata: Metadata = buildMetadata({
   absoluteTitle: "About Photographer John Bowskill | SS Georgette Exhibition",
@@ -33,13 +36,25 @@ export default function AboutPhotographerPage() {
       />
 
       <article className={`section container-narrow ${styles.article}`}>
-        <header className={styles.intro}>
-          <p className="eyebrow">The Georgette 150th</p>
-          <h1 className="heading-section">About the Photographer</h1>
-          <p className={styles.lead}>
-            John Bowskill is the photographer behind The Georgette 150th — a photographic exhibition commemorating the
-            150th anniversary of the wreck of the SS Georgette at Redgate Beach near Margaret River, Western Australia.
-          </p>
+        <header className={`${styles.intro} ${styles.introWithPortrait}`}>
+          <div className={styles.portraitWrap}>
+            <Image
+              src={PORTRAIT_SRC}
+              alt="Portrait of photographer John Bowskill"
+              fill
+              className={styles.portrait}
+              sizes="(max-width: 699px) 100vw, 280px"
+              priority
+            />
+          </div>
+          <div className={styles.introText}>
+            <p className="eyebrow">The Georgette 150th</p>
+            <h1 className="heading-section">About the Photographer</h1>
+            <p className={styles.lead}>
+              John Bowskill is the photographer behind The Georgette 150th — a photographic exhibition commemorating the
+              150th anniversary of the wreck of the SS Georgette at Redgate Beach near Margaret River, Western Australia.
+            </p>
+          </div>
         </header>
 
         <FadeInSection className={styles.prose}>

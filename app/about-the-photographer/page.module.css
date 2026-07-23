@@ -6,6 +6,31 @@
   margin-bottom: 2rem;
 }
 
+.introWithPortrait {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.portraitWrap {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 800 / 705;
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  overflow: hidden;
+  background: rgba(10, 22, 40, 0.04);
+}
+
+.portrait {
+  object-fit: cover;
+  object-position: center top;
+}
+
+.introText {
+  min-width: 0;
+}
+
 .lead {
   margin: 1rem 0 0;
   max-width: 68ch;
@@ -42,4 +67,16 @@
 .linkList a {
   text-decoration: underline;
   text-underline-offset: 0.15em;
+}
+
+@media (min-width: 700px) {
+  .introWithPortrait {
+    grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .portraitWrap {
+    max-width: none;
+  }
 }
