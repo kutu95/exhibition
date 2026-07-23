@@ -35,7 +35,8 @@ export default async function StoryPage() {
 
   const storyHeroImageRow = (data ?? []).find((row) => row.content_key === "story_hero_image");
   const storyHeroImageSrc = storyHeroImageRow?.content_value?.trim();
-  const storyHeroImageAlt = "";
+  const storyHeroImageAlt =
+    "Coastal landscape photograph from John Bowskill’s SS Georgette exhibition near Redgate Beach, Margaret River";
 
   if (!storyHeroImageSrc) {
     const returnedKeys = (data ?? []).map((row) => row.content_key).join(", ") || "none";

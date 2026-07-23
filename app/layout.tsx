@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
-  authors: [{ name: "John Bowskill", url: siteConfig.url }],
+  authors: [{ name: "John Bowskill", url: `${siteConfig.url}/about-the-photographer` }],
   creator: "John Bowskill",
   publisher: "John Bowskill",
   category: "Photography Exhibition",
@@ -27,21 +27,20 @@ export const metadata: Metadata = {
     "Margaret River",
     "Western Australia",
     "SS Georgette",
-    "shipwreck",
+    "Georgette shipwreck",
+    "150th anniversary",
     "Calgardup Bay",
     "Redgate Beach",
     "Isaac Rock",
     "John Bowskill",
     "Margaret River Region Open Studios",
+    "Margaret River Open Studios 2026",
     "limited edition prints",
     "fine art photography",
     "1876",
     "Grace Bussell",
     "Sam Isaacs",
   ],
-  alternates: {
-    canonical: siteConfig.url,
-  },
 };
 
 export const viewport: Viewport = {
@@ -60,7 +59,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const exhibitionTitle = siteConfig.name;
 
   return (
-    <html lang="en">
+    <html lang="en-AU">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

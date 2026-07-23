@@ -36,7 +36,7 @@
 
 .content h1 {
   margin: 0 0 0.8rem;
-  max-width: 9.5ch;
+  max-width: min(18ch, 100%);
 }
 
 .content p {

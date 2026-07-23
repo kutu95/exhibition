@@ -33,6 +33,18 @@ function shouldForceHttps(request: NextRequest): boolean {
 }
 
 export async function middleware(request: NextRequest) {
+  const hostHeader = request.headers.get("host") ?? "";
+  const hostname = hostHeader.split(":")[0]?.toLowerCase() ?? "";
+
+  // Canonical host: exhibition.margies.app (no www)
+  if (hostname === "www.exhibition.margies.app") {
+    const canonical = new URL(
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      "https://exhibition.margies.app",
+    );
+    return NextResponse.redirect(canonical, 301);
+  }
+
   if (shouldForceHttps(request)) {
     // Use the public Host header — request.nextUrl can be the internal
     // bind address (e.g. localhost:3007) behind Cloudflare/nginx.

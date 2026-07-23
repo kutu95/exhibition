@@ -10,11 +10,11 @@ import styles from "./SiteNav.module.css";
 
 const navLinks = [
   { href: "/story", label: "The Story" },
+  { href: "/about-the-photographer", label: "Photographer" },
   { href: "/installations#talk", label: "Author Talk" },
   { href: "/installations", label: "Installations" },
   { href: "/shop", label: "Photographs" },
   { href: "/visit", label: "Visit" },
-  { href: "/shop", label: "Shop" },
 ];
 
 type SiteNavProps = {

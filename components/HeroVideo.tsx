@@ -4,6 +4,7 @@ import styles from "./HeroVideo.module.css";
 
 const exploreLinks = [
   { href: "/story", label: "Story" },
+  { href: "/about-the-photographer", label: "Photographer" },
   { href: "/installations#talk", label: "Author Talk" },
   { href: "/installations", label: "Installations" },
   { href: "/shop", label: "Photographs" },

@@ -1,0 +1,45 @@
+.article {
+  padding-bottom: 4rem;
+}
+
+.intro {
+  margin-bottom: 2rem;
+}
+
+.lead {
+  margin: 1rem 0 0;
+  max-width: 68ch;
+  font-size: 1.15rem;
+  line-height: 1.75;
+}
+
+.prose {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2.2rem;
+}
+
+.prose p {
+  margin: 0;
+  max-width: 68ch;
+  line-height: 1.85;
+}
+
+.prose h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+}
+
+.linkList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.linkList a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

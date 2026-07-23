@@ -5,8 +5,9 @@ export const siteConfig = {
   artist: "John Bowskill",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://exhibition.margies.app",
   description:
-    "A photography exhibition marking 150 years since the wreck of the SS Georgette. Calgardup Bay, Redgate Beach, Isaac Rock. Margaret River Region Open Studios, 12–27 September 2026.",
-  shortDescription: "Photography exhibition · Margaret River Region Open Studios · 12–27 September 2026",
+    "Discover John Bowskill’s photographic exhibition commemorating the 150th anniversary of the SS Georgette shipwreck at Redgate Beach near Margaret River, Western Australia.",
+  shortDescription:
+    "SS Georgette 150th anniversary photographic exhibition by John Bowskill · Margaret River Region Open Studios · 12–27 September 2026",
   exhibition: {
     opens: "2026-09-12",
     closes: "2026-09-27",
@@ -22,27 +23,36 @@ export const siteConfig = {
     installations: "/og/installations.jpg",
     shop: "/og/shop.jpg",
     visit: "/og/visit.jpg",
+    about: "/og/default.jpg",
   },
 };
 
 export function buildMetadata({
   title,
+  absoluteTitle,
   description,
   path = "",
   ogImage,
   noIndex = false,
+  ogType = "website",
 }: {
   title?: string;
+  /** When set, used as the full document title without appending the site name. */
+  absoluteTitle?: string;
   description?: string;
   path?: string;
   ogImage?: string;
   noIndex?: boolean;
+  ogType?: "website" | "article" | "profile";
 }): Metadata {
-  const url = `${siteConfig.url}${path}`;
+  const normalizedPath = path === "/" ? "" : path;
+  const url = `${siteConfig.url}${normalizedPath}`;
   const rawImage = ogImage || siteConfig.ogImage.default;
   const image = rawImage.startsWith("http") ? rawImage : `${siteConfig.url}${rawImage}`;
-  const resolvedTitle = title ? `${title} | ${siteConfig.name}` : siteConfig.name;
+  const resolvedTitle =
+    absoluteTitle ?? (title ? `${title} | ${siteConfig.name}` : siteConfig.name);
   const resolvedDescription = description || siteConfig.description;
+  const imageAlt = `${resolvedTitle} — photographic exhibition by ${siteConfig.artist}`;
 
   return {
     title: resolvedTitle,
@@ -57,13 +67,13 @@ export function buildMetadata({
       url,
       siteName: siteConfig.name,
       locale: "en_AU",
-      type: "website",
+      type: ogType,
       images: [
         {
           url: image,
           width: 1200,
           height: 630,
-          alt: resolvedTitle,
+          alt: imageAlt,
         },
       ],
     },
@@ -84,6 +94,7 @@ export function buildMetadata({
             follow: true,
             "max-image-preview": "large",
             "max-snippet": -1,
+            "max-video-preview": -1,
           },
         },
   };

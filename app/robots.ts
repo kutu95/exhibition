@@ -14,10 +14,11 @@ export default function robots(): MetadataRoute.Robots {
           "/order/",
           "/cart",
           "/collections/access",
+          "/collections/request",
         ],
       },
     ],
     sitemap: `${siteConfig.url}/sitemap.xml`,
-    host: siteConfig.url,
+    host: siteConfig.url.replace(/^https?:\/\//, ""),
   };
 }
