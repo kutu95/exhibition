@@ -48,6 +48,13 @@
   color: var(--color-rust);
 }
 
+.detailLink {
+  display: inline-block;
+  margin-top: 0.25rem;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .closing {
   text-align: center;
 }

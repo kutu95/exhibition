@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 
 import { FadeInSection } from "../../components/FadeInSection";
 import { InstallationPageTracker } from "../../components/InstallationPageTracker";
@@ -98,7 +99,8 @@ export default async function InstallationsPage() {
           <h1 className="heading-section">Installations at The Georgette 150th</h1>
           <p>
             The Georgette 150th is not only wall-hung photographs. Three installations use different technologies to
-            place visitors inside the story — the place, the character, the act of looking.
+            place visitors inside the story — the place, the character, the act of looking. Each has a dedicated page
+            for galleries and museums interested in licensing, buying, or borrowing the work.
           </p>
         </header>
 
@@ -119,6 +121,11 @@ export default async function InstallationsPage() {
             {cubarama.paragraphs.map((p, i) => (
               <p key={i}>{p}</p>
             ))}
+            <p>
+              <Link href="/installations/cubarama" className={styles.detailLink}>
+                How Cubarama works · for galleries &amp; museums →
+              </Link>
+            </p>
           </div>
         </FadeInSection>
 
@@ -143,6 +150,11 @@ export default async function InstallationsPage() {
                 {p}
               </p>
             ))}
+            <p>
+              <Link href="/installations/captain-godfrey" className={styles.detailLink}>
+                How Captain Godfrey works · for galleries &amp; museums →
+              </Link>
+            </p>
           </div>
         </FadeInSection>
 
@@ -165,6 +177,11 @@ export default async function InstallationsPage() {
             {drift.paragraphs.map((p, i) => (
               <p key={i}>{p}</p>
             ))}
+            <p>
+              <Link href="/installations/drift" className={styles.detailLink}>
+                How Drift works · for galleries &amp; museums →
+              </Link>
+            </p>
           </div>
         </FadeInSection>
       </div>

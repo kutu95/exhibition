@@ -55,6 +55,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${siteConfig.url}/installations/cubarama`,
+      lastModified: staticLastMod,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      url: `${siteConfig.url}/installations/captain-godfrey`,
+      lastModified: staticLastMod,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      url: `${siteConfig.url}/installations/drift`,
+      lastModified: staticLastMod,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
       url: `${siteConfig.url}/shop`,
       lastModified: staticLastMod,
       changeFrequency: "weekly",
