@@ -1,68 +1,155 @@
-.story {
-  display: grid;
-  gap: 1.2rem;
-}
-
-.introSection {
-  padding-top: 3rem;
-}
-
-.story p {
-  margin: 0;
-  max-width: 68ch;
-  line-height: 1.85;
-}
-
-.story p + p {
-  margin-top: 1rem;
-}
-
-.faq {
-  display: grid;
-  gap: 1.2rem;
-}
-
-.faqItem {
-  max-width: 68ch;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(10, 22, 40, 0.12);
-}
-
-.faqItem h3 {
-  margin: 0 0 0.35rem;
-  font-family: var(--font-heading);
-  font-size: 1.35rem;
-}
-
-.faqItem p {
-  margin: 0;
-  line-height: 1.75;
-}
-
-.newsletter {
+.holding {
   background: var(--color-navy);
   color: var(--color-cream);
 }
 
-.newsletterWrap {
-  text-align: center;
+.holdingBody {
+  padding: 2.4rem 2rem 3rem;
 }
 
-.newsletterWrap h2 {
+.holdingInner {
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.lead,
+.bodyCopy {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.75;
   color: var(--color-cream);
 }
 
-.newsletterWrap p {
-  margin: 0 0 1.3rem;
+.bodyCopy {
+  margin-top: 1.1rem;
+}
+
+.aboutBlock,
+.talkBlock {
+  border: 1px solid rgba(245, 240, 232, 0.35);
+  padding: 1.4rem 1.5rem;
+  margin: 2.2rem 0 0;
+}
+
+.aboutEyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--color-sand);
 }
 
-.newsletterCard {
-  max-width: 540px;
-  margin: 0 auto;
-  border: 1px solid rgba(245, 240, 232, 0.45);
-  padding: 1.2rem;
+.aboutCopy {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--color-sand);
+}
+
+.aboutCopy:last-of-type {
+  margin-bottom: 1rem;
+}
+
+.aboutLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.1rem;
+}
+
+.aboutLinks a,
+.inlineLink {
+  color: var(--color-cream);
+  font-size: 0.88rem;
+  border-bottom: 1px solid rgba(245, 240, 232, 0.5);
+  padding-bottom: 0.1rem;
+}
+
+.talkTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: var(--color-cream);
+}
+
+.rule {
+  border: 0;
+  height: 1px;
+  background: var(--color-sand);
+  opacity: 0.3;
+  margin: 2.2rem 0;
+}
+
+.signupIntro {
+  margin: 0 0 0.9rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--color-sand);
+}
+
+.copyright {
+  margin: 2rem 0 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--color-sand);
+  opacity: 0.5;
+  letter-spacing: 0.04em;
+}
+
+.holdingSignup :global(form) {
+  width: 100%;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.holdingSignup :global(form label) {
+  color: var(--color-sand);
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.holdingSignup :global(form input) {
+  width: 100%;
+  border: 1px solid rgba(245, 240, 232, 0.3);
+  background: transparent;
+  color: var(--color-cream);
+  padding: 0.75rem 1rem;
+  border-radius: 0;
+}
+
+.holdingSignup :global(form input::placeholder) {
+  color: rgba(245, 240, 232, 0.65);
+}
+
+.holdingSignup :global(form input:focus) {
+  outline: none;
+  border-color: var(--color-cream);
+}
+
+.holdingSignup :global(form button) {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
   background: var(--color-cream);
-  color: var(--color-ink);
-  text-align: left;
+  color: var(--color-navy);
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+
+.holdingSignup :global(form button:hover) {
+  background: var(--color-sand);
+}
+
+.holdingSignup :global(p) {
+  color: var(--color-cream);
+  margin: 0;
+}
+
+:global(body:has([data-holding-page="true"]) > header) {
+  display: none !important;
+}
+
+:global(body:has([data-holding-page="true"]) > main) {
+  padding-top: 0 !important;
 }
