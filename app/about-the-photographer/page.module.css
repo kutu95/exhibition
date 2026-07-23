@@ -38,9 +38,24 @@
   line-height: 1.75;
 }
 
+.quote {
+  margin: 0.4rem 0;
+  padding: 0.2rem 0 0.2rem 1.1rem;
+  border-left: 2px solid rgba(10, 22, 40, 0.28);
+}
+
+.quote p {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: clamp(1.35rem, 2.5vw, 1.7rem);
+  line-height: 1.35;
+  max-width: 40ch;
+}
+
 .prose {
   display: grid;
-  gap: 1rem;
+  gap: 1.15rem;
   margin-bottom: 2.2rem;
 }
 

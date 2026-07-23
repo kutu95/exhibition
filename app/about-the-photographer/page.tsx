@@ -14,10 +14,13 @@ import styles from "./page.module.css";
 
 const PORTRAIT_SRC = "/images/john-bowskill-portrait.jpg";
 
+/** Upload the preface PDF to public/documents/georgette-preface.pdf, then set this to that path. */
+const PREFACE_HREF: string | null = null;
+
 export const metadata: Metadata = buildMetadata({
   absoluteTitle: "About Photographer John Bowskill | SS Georgette Exhibition",
   description:
-    "Meet photographer John Bowskill, whose Georgette 150th exhibition commemorates the SS Georgette shipwreck at Redgate Beach near Margaret River, Western Australia.",
+    "John Bowskill is the photographer behind The Georgette 150th Photographic Exhibition — coastal photography, immersive installations, and the story of the SS Georgette near Redgate Beach, Margaret River.",
   path: "/about-the-photographer",
   ogImage: siteConfig.ogImage.about,
   ogType: "profile",
@@ -51,72 +54,79 @@ export default function AboutPhotographerPage() {
             <p className="eyebrow">The Georgette 150th</p>
             <h1 className="heading-section">About the Photographer</h1>
             <p className={styles.lead}>
-              John Bowskill is the photographer behind The Georgette 150th — a photographic exhibition commemorating the
-              150th anniversary of the wreck of the SS Georgette at Redgate Beach near Margaret River, Western Australia.
+              John Bowskill is the photographer behind The Georgette 150th Photographic Exhibition.
             </p>
           </div>
         </header>
 
         <FadeInSection className={styles.prose}>
-          <h2>The Georgette project</h2>
           <p>
-            For the past eight years, John Bowskill has been photographing the coastal places tied to the Georgette
-            story: Calgardup Bay, Redgate Beach, Isaac Rock, and the wreck site itself. The photographs shown in The
-            Georgette 150th are pictures of places that carry the weight of what happened in them. The history is in the
-            landscape.
+            John spent years photographing the stretch of coastline around Redgate, near where he lives. He became
+            fascinated with the story of the Georgette on an autumn day a few years ago, when flying his drone over the
+            sea and, by coincidence, every condition was right: the swell was under a metre, the water was clear, the
+            tide was low, the breeze was offshore, and the sand had washed away from the wreck, revealing it full
+            length, in a way it&apos;s rarely seen. He couldn&apos;t leave it at that. He had to find out more of the
+            shipwreck&apos;s story and this year he found himself on a plane to Scotland, to visit the Clyde, to the
+            site of the Lower Woodyard number 1 shipyard where the Georgette was built — and, quite by coincidence, very
+            close to the place of his own father&apos;s birth.
           </p>
+
+          <blockquote className={styles.quote}>
+            <p>Photography has sometimes taken me places I did not expect. It&apos;s not always just about the picture.</p>
+          </blockquote>
+
           <p>
-            The exhibition opens during Margaret River Region Open Studios 2026 (12–27 September) at 20 Morris Rd,
-            Forest Grove, and includes wall-hung prints alongside immersive installations built around the same sites
-            and research.
+            John has now written a book about what he has learnt of the Georgette and her many stories.{" "}
+            {PREFACE_HREF ? (
+              <>
+                You can read a copy of the preface{" "}
+                <a className="text-link" href={PREFACE_HREF} target="_blank" rel="noopener noreferrer">
+                  here
+                </a>
+                .
+              </>
+            ) : (
+              <>You can read a copy of the preface here. {/* TODO(John): supply preface PDF and set PREFACE_HREF */}</>
+            )}
           </p>
+
+          <p>
+            In finding new and unique ways to tell the stories and give context and meaning to the still images on
+            display in the exhibition, John has leant on his tech skills to create some fascinating installations. None
+            of them would have been possible without the use, in some way, of AI.
+          </p>
+
+          <p>
+            AI is controversial in art. In this exhibition it has been used to create the artist&apos;s tools. Layer
+            Painter is a tool he built to assist with painting digital compositions and murals. Cuborama Studio is a
+            video editor he wrote specifically for four-wall projection cinema, because nothing existing was built for
+            that format. The Drift installation runs on a custom app, built with AI assistance, that chooses what
+            photograph to show based on how a visitor moves in front of it. And John Godfrey — the interactive version
+            of the Georgette&apos;s captain who has been reincarnated as a metahuman that visitors can speak with —
+            exists through a stack of tools that includes an AI clone of an actor&apos;s voice and an AI model standing
+            in for the captain&apos;s mind and a gaming engine running on a high end graphics computer. Some of this sits
+            in genuinely contested territory for an art exhibition. It pushes boundaries that he is happy to talk about.
+          </p>
+
+          <p>
+            He shoots with a variety of still, underwater and drone cameras and edits in Lightroom. But this project is
+            about this little ship, hiding in plain sight at a beautiful South West beach. A beach now enjoyed by many
+            but whose stories are known by few.
+          </p>
+
+          <p>
+            The little mail steamer and her record breaking run from London to Fremantle, her day as a battleship, her
+            infamous groundings and final sinking, the Grace Bussell mythology, the underplayed role of Sam Isaacs,
+            Annie Simpson the 20 year old mother who kept her 5 month old baby alive for a night in the sea, the
+            underwater explorers who lost both her propellers, the academics who could not find them again, the bell that
+            hung in a tree for 60 years, the telescope found, lost and found again and the timber still on the sea floor
+            that began life in oak trees that lived before the arrival of Europeans on our shores.
+          </p>
+
+          <p>How could anyone not be fascinated by all that? John hopes you enjoy the exhibition.</p>
         </FadeInSection>
 
         <FadeInSection className={styles.prose}>
-          <h2>Connection to the Margaret River region</h2>
-          <p>
-            The work is rooted in the Margaret River region of Western Australia — the same coastline where the SS
-            Georgette foundered in December 1876. The exhibition invites visitors to Open Studios to encounter that
-            local maritime history through contemporary photography.
-          </p>
-          {/* TODO(John): Add a short note on your personal connection to the Margaret River region, if you wish. */}
-        </FadeInSection>
-
-        <FadeInSection className={styles.prose}>
-          <h2>Coastal landscapes and local stories</h2>
-          <p>
-            The Georgette 150th brings together coastal landscape photography with a specific historical narrative: the
-            wreck, the contested rescue accounts, and the places that remain. Prints from the series are produced as
-            limited editions on archival paper, signed and numbered by John Bowskill.
-          </p>
-          {/* TODO(John): Optionally expand on your wider interest in coastal landscapes, maritime history, or local stories beyond this project. */}
-        </FadeInSection>
-
-        <FadeInSection className={styles.prose}>
-          <h2>Photographic approach</h2>
-          <p>
-            Beside the gallery prints, the exhibition includes installations such as Cubarama, Captain Godfrey AI, and
-            Drift — ways of extending looking into immersive and interactive forms while remaining grounded in
-            photographs of the Georgette sites.
-          </p>
-          {/* TODO(John): Add a sentence or two on how you approach making the photographs (process, timing, materials) if you want that public. */}
-        </FadeInSection>
-
-        <FadeInSection className={styles.prose}>
-          <h2>Margaret River Open Studios 2026</h2>
-          <p>
-            The Georgette 150th is presented as part of Margaret River Region Open Studios 2026. Visitors can see the
-            work in person daily from 10am to 5pm across the sixteen-day programme, with free admission.
-          </p>
-          <p>
-            <Link href="/visit" className="text-link">
-              Plan your visit →
-            </Link>
-          </p>
-        </FadeInSection>
-
-        <FadeInSection className={styles.prose}>
-          <h2>Explore the exhibition</h2>
           <ul className={styles.linkList}>
             <li>
               <Link href="/">The Georgette 150th homepage →</Link>
@@ -125,10 +135,10 @@ export default function AboutPhotographerPage() {
               <Link href="/story">The story of the SS Georgette →</Link>
             </li>
             <li>
-              <Link href="/shop">Limited edition photographs →</Link>
+              <Link href="/installations">Installations →</Link>
             </li>
             <li>
-              <Link href="/installations">Installations →</Link>
+              <Link href="/shop">Photographs →</Link>
             </li>
             <li>
               <Link href="/visit">Visit the exhibition →</Link>

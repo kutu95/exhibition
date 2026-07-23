@@ -100,7 +100,7 @@ export function buildPhotographerPerson(): Record<string, unknown> {
     image: `${siteConfig.url}/images/john-bowskill-portrait.jpg`,
     jobTitle: "Photographer",
     description:
-      "Photographer behind The Georgette 150th, a photographic exhibition commemorating the 150th anniversary of the SS Georgette shipwreck near Margaret River, Western Australia.",
+      "Photographer behind The Georgette 150th Photographic Exhibition. Coastal photography around Redgate Beach, immersive installations, and the many stories of the SS Georgette.",
     knowsAbout: [
       "SS Georgette",
       "Redgate Beach",
