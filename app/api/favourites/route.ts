@@ -4,7 +4,7 @@ import { z } from "zod";
 import { handleRouteError } from "../../../lib/api-route-errors";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 
-export const VISITOR_ID_COOKIE = "exhibition_visitor_id";
+const VISITOR_ID_COOKIE = "exhibition_visitor_id";
 const VISITOR_ID_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 const favouritesSchema = z.object({
