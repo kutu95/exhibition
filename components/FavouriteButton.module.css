@@ -1,0 +1,44 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(10, 22, 40, 0.35);
+  background: rgba(250, 247, 240, 0.92);
+  color: var(--color-ink);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.card {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 2;
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.detail {
+  padding: 0.7rem 1rem;
+  width: 100%;
+}
+
+.icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.active {
+  color: var(--color-rust);
+  border-color: var(--color-rust);
+  background: #fff;
+}
+
+.button:hover {
+  border-color: var(--color-rust);
+  color: var(--color-rust);
+}

@@ -1,8 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { centsToAUD } from "../lib/utils/currency";
+import { FavouriteButton } from "./FavouriteButton";
 import styles from "./ProductCard.module.css";
 
 type ProductCardProps = {
@@ -24,8 +27,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <article className={styles.card}>
-      <Link href={`/shop/${product.slug}`} className={styles.link}>
-        <div className={styles.imageWrap}>
+      <div className={styles.imageWrap}>
+        <FavouriteButton productId={product.id} productTitle={product.title} />
+        <Link href={`/shop/${product.slug}`} className={styles.imageLink} aria-label={product.title}>
           <Image
             src={primaryImage}
             alt={product.title}
@@ -33,7 +37,9 @@ export function ProductCard({ product }: ProductCardProps) {
             className={styles.image}
             sizes="(max-width: 767px) 100vw, (max-width: 1100px) 50vw, 33vw"
           />
-        </div>
+        </Link>
+      </div>
+      <Link href={`/shop/${product.slug}`} className={styles.contentLink}>
         <div className={styles.content}>
           <h3>{product.title}</h3>
           {product.location_tag ? <p className={styles.location}>{product.location_tag}</p> : null}

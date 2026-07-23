@@ -14,11 +14,14 @@ type ShopFiltersProps = {
   typeFilter: ProductTypeFilter;
   locationFilter: LocationFilter;
   themeFilter: ThemeFilter;
+  favouritesOnly: boolean;
+  favouriteCount: number;
   locationOptions: FilterOption[];
   themeOptions: FilterOption[];
   onTypeChange: (next: ProductTypeFilter) => void;
   onLocationChange: (next: LocationFilter) => void;
   onThemeChange: (next: ThemeFilter) => void;
+  onFavouritesOnlyChange: (next: boolean) => void;
 };
 
 const typeOptions: Array<{ value: ProductTypeFilter; label: string }> = [
@@ -31,14 +34,17 @@ export function ShopFilters({
   typeFilter,
   locationFilter,
   themeFilter,
+  favouritesOnly,
+  favouriteCount,
   locationOptions,
   themeOptions,
   onTypeChange,
   onLocationChange,
   onThemeChange,
+  onFavouritesOnlyChange,
 }: ShopFiltersProps) {
   const handleFilterClick = (
-    filterType: "product_type" | "location" | "theme",
+    filterType: "product_type" | "location" | "theme" | "favourites",
     filterValue: string,
     onClick: () => void,
   ) => {
@@ -62,6 +68,17 @@ export function ShopFilters({
             {option.label}
           </button>
         ))}
+        <button
+          type="button"
+          className={`${styles.filterBtn} ${favouritesOnly ? styles.active : ""}`}
+          onClick={() =>
+            handleFilterClick("favourites", favouritesOnly ? "off" : "on", () =>
+              onFavouritesOnlyChange(!favouritesOnly),
+            )
+          }
+        >
+          Favourites{favouriteCount > 0 ? ` (${favouriteCount})` : ""}
+        </button>
       </div>
 
       {locationOptions.length > 0 ? (

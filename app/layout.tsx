@@ -4,6 +4,7 @@ import Script from "next/script";
 import { ReactNode } from "react";
 
 import { CartProvider } from "../components/CartProvider";
+import { FavouritesProvider } from "../components/FavouritesProvider";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
 import { buildMetadata, siteConfig } from "../lib/metadata";
@@ -98,9 +99,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <main style={{ minHeight: "100vh", paddingTop: 0 }}>{children}</main>
         ) : (
           <CartProvider>
-            <SiteNav exhibitionTitle={exhibitionTitle} />
-            <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
-            <SiteFooter exhibitionTitle={exhibitionTitle} />
+            <FavouritesProvider>
+              <SiteNav exhibitionTitle={exhibitionTitle} />
+              <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
+              <SiteFooter exhibitionTitle={exhibitionTitle} />
+            </FavouritesProvider>
           </CartProvider>
         )}
       </body>

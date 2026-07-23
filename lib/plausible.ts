@@ -23,6 +23,7 @@ export const PlausibleEvents = {
   SHOP_CHECKOUT_START: "Checkout Start",
   SHOP_CHECKOUT_COMPLETE: "Checkout Complete",
   SHOP_FILTER_USED: "Shop Filter",
+  SHOP_FAVOURITE_TOGGLE: "Favourite Toggle",
   INSTALLATION_INTEREST: "Installation Interest",
   TALK_SIGNUP: "Talk Signup",
   SHARE_CLICK: "Share Click",

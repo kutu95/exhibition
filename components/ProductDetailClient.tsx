@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
+import { FavouriteButton } from "./FavouriteButton";
 import { readCart } from "../lib/cart";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
@@ -213,6 +214,12 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
         </p>
 
         <div className={styles.buyActions}>
+          <FavouriteButton
+            productId={product.id}
+            productTitle={product.title}
+            size="detail"
+            className={styles.favouriteButton}
+          />
           <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
             Add to cart
           </button>

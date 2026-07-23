@@ -20,6 +20,7 @@ const links = [
   { href: "/admin/vault", label: "Private collections" },
   { href: "/admin/events", label: "Events" },
   { href: "/admin/sales", label: "Sales" },
+  { href: "/admin/favourites", label: "Favourites" },
 ];
 
 type AdminShellProps = {
