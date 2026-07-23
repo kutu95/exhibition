@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import styles from "../../admin/subscribers/page.module.css";
+import styles from "../../app/admin/subscribers/page.module.css";
 
 type TalkCapacityFormProps = {
   initialCapacity: number;
