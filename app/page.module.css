@@ -145,11 +145,3 @@
   color: var(--color-cream);
   margin: 0;
 }
-
-:global(body:has([data-holding-page="true"]) > header) {
-  display: none !important;
-}
-
-:global(body:has([data-holding-page="true"]) > main) {
-  padding-top: 0 !important;
-}

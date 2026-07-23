@@ -110,6 +110,16 @@ export default async function HomePage() {
           <p className={styles.copyright}>© 2026 · exhibition.margies.app</p>
         </div>
       </section>
+
+      <style>{`
+        body:has([data-holding-page="true"]) > header {
+          display: none !important;
+        }
+
+        body:has([data-holding-page="true"]) > main {
+          padding-top: 0 !important;
+        }
+      `}</style>
     </>
   );
 }
