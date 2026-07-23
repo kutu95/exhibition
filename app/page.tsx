@@ -49,7 +49,7 @@ export default async function HomePage() {
       <JsonLd data={buildExhibitionEvent()} />
       <JsonLd data={buildHomeFaq()} />
 
-      <section data-holding-page="true" className={styles.holding}>
+      <section className={styles.holding}>
         <HeroVideo
           videoSrc={heroVideoSrc}
           posterSrc={heroPosterSrc}
@@ -110,16 +110,6 @@ export default async function HomePage() {
           <p className={styles.copyright}>© 2026 · exhibition.margies.app</p>
         </div>
       </section>
-
-      <style>{`
-        body:has([data-holding-page="true"]) > header {
-          display: none !important;
-        }
-
-        body:has([data-holding-page="true"]) > main {
-          padding-top: 0 !important;
-        }
-      `}</style>
     </>
   );
 }
