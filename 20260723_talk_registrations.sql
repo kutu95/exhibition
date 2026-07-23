@@ -9,6 +9,8 @@ create table if not exists exhibition.talk_registrations (
   name text not null,
   party_size integer not null default 1
     check (party_size >= 1 and party_size <= 10),
+  list text not null default 'confirmed'
+    check (list in ('confirmed', 'waitlist')),
   source text null,
   created_at timestamptz not null default now(),
   cancelled_at timestamptz null,
@@ -22,6 +24,10 @@ create unique index if not exists talk_registrations_active_email_unique
 
 create index if not exists idx_talk_registrations_created_at
   on exhibition.talk_registrations (created_at desc);
+
+create index if not exists idx_talk_registrations_list_created
+  on exhibition.talk_registrations (list, created_at desc)
+  where cancelled_at is null;
 
 alter table exhibition.talk_registrations enable row level security;
 

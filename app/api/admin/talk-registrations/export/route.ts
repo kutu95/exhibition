@@ -16,20 +16,21 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabaseAdmin
     .from("talk_registrations")
-    .select("email,name,party_size,source,created_at,cancelled_at")
+    .select("email,name,party_size,list,source,created_at,cancelled_at")
     .order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const lines = ["email,name,party_size,source,created_at,cancelled_at"];
+  const lines = ["email,name,party_size,list,source,created_at,cancelled_at"];
   (data ?? []).forEach((row) => {
     lines.push(
       [
         csvEscape(row.email),
         csvEscape(row.name),
         csvEscape(row.party_size),
+        csvEscape(row.list),
         csvEscape(row.source),
         csvEscape(row.created_at),
         csvEscape(row.cancelled_at),

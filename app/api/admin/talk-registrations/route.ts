@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabaseAdmin
       .from("talk_registrations")
-      .select("id,email,name,party_size,source,created_at,cancelled_at")
+      .select("id,email,name,party_size,list,source,created_at,cancelled_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -23,15 +23,20 @@ export async function GET(request: Request) {
 
     const rows = data ?? [];
     const active = rows.filter((row) => row.cancelled_at === null);
-    const seatsTaken = active.reduce((sum, row) => sum + (row.party_size ?? 0), 0);
-    const capacity = getTalkCapacity();
+    const confirmed = active.filter((row) => row.list === "confirmed");
+    const waitlist = active.filter((row) => row.list === "waitlist");
+    const seatsTaken = confirmed.reduce((sum, row) => sum + (row.party_size ?? 0), 0);
+    const waitlistSeats = waitlist.reduce((sum, row) => sum + (row.party_size ?? 0), 0);
+    const capacity = await getTalkCapacity();
 
     return NextResponse.json({
       metrics: {
-        registrations: active.length,
+        registrations: confirmed.length,
         seats_taken: seatsTaken,
         capacity,
         seats_remaining: Math.max(0, capacity - seatsTaken),
+        waitlist_registrations: waitlist.length,
+        waitlist_seats: waitlistSeats,
         cancelled: rows.length - active.length,
       },
       registrations: rows,

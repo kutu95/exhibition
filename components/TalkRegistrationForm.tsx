@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { PlausibleEvents, trackEvent } from "@/lib/plausible";
-import { TALK_WHEN_LABEL } from "@/lib/talk-registration";
+import { TALK_WHEN_LABEL, type TalkList } from "@/lib/talk-registration";
 
 import styles from "./EmailSignupForm.module.css";
 
@@ -12,7 +12,7 @@ type TalkRegistrationFormProps = {
   compact?: boolean;
 };
 
-type FormStatus = "idle" | "loading" | "success" | "already" | "full";
+type FormStatus = "idle" | "loading" | "success" | "already" | "waitlist_success";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,8 +24,16 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
   const [error, setError] = useState<string | null>(null);
   const [seatsRemaining, setSeatsRemaining] = useState<number | null>(null);
   const [isFull, setIsFull] = useState(false);
+  const [existingList, setExistingList] = useState<TalkList | null>(null);
 
   const isValidEmail = useMemo(() => emailRegex.test(email), [email]);
+  const onWaitlist = isFull || (seatsRemaining !== null && seatsRemaining <= 0);
+  const maxPartySize =
+    seatsRemaining !== null && seatsRemaining > 0 ? Math.min(10, seatsRemaining) : 10;
+
+  useEffect(() => {
+    if (partySize > maxPartySize) setPartySize(maxPartySize);
+  }, [maxPartySize, partySize]);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,10 +46,12 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
           is_full?: boolean;
         };
         if (cancelled) return;
-        if (typeof data.seats_remaining === "number") setSeatsRemaining(data.seats_remaining);
-        if (data.is_full) {
+        if (typeof data.seats_remaining === "number") {
+          setSeatsRemaining(data.seats_remaining);
+          setIsFull(data.seats_remaining <= 0 || Boolean(data.is_full));
+        } else if (data.is_full) {
           setIsFull(true);
-          setStatus("full");
+          setSeatsRemaining(0);
         }
       } catch {
         // Capacity display is optional; registration can still proceed.
@@ -53,8 +63,7 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
     };
   }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitRegistration = async (asWaitlist: boolean) => {
     setError(null);
 
     if (!name.trim()) {
@@ -77,25 +86,26 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
           name: name.trim(),
           party_size: partySize,
           source,
+          waitlist: asWaitlist,
         }),
       });
 
       const data = (await response.json()) as {
         success?: boolean;
         already_registered?: boolean;
+        list?: TalkList;
         error?: string;
         seats_remaining?: number;
+        is_full?: boolean;
       };
 
       if (response.status === 409) {
-        if (typeof data.seats_remaining === "number") setSeatsRemaining(data.seats_remaining);
-        if (data.seats_remaining === 0) {
-          setIsFull(true);
-          setStatus("full");
-        } else {
-          setError(data.error ?? "Not enough places left for that party size.");
-          setStatus("idle");
+        if (typeof data.seats_remaining === "number") {
+          setSeatsRemaining(data.seats_remaining);
+          setIsFull(data.seats_remaining <= 0);
         }
+        setError(data.error ?? "Not enough seats available for that party size.");
+        setStatus("idle");
         return;
       }
 
@@ -103,11 +113,24 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
         throw new Error(data.error ?? "Registration failed.");
       }
 
-      if (typeof data.seats_remaining === "number") setSeatsRemaining(data.seats_remaining);
-      setStatus(data.already_registered ? "already" : "success");
+      if (typeof data.seats_remaining === "number") {
+        setSeatsRemaining(data.seats_remaining);
+        setIsFull(data.seats_remaining <= 0);
+      }
+
+      if (data.already_registered) {
+        setExistingList(data.list ?? "confirmed");
+        setStatus("already");
+      } else if (data.list === "waitlist") {
+        setStatus("waitlist_success");
+      } else {
+        setStatus("success");
+      }
+
       trackEvent(PlausibleEvents.TALK_REGISTER, {
         source,
         party_size: partySize,
+        list: data.list ?? (asWaitlist ? "waitlist" : "confirmed"),
         already_registered: Boolean(data.already_registered),
       });
     } catch (submitError) {
@@ -117,29 +140,48 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
     }
   };
 
-  if (status === "success" || status === "already") {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void submitRegistration(onWaitlist);
+  };
+
+  if (status === "success") {
     return (
       <p className={styles.success}>
-        {status === "already"
-          ? "You're already registered for this talk."
-          : `You're registered for ${TALK_WHEN_LABEL}. We'll see you there.`}
+        You&apos;re registered for {TALK_WHEN_LABEL}. We&apos;ll see you there.
       </p>
     );
   }
 
-  if (status === "full" || isFull) {
+  if (status === "waitlist_success") {
     return (
       <p className={styles.success}>
-        This talk is fully booked. Join the mailing list elsewhere on the site for exhibition updates.
+        You&apos;re on the wait list. We&apos;ll email you if a place becomes available.
+      </p>
+    );
+  }
+
+  if (status === "already") {
+    return (
+      <p className={styles.success}>
+        {existingList === "waitlist"
+          ? "You're already on the wait list for this talk."
+          : "You're already registered for this talk."}
       </p>
     );
   }
 
   return (
     <form className={`${styles.form} ${compact ? styles.compact : ""}`} onSubmit={handleSubmit}>
-      {seatsRemaining !== null ? (
+      {seatsRemaining !== null && !onWaitlist ? (
         <p className={styles.capacityHint}>
-          {seatsRemaining} free place{seatsRemaining === 1 ? "" : "s"} remaining
+          {seatsRemaining} seat{seatsRemaining === 1 ? "" : "s"} available
+        </p>
+      ) : null}
+
+      {onWaitlist ? (
+        <p className={styles.capacityHint}>
+          No seats currently available. Join the wait list and we&apos;ll contact you if a place opens up.
         </p>
       ) : null}
 
@@ -184,7 +226,7 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
           value={partySize}
           onChange={(event) => setPartySize(Number.parseInt(event.target.value, 10))}
         >
-          {Array.from({ length: 10 }, (_, index) => index + 1).map((size) => (
+          {Array.from({ length: onWaitlist ? 10 : maxPartySize }, (_, index) => index + 1).map((size) => (
             <option key={size} value={size}>
               {size}
             </option>
@@ -192,10 +234,29 @@ export function TalkRegistrationForm({ source, compact = false }: TalkRegistrati
         </select>
       </div>
 
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error ? (
+        <div>
+          <p className={styles.error}>{error}</p>
+          {!onWaitlist && seatsRemaining !== null && seatsRemaining > 0 && partySize > seatsRemaining ? (
+            <button
+              className={`button-outline ${styles.button}`}
+              type="button"
+              onClick={() => void submitRegistration(true)}
+            >
+              Join the wait list instead
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <button className={`button-solid ${styles.button}`} type="submit" disabled={status === "loading"}>
-        {status === "loading" ? "Reserving..." : "Reserve free places"}
+        {status === "loading"
+          ? onWaitlist
+            ? "Joining wait list..."
+            : "Reserving..."
+          : onWaitlist
+            ? "Join the wait list"
+            : "Reserve free places"}
       </button>
     </form>
   );
