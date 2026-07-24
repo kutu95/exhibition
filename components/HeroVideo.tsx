@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import styles from "./HeroVideo.module.css";
@@ -40,12 +41,13 @@ export function HeroVideo({
           <source src={resolvedVideoSrc} />
         </video>
       ) : (
-        <div
-          className={styles.media}
-          style={{
-            backgroundImage: `url(${resolvedPosterSrc})`,
-          }}
-          aria-hidden
+        <Image
+          src={resolvedPosterSrc}
+          alt="Coastal photography from The Georgette 150th exhibition near Redgate Beach, Margaret River"
+          fill
+          priority
+          className={styles.mediaImage}
+          sizes="100vw"
         />
       )}
       <div className={styles.overlay} />

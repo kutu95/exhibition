@@ -16,15 +16,22 @@
   background-position: center;
 }
 
+.mediaImage {
+  object-fit: cover;
+  z-index: 0;
+}
+
 .overlay {
   position: absolute;
   inset: 0;
+  z-index: 0;
   background: linear-gradient(
     to bottom,
     rgba(10, 22, 40, 0.78) 0%,
     rgba(10, 22, 40, 0.28) 60%,
     rgba(10, 22, 40, 0.9) 100%
   );
+  pointer-events: none;
 }
 
 .content {

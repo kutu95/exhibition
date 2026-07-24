@@ -1,6 +1,31 @@
 import type { ProductWithVariantsAndImages } from "./supabase/types";
 import { siteConfig } from "./metadata";
 
+const logoUrl = `${siteConfig.url}/logo.png`;
+const defaultImageUrl = `${siteConfig.url}${siteConfig.ogImage.default}`;
+
+function buildLogoImage() {
+  return {
+    "@type": "ImageObject",
+    url: logoUrl,
+    contentUrl: logoUrl,
+    width: 512,
+    height: 512,
+    caption: `${siteConfig.name} logo`,
+  };
+}
+
+function buildOgImageObject(caption?: string) {
+  return {
+    "@type": "ImageObject",
+    url: defaultImageUrl,
+    contentUrl: defaultImageUrl,
+    width: 1200,
+    height: 630,
+    caption: caption || `${siteConfig.name} — photographic exhibition by ${siteConfig.artist}`,
+  };
+}
+
 export function buildWebsite(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -10,10 +35,12 @@ export function buildWebsite(): Record<string, unknown> {
     url: siteConfig.url,
     description: siteConfig.description,
     inLanguage: "en-AU",
+    image: buildOgImageObject(),
     publisher: {
-      "@type": "Person",
-      name: siteConfig.artist,
-      url: `${siteConfig.url}/about-the-photographer`,
+      "@type": "Organization",
+      name: siteConfig.name,
+      url: siteConfig.url,
+      logo: buildLogoImage(),
     },
   };
 }
@@ -22,7 +49,7 @@ export function buildHomeWebPage(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "SS Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
+    name: "The Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
     description: siteConfig.description,
     url: siteConfig.url,
     isPartOf: {
@@ -34,10 +61,9 @@ export function buildHomeWebPage(): Record<string, unknown> {
       "@type": "ExhibitionEvent",
       name: siteConfig.name,
     },
-    primaryImageOfPage: {
-      "@type": "ImageObject",
-      url: `${siteConfig.url}${siteConfig.ogImage.default}`,
-    },
+    primaryImageOfPage: buildOgImageObject(),
+    image: buildOgImageObject(),
+    thumbnailUrl: defaultImageUrl,
     inLanguage: "en-AU",
   };
 }
@@ -85,7 +111,7 @@ export function buildExhibitionEvent(): Record<string, unknown> {
       url: `${siteConfig.url}/visit`,
       description: "Free admission to the exhibition",
     },
-    image: `${siteConfig.url}${siteConfig.ogImage.default}`,
+    image: [buildOgImageObject(), buildLogoImage()],
     inLanguage: "en-AU",
     isAccessibleForFree: true,
   };
