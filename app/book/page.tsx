@@ -17,7 +17,12 @@ const WRECK_IMAGE_ALT =
 const WRECK_IMAGE_CAPTION =
   "Drone photograph of the wreck of the SS Georgette, Calgardup Bay, February 2024. The rare alignment of low tide, clear water, an exposed sandbank and an offshore breeze that first revealed the wreck to the author.";
 
+const FATHER_IMAGE_SRC = "/images/bill-bowskill-elderslie-1929.jpg";
+const FATHER_IMAGE_ALT = "Bill Bowskill, aged six, sitting outside his house in Elderslie, Glasgow, 1929";
+const FATHER_IMAGE_CAPTION = "Elderslie, Glasgow, 1929. Bill Bowskill, 6 years old.";
+
 const hasWreckImage = existsSync(path.join(process.cwd(), "public", WRECK_IMAGE_SRC.replace(/^\//, "")));
+const hasFatherImage = existsSync(path.join(process.cwd(), "public", FATHER_IMAGE_SRC.replace(/^\//, "")));
 
 export const metadata: Metadata = buildMetadata({
   absoluteTitle: "Author’s Preface — Book Sampler | The Georgette 150th",
@@ -123,6 +128,25 @@ export default function BookSamplerPage() {
             prosperous. The place my father left is not the place I visited. He departed from the leaner version, and it
             has grown into something better.
           </p>
+
+          <figure className={`${styles.figure} ${styles.figurePortrait}`}>
+            {hasFatherImage ? (
+              <div className={styles.figureImageWrap}>
+                <Image
+                  src={FATHER_IMAGE_SRC}
+                  alt={FATHER_IMAGE_ALT}
+                  fill
+                  className={styles.figureImage}
+                  sizes="(max-width: 767px) 100vw, 22rem"
+                />
+              </div>
+            ) : (
+              <div className={styles.figurePlaceholder} role="img" aria-label={FATHER_IMAGE_ALT}>
+                <p>Photograph to be added</p>
+              </div>
+            )}
+            <figcaption className={styles.figcaption}>{FATHER_IMAGE_CAPTION}</figcaption>
+          </figure>
 
           <p>
             My father&apos;s reticence about Scotland always felt like a closed door. It did not feel like grief,

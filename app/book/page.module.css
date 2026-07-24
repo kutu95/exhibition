@@ -32,10 +32,18 @@
 .figureImageWrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   border: 1px solid rgba(10, 22, 40, 0.2);
   overflow: hidden;
   background: rgba(10, 22, 40, 0.04);
+}
+
+.figurePortrait {
+  max-width: 22rem;
+}
+
+.figurePortrait .figureImageWrap {
+  aspect-ratio: 3 / 4;
 }
 
 .figureImage {
