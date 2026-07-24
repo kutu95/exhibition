@@ -7,7 +7,7 @@ import { InstallationPageTracker } from "../../components/InstallationPageTracke
 import { JsonLd } from "../../components/JsonLd";
 import { SectionDivider } from "../../components/SectionDivider";
 import { TalkRegistrationForm } from "../../components/TalkRegistrationForm";
-import { buildMetadata, siteConfig } from "../../lib/metadata";
+import { buildPageMetadata } from "../../lib/seo-content";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getInstallationBody } from "../../lib/utils/installation-content";
 import {
@@ -19,13 +19,9 @@ import {
 import { buildBreadcrumb, buildExhibitionEvent } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Installations",
-  description:
-    "Three immersive installations — Cubarama, Captain Godfrey AI, and Drift — at The Georgette 150th exhibition, Margaret River Region Open Studios 2026.",
-  path: "/installations",
-  ogImage: siteConfig.ogImage.installations,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("installations");
+}
 
 const installationContentKeys = [
   "installation_cubarama",

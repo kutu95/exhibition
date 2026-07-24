@@ -5,7 +5,6 @@ export type InstallationPageContent = {
   path: string;
   title: string;
   eyebrow: string;
-  metaDescription: string;
   imageKey: string;
   bodyKey: string;
   bodyFallbackKey: "cubarama" | "captain_godfrey" | "drift";
@@ -23,8 +22,6 @@ export const installationPages: Record<InstallationSlug, InstallationPageContent
     path: "/installations/cubarama",
     title: "Cubarama",
     eyebrow: "360° immersive video · four-wall projection",
-    metaDescription:
-      "Cubarama: a four-wall 360° video installation of Georgette coastal footage. Available for galleries and museums to license, buy, or borrow.",
     imageKey: "installation_cubarama_image",
     bodyKey: "installation_cubarama",
     bodyFallbackKey: "cubarama",
@@ -64,8 +61,6 @@ export const installationPages: Record<InstallationSlug, InstallationPageContent
     path: "/installations/captain-godfrey",
     title: "Captain Godfrey",
     eyebrow: "Interactive MetaHuman · conversational AI",
-    metaDescription:
-      "Captain Godfrey: interactive MetaHuman visitors speak with, drawn from inquiry records. Available for galleries and museums to license, buy, or borrow.",
     imageKey: "installation_captain_godfrey_image",
     bodyKey: "installation_captain_godfrey_ai",
     bodyFallbackKey: "captain_godfrey",
@@ -109,8 +104,6 @@ export const installationPages: Record<InstallationSlug, InstallationPageContent
     path: "/installations/drift",
     title: "Drift",
     eyebrow: "Kinect · body-driven photographic display",
-    metaDescription:
-      "Drift is a Kinect-driven installation where visitors’ movement chooses which photographs appear. Available for galleries and museums to license, buy, or borrow.",
     imageKey: "installation_drift_image",
     bodyKey: "installation_drift",
     bodyFallbackKey: "drift",

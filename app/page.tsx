@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EmailSignupForm } from "../components/EmailSignupForm";
 import { HeroVideo } from "../components/HeroVideo";
 import { JsonLd } from "../components/JsonLd";
-import { buildMetadata, siteConfig } from "../lib/metadata";
+import { buildPageMetadata } from "../lib/seo-content";
 import {
   buildExhibitionEvent,
   buildHomeFaq,
@@ -14,13 +14,9 @@ import {
 import { createSupabaseServerClient } from "../lib/supabase/server";
 import styles from "./page.module.css";
 
-export const metadata: Metadata = buildMetadata({
-  absoluteTitle: "The Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
-  description:
-    "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
-  path: "/",
-  ogImage: siteConfig.ogImage.default,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("home");
+}
 
 const contentKeys = ["hero_background_image", "hero_video", "holding_page_body"] as const;
 

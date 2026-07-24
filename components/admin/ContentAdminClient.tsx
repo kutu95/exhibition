@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChangeEvent, useMemo, useState } from "react";
 
 import type { MediaFile, SiteContent } from "../../lib/supabase/types";
+import { SEO_CONTENT_KEYS, SEO_CONTENT_LABELS } from "../../lib/seo-content-shared";
 import { formatDateTime } from "../../lib/utils/dates";
 import styles from "./ContentAdminClient.module.css";
 
@@ -26,7 +27,12 @@ type UploadResult = {
 type TabKey = "text" | "media";
 type MediaFilter = "all" | "image" | "video";
 
-const contentGroups: Array<{ title: string; keys: string[] }> = [
+const contentGroups: Array<{ title: string; keys: string[]; note?: string }> = [
+  {
+    title: "SEO / Link previews",
+    note: "These titles and descriptions appear in WhatsApp, Bing, and Google when someone shares or finds a page. Aim for descriptions around 120–160 characters.",
+    keys: [...SEO_CONTENT_KEYS],
+  },
   { title: "Hero", keys: ["hero_headline", "hero_subheadline", "hero_background_image", "hero_video"] },
   { title: "Holding Page", keys: ["holding_page_body"] },
   { title: "Story", keys: ["story_intro", "story_hero_image"] },
@@ -48,6 +54,12 @@ const contentGroups: Array<{ title: string; keys: string[] }> = [
     keys: ["location_calgardup_bay", "location_redgate_beach", "location_isaac_rock", "location_ss_georgette"],
   },
 ];
+
+const isSeoContentKey = (key: string) => key.startsWith("seo_");
+const isSeoDescriptionKey = (key: string) => key.startsWith("seo_") && key.endsWith("_description");
+
+const contentKeyLabel = (key: string) =>
+  (SEO_CONTENT_LABELS as Record<string, string>)[key] ?? key;
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -218,6 +230,11 @@ function ContentEditBlock({
   }, [mediaFiles, pickerSearch, row.content_type]);
 
   const saveText = async () => {
+    if (isSeoContentKey(row.content_key) && !value.trim()) {
+      setStatus("error");
+      setError("SEO fields cannot be blank — the live page will break.");
+      return;
+    }
     setStatus("saving");
     setError(null);
     try {
@@ -269,7 +286,12 @@ function ContentEditBlock({
 
   return (
     <article className={styles.contentBlock}>
-      <p className={styles.keyLabel}>{row.content_key}</p>
+      <p className={styles.keyLabel}>{contentKeyLabel(row.content_key)}</p>
+      {isSeoContentKey(row.content_key) ? (
+        <p className={styles.mutedText}>
+          Key: <code>{row.content_key}</code>
+        </p>
+      ) : null}
 
       {isTextual ? (
         <>
@@ -277,9 +299,21 @@ function ContentEditBlock({
             className={styles.textarea}
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            rows={4}
+            rows={isSeoDescriptionKey(row.content_key) ? 5 : 4}
           />
           {row.content_type === "html" ? <p className={styles.note}>HTML supported</p> : null}
+          {isSeoDescriptionKey(row.content_key) ? (
+            <p className={styles.note}>
+              {value.trim().length} characters
+              {value.trim().length > 0 && value.trim().length < 120
+                ? " — short for Bing (aim 120–160)"
+                : value.trim().length > 160
+                  ? " — long for Bing (aim 120–160)"
+                  : value.trim().length > 0
+                    ? " — good length for Bing"
+                    : ""}
+            </p>
+          ) : null}
           <div className={styles.actionsRow}>
             <button className={styles.saveButton} type="button" onClick={() => void saveText()} disabled={status === "saving"}>
               {status === "saving" ? "Saving..." : "Save"}
@@ -884,13 +918,14 @@ export function ContentAdminClient({ initialContentRows, initialMediaFiles }: Co
           {contentGroups.map((group) => (
             <section key={group.title} className={styles.groupSection}>
               <h2>{group.title}</h2>
+              {group.note ? <p className={styles.mutedText}>{group.note}</p> : null}
               <div className={styles.groupGrid}>
                 {group.keys.map((key) => {
                   const row = contentByKey.get(key);
                   if (!row) {
                     return (
                       <article key={key} className={styles.contentBlock}>
-                        <p className={styles.keyLabel}>{key}</p>
+                        <p className={styles.keyLabel}>{contentKeyLabel(key)}</p>
                         <p className={styles.mutedText}>Missing row in `site_content`.</p>
                       </article>
                     );

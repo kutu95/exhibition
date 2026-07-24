@@ -36,6 +36,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   };
 
   if (parsed.data.content_value !== undefined) {
+    if (key.startsWith("seo_") && !(parsed.data.content_value ?? "").trim()) {
+      return NextResponse.json(
+        { error: "SEO fields cannot be blank — the live page will break." },
+        { status: 400 },
+      );
+    }
     updates.content_value = parsed.data.content_value;
   }
   if (parsed.data.media_file_id !== undefined) {
@@ -55,8 +61,14 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   revalidatePath("/");
   revalidatePath("/story");
-  revalidatePath("/installations");
+  revalidatePath("/about-the-photographer");
+  revalidatePath("/book");
   revalidatePath("/visit");
+  revalidatePath("/shop");
+  revalidatePath("/installations");
+  revalidatePath("/installations/cubarama");
+  revalidatePath("/installations/captain-godfrey");
+  revalidatePath("/installations/drift");
 
   return NextResponse.json(data as SiteContent);
 }

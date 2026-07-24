@@ -4,7 +4,7 @@ import { JsonLd } from "../../components/JsonLd";
 import { ShopProductBrowser } from "../../components/ShopProductBrowser";
 import { VaultCollectionsBanner } from "../../components/VaultCollectionsBanner";
 import { isProductVisibleInCatalog, mapProductRow } from "../../lib/catalog-products";
-import { buildMetadata, siteConfig } from "../../lib/metadata";
+import { buildPageMetadata } from "../../lib/seo-content";
 import { buildBreadcrumb } from "../../lib/structured-data";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import type {
@@ -23,13 +23,9 @@ type ProductRow = Product & {
   product_themes: ProductTheme[] | null;
 };
 
-export const metadata: Metadata = buildMetadata({
-  title: "Shop — Limited Edition Prints",
-  description:
-    "Limited edition archival photographic prints by John Bowskill. Calgardup Bay, Redgate Beach, Isaac Rock, and the wreck site of the SS Georgette.",
-  path: "/shop",
-  ogImage: siteConfig.ogImage.shop,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("shop");
+}
 
 async function getProducts(): Promise<ProductWithVariantsAndImages[]> {
   const [supabase, includeVault] = await Promise.all([

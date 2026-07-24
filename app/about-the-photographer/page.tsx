@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
-import { buildMetadata, siteConfig } from "../../lib/metadata";
+import { buildPageMetadata } from "../../lib/seo-content";
 import {
   buildAboutPage,
   buildBreadcrumb,
@@ -15,14 +15,9 @@ import styles from "./page.module.css";
 const PORTRAIT_SRC = "/images/john-bowskill-portrait.jpg";
 const PREFACE_HREF = "/book";
 
-export const metadata: Metadata = buildMetadata({
-  absoluteTitle: "About Photographer John Bowskill | The Georgette 150th",
-  description:
-    "Meet photographer John Bowskill — The Georgette 150th exhibition, coastal photography near Redgate Beach, and immersive installations in Margaret River.",
-  path: "/about-the-photographer",
-  ogImage: siteConfig.ogImage.about,
-  ogType: "website",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("about");
+}
 
 export default function AboutPhotographerPage() {
   return (

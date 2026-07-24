@@ -3,17 +3,13 @@ import type { Metadata } from "next";
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
 import { TalkRegistrationForm } from "../../components/TalkRegistrationForm";
-import { buildMetadata, siteConfig } from "../../lib/metadata";
+import { buildPageMetadata } from "../../lib/seo-content";
 import { buildBreadcrumb, buildExhibitionEvent } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
-export const metadata: Metadata = buildMetadata({
-  title: "Visit",
-  description:
-    "The Georgette 150th at 20 Morris Rd, Forest Grove WA 6286 — open daily 10am–5pm, 12–27 September 2026. Margaret River Region Open Studios. Free admission.",
-  path: "/visit",
-  ogImage: siteConfig.ogImage.visit,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("visit");
+}
 
 export default function VisitPage() {
   return (

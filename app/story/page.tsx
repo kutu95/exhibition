@@ -5,18 +5,15 @@ import Link from "next/link";
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
 import { ShareButtons } from "../../components/ShareButtons";
-import { buildMetadata, siteConfig } from "../../lib/metadata";
+import { buildPageMetadata } from "../../lib/seo-content";
+import { siteConfig } from "../../lib/metadata";
 import { buildBreadcrumb } from "../../lib/structured-data";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import styles from "./page.module.css";
 
-export const metadata: Metadata = buildMetadata({
-  title: "The Story",
-  description:
-    "On 1 December 1876 the SS Georgette foundered off Western Australia. Seven drowned. This is the story the history books got wrong.",
-  path: "/story",
-  ogImage: siteConfig.ogImage.story,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("story");
+}
 
 const storyContentKeys = ["story_hero_image"] as const;
 

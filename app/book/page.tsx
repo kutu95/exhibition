@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
-import { buildMetadata, siteConfig } from "../../lib/metadata";
+import { buildPageMetadata } from "../../lib/seo-content";
 import { buildBreadcrumb } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
@@ -31,14 +31,9 @@ const hasWreckImage = existsSync(path.join(process.cwd(), "public", WRECK_IMAGE_
 const hasFatherImage = existsSync(path.join(process.cwd(), "public", FATHER_IMAGE_SRC.replace(/^\//, "")));
 const hasPropImage = existsSync(path.join(process.cwd(), "public", PROP_IMAGE_SRC.replace(/^\//, "")));
 
-export const metadata: Metadata = buildMetadata({
-  absoluteTitle: "Author’s Preface — Book Sampler | The Georgette 150th",
-  description:
-    "Read John Bowskill’s author’s preface — from a drone revelation at Calgardup Bay to Scotland, the Clyde, and who gets remembered.",
-  path: "/book",
-  ogImage: siteConfig.ogImage.story,
-  ogType: "article",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("book");
+}
 
 export default function BookSamplerPage() {
   return (

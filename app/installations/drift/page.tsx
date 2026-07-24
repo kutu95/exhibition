@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { InstallationDetail } from "../../../components/InstallationDetail";
 import { JsonLd } from "../../../components/JsonLd";
 import { installationPages } from "../../../lib/installation-pages";
-import { buildMetadata, siteConfig } from "../../../lib/metadata";
+import { buildPageMetadata } from "../../../lib/seo-content";
 import { buildBreadcrumb } from "../../../lib/structured-data";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getInstallationBody } from "../../../lib/utils/installation-content";
@@ -14,12 +14,9 @@ import {
 
 const content = installationPages.drift;
 
-export const metadata: Metadata = buildMetadata({
-  title: `${content.title} — Interactive Installation`,
-  description: content.metaDescription,
-  path: content.path,
-  ogImage: siteConfig.ogImage.installations,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata("drift");
+}
 
 export default async function DriftPage() {
   const supabase = await createSupabaseServerClient();
