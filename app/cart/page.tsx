@@ -6,6 +6,7 @@ import { buildMetadata } from "../../lib/metadata";
 export const metadata: Metadata = buildMetadata({
   title: "Cart",
   description: "Review prints in your cart before checkout.",
+  path: "/cart",
   noIndex: true,
 });
 

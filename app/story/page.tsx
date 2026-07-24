@@ -13,7 +13,7 @@ import styles from "./page.module.css";
 export const metadata: Metadata = buildMetadata({
   title: "The Story",
   description:
-    "On 1 December 1876, the SS Georgette foundered off the south-west coast of Western Australia. Seven people drowned. This is the story the history books got wrong.",
+    "On 1 December 1876 the SS Georgette foundered off Western Australia. Seven drowned. This is the story the history books got wrong.",
   path: "/story",
   ogImage: siteConfig.ogImage.story,
 });

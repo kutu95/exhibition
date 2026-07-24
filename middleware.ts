@@ -57,6 +57,17 @@ export async function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
+  // Prefer absolute Location for trailing-slash redirects (helps crawlers resolve canonical hosts).
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    const canonical = new URL(
+      `${pathname.replace(/\/+$/, "")}${request.nextUrl.search}`,
+      "https://exhibition.margies.app",
+    );
+    if (hostname === "exhibition.margies.app" || hostname === "www.exhibition.margies.app") {
+      return NextResponse.redirect(canonical, 308);
+    }
+  }
+
   const isAdminRoute = pathname.startsWith("/admin");
   const isAdminLogin = pathname === "/admin/login";
 

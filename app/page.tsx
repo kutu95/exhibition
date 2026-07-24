@@ -17,7 +17,7 @@ import styles from "./page.module.css";
 export const metadata: Metadata = buildMetadata({
   absoluteTitle: "The Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
   description:
-    "Discover John Bowskill’s photographic exhibition commemorating the 150th anniversary of the SS Georgette shipwreck at Redgate Beach near Margaret River, Western Australia.",
+    "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
   path: "/",
   ogImage: siteConfig.ogImage.default,
 });

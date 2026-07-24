@@ -5,9 +5,9 @@ export const siteConfig = {
   artist: "John Bowskill",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://exhibition.margies.app",
   description:
-    "Discover John Bowskill’s photographic exhibition commemorating the 150th anniversary of the SS Georgette shipwreck at Redgate Beach near Margaret River, Western Australia.",
+    "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
   shortDescription:
-    "SS Georgette 150th anniversary photographic exhibition by John Bowskill · Margaret River Region Open Studios · 12–27 September 2026",
+    "The Georgette 150th photographic exhibition by John Bowskill · Margaret River Region Open Studios · 12–27 September 2026",
   exhibition: {
     opens: "2026-09-12",
     closes: "2026-09-27",

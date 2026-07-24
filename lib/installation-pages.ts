@@ -24,7 +24,7 @@ export const installationPages: Record<InstallationSlug, InstallationPageContent
     title: "Cubarama",
     eyebrow: "360° immersive video · four-wall projection",
     metaDescription:
-      "Cubarama is a four-wall 360° video installation that places visitors inside coastal footage from the SS Georgette sites. Available for galleries and museums to license, buy, or borrow.",
+      "Cubarama: a four-wall 360° video installation of Georgette coastal footage. Available for galleries and museums to license, buy, or borrow.",
     imageKey: "installation_cubarama_image",
     bodyKey: "installation_cubarama",
     bodyFallbackKey: "cubarama",
@@ -65,7 +65,7 @@ export const installationPages: Record<InstallationSlug, InstallationPageContent
     title: "Captain Godfrey",
     eyebrow: "Interactive MetaHuman · conversational AI",
     metaDescription:
-      "Captain Godfrey is a real-time interactive MetaHuman visitors can speak with — built from inquiry transcripts and historical research. Available for galleries and museums to license, buy, or borrow.",
+      "Captain Godfrey: interactive MetaHuman visitors speak with, drawn from inquiry records. Available for galleries and museums to license, buy, or borrow.",
     imageKey: "installation_captain_godfrey_image",
     bodyKey: "installation_captain_godfrey_ai",
     bodyFallbackKey: "captain_godfrey",

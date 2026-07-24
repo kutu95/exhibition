@@ -34,7 +34,7 @@ const hasPropImage = existsSync(path.join(process.cwd(), "public", PROP_IMAGE_SR
 export const metadata: Metadata = buildMetadata({
   absoluteTitle: "Author’s Preface — Book Sampler | The Georgette 150th",
   description:
-    "Read the author’s preface from John Bowskill’s book on the SS Georgette — from a drone revelation at Calgardup Bay to Scotland, the Clyde, and who gets remembered.",
+    "Read John Bowskill’s author’s preface — from a drone revelation at Calgardup Bay to Scotland, the Clyde, and who gets remembered.",
   path: "/book",
   ogImage: siteConfig.ogImage.story,
   ogType: "article",

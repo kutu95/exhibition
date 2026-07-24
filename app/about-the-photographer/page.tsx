@@ -16,12 +16,12 @@ const PORTRAIT_SRC = "/images/john-bowskill-portrait.jpg";
 const PREFACE_HREF = "/book";
 
 export const metadata: Metadata = buildMetadata({
-  absoluteTitle: "About Photographer John Bowskill | SS Georgette Exhibition",
+  absoluteTitle: "About Photographer John Bowskill | The Georgette 150th",
   description:
-    "John Bowskill is the photographer behind The Georgette 150th Photographic Exhibition — coastal photography, immersive installations, and the story of the SS Georgette near Redgate Beach, Margaret River.",
+    "Meet photographer John Bowskill — The Georgette 150th exhibition, coastal photography near Redgate Beach, and immersive installations in Margaret River.",
   path: "/about-the-photographer",
   ogImage: siteConfig.ogImage.about,
-  ogType: "profile",
+  ogType: "website",
 });
 
 export default function AboutPhotographerPage() {

@@ -11,6 +11,7 @@ import styles from "../../../components/OrderSuccessContent.module.css";
 
 export const metadata: Metadata = buildMetadata({
   title: "Order Confirmed",
+  path: "/order/success",
   noIndex: true,
 });
 
