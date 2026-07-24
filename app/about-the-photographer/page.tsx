@@ -13,9 +13,7 @@ import {
 import styles from "./page.module.css";
 
 const PORTRAIT_SRC = "/images/john-bowskill-portrait.jpg";
-
-/** Upload the preface PDF to public/documents/georgette-preface.pdf, then set this to that path. */
-const PREFACE_HREF: string | null = null;
+const PREFACE_HREF = "/book";
 
 export const metadata: Metadata = buildMetadata({
   absoluteTitle: "About Photographer John Bowskill | SS Georgette Exhibition",
@@ -76,18 +74,12 @@ export default function AboutPhotographerPage() {
           </blockquote>
 
           <p>
-            John has now written a book about what he has learnt of the Georgette and her many stories.{" "}
-            {PREFACE_HREF ? (
-              <>
-                You can read a copy of the preface{" "}
-                <a className="text-link" href={PREFACE_HREF} target="_blank" rel="noopener noreferrer">
-                  here
-                </a>
-                .
-              </>
-            ) : (
-              <>You can read a copy of the preface here. {/* TODO(John): supply preface PDF and set PREFACE_HREF */}</>
-            )}
+            John has now written a book about what he has learnt of the Georgette and her many stories. You can read a
+            copy of the preface{" "}
+            <Link className="text-link" href={PREFACE_HREF}>
+              here
+            </Link>
+            .
           </p>
 
           <p>
