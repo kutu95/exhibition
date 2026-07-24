@@ -21,8 +21,15 @@ const FATHER_IMAGE_SRC = "/images/bill-bowskill-elderslie-1929.jpg";
 const FATHER_IMAGE_ALT = "Bill Bowskill, aged six, sitting outside his house in Elderslie, Glasgow, 1929";
 const FATHER_IMAGE_CAPTION = "Elderslie, Glasgow, 1929. Bill Bowskill, 6 years old.";
 
+const PROP_IMAGE_SRC = "/images/broken-propeller-mark.png";
+const PROP_IMAGE_ALT =
+  "Artist’s impression of the corroded broken propeller of the SS Georgette, based on surviving photographs";
+const PROP_IMAGE_CAPTION =
+  "Artist’s impression of the corroded propeller based on surviving photographs.";
+
 const hasWreckImage = existsSync(path.join(process.cwd(), "public", WRECK_IMAGE_SRC.replace(/^\//, "")));
 const hasFatherImage = existsSync(path.join(process.cwd(), "public", FATHER_IMAGE_SRC.replace(/^\//, "")));
+const hasPropImage = existsSync(path.join(process.cwd(), "public", PROP_IMAGE_SRC.replace(/^\//, "")));
 
 export const metadata: Metadata = buildMetadata({
   absoluteTitle: "Author’s Preface — Book Sampler | The Georgette 150th",
@@ -197,6 +204,25 @@ export default function BookSamplerPage() {
             Redgate beach. Exactly where it is and what became of the other propeller are now part of the mystery and
             the legend of the SS Georgette.
           </p>
+
+          <figure className={`${styles.figure} ${styles.figureProp}`}>
+            {hasPropImage ? (
+              <div className={styles.figureImageWrap}>
+                <Image
+                  src={PROP_IMAGE_SRC}
+                  alt={PROP_IMAGE_ALT}
+                  fill
+                  className={styles.figureImageContain}
+                  sizes="(max-width: 767px) 100vw, 28rem"
+                />
+              </div>
+            ) : (
+              <div className={styles.figurePlaceholder} role="img" aria-label={PROP_IMAGE_ALT}>
+                <p>Photograph to be added</p>
+              </div>
+            )}
+            <figcaption className={styles.figcaption}>{PROP_IMAGE_CAPTION}</figcaption>
+          </figure>
         </FadeInSection>
 
         <nav className={styles.footerNav} aria-label="Related pages">

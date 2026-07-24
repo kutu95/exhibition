@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import styles from "./HeroVideo.module.css";
@@ -52,17 +51,7 @@ export function HeroVideo({
       <div className={styles.overlay} />
       <div className={`container ${styles.content}`}>
         <p className="eyebrow">MARGARET RIVER REGION OPEN STUDIOS · 12–27 SEPTEMBER 2026</p>
-        <h1 className={`heading-display ${styles.headline}`}>
-          <Image
-            src="/images/broken-propeller-mark.png"
-            alt=""
-            width={96}
-            height={66}
-            className={styles.brandMark}
-            priority
-          />
-          <span>{headline}</span>
-        </h1>
+        <h1 className="heading-display">{headline}</h1>
         {byline ? <p className={styles.byline}>{byline}</p> : null}
         <p className={styles.subheadline}>{subheadline}</p>
         <nav className={styles.explore} aria-label="Explore the site">

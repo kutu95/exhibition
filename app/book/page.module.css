@@ -46,8 +46,22 @@
   aspect-ratio: 3 / 4;
 }
 
+.figureProp {
+  max-width: 28rem;
+}
+
+.figureProp .figureImageWrap {
+  aspect-ratio: 3 / 2;
+  border: none;
+  background: transparent;
+}
+
 .figureImage {
   object-fit: cover;
+}
+
+.figureImageContain {
+  object-fit: contain;
 }
 
 .figurePlaceholder {
