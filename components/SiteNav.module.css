@@ -23,11 +23,28 @@
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-family: var(--font-heading);
   font-size: clamp(1.2rem, 2vw, 1.5rem);
   font-weight: 400;
   letter-spacing: 0.01em;
   color: var(--color-cream);
+  min-width: 0;
+}
+
+.logoMark {
+  flex-shrink: 0;
+  width: auto;
+  height: 1.65rem;
+  object-fit: contain;
+}
+
+@media (min-width: 900px) {
+  .logoMark {
+    height: 1.85rem;
+  }
 }
 
 .desktopLinks {

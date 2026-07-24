@@ -34,9 +34,20 @@
   padding-bottom: 4rem;
 }
 
-.content h1 {
+.headline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
   margin: 0 0 0.8rem;
-  max-width: min(18ch, 100%);
+  max-width: min(26ch, 100%);
+}
+
+.brandMark {
+  flex-shrink: 0;
+  width: auto;
+  height: 0.78em;
+  margin-top: 0.08em;
+  object-fit: contain;
 }
 
 .content p {

@@ -16,6 +16,8 @@ export const siteConfig = {
   },
   social: {
     twitterHandle: null as string | null,
+    facebook: "https://www.facebook.com/john.bowskill.12",
+    instagram: "https://www.instagram.com/john_bowskill/",
   },
   ogImage: {
     default: "/og/default.jpg",

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { siteConfig } from "../lib/metadata";
 import { EmailSignupForm } from "./EmailSignupForm";
 import styles from "./SiteFooter.module.css";
 
@@ -10,6 +11,11 @@ const links = [
   { href: "/installations", label: "Installations" },
   { href: "/shop", label: "Photographs" },
   { href: "/visit", label: "Visit" },
+];
+
+const socialLinks = [
+  { href: siteConfig.social.facebook, label: "Facebook" },
+  { href: siteConfig.social.instagram, label: "Instagram" },
 ];
 
 type SiteFooterProps = {
@@ -42,6 +48,16 @@ export function SiteFooter({ exhibitionTitle }: SiteFooterProps) {
         <div>
           <p className={styles.columnTitle}>Stay informed</p>
           <EmailSignupForm source="footer" buttonLabel="Notify Me" compact />
+          <p className={`${styles.columnTitle} ${styles.followTitle}`}>Follow</p>
+          <ul className={styles.links}>
+            {socialLinks.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} target="_blank" rel="noopener noreferrer">
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 

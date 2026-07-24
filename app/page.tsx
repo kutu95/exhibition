@@ -15,7 +15,7 @@ import { createSupabaseServerClient } from "../lib/supabase/server";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = buildMetadata({
-  absoluteTitle: "SS Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
+  absoluteTitle: "The Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
   description:
     "Discover John Bowskill’s photographic exhibition commemorating the 150th anniversary of the SS Georgette shipwreck at Redgate Beach near Margaret River, Western Australia.",
   path: "/",
@@ -53,7 +53,7 @@ export default async function HomePage() {
         <HeroVideo
           videoSrc={heroVideoSrc}
           posterSrc={heroPosterSrc}
-          headline="SS Georgette 150th Anniversary Photographic Exhibition"
+          headline="The Georgette 150th Anniversary Photographic Exhibition"
           byline="An exhibition by photographer John Bowskill"
           subheadline="Calgardup Bay · Redgate Beach · Isaac Rock · Margaret River, Western Australia"
         />

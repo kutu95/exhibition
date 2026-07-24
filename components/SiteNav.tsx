@@ -55,7 +55,15 @@ export function SiteNav({ exhibitionTitle }: SiteNavProps) {
     <header className={`${styles.navRoot} ${isScrolled ? styles.scrolled : ""}`}>
       <nav className={`container ${styles.nav}`} aria-label="Primary">
         <Link className={styles.logo} href="/">
-          {exhibitionTitle}
+          <Image
+            src="/images/broken-propeller-mark.png"
+            alt=""
+            width={48}
+            height={32}
+            className={styles.logoMark}
+            priority
+          />
+          <span>{exhibitionTitle}</span>
         </Link>
 
         <ul className={styles.desktopLinks}>
