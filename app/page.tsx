@@ -10,6 +10,7 @@ import {
   buildHomeFaq,
   buildHomeWebPage,
   buildWebsite,
+  HOME_FAQ_ITEMS,
 } from "../lib/structured-data";
 import { createSupabaseServerClient } from "../lib/supabase/server";
 import styles from "./page.module.css";
@@ -92,6 +93,20 @@ export default async function HomePage() {
                 About the talk / reserve a place →
               </Link>
             </div>
+
+            <section className={styles.faqBlock} aria-labelledby="home-faq-heading">
+              <h2 id="home-faq-heading" className={styles.aboutEyebrow}>
+                Frequently asked questions
+              </h2>
+              <dl className={styles.faqList}>
+                {HOME_FAQ_ITEMS.map((item) => (
+                  <div key={item.question} className={styles.faqItem}>
+                    <dt className={styles.faqQuestion}>{item.question}</dt>
+                    <dd className={styles.faqAnswer}>{item.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
 
             <hr className={styles.rule} />
 

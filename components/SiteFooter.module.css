@@ -51,6 +51,31 @@
   border-color: currentColor;
 }
 
+.socialLinks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.socialLink {
+  align-items: center;
+  border-bottom: 1px solid transparent;
+  display: inline-flex;
+  gap: 0.55rem;
+}
+
+.socialLink:hover {
+  border-color: currentColor;
+}
+
+.socialIcon {
+  flex-shrink: 0;
+  height: 1.15rem;
+  width: 1.15rem;
+}
+
 .bottom {
   border-top: 1px solid rgba(245, 240, 232, 0.24);
   padding-top: 1rem;

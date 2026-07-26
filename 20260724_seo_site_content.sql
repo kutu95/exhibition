@@ -1,6 +1,6 @@
 -- Seed editable SEO titles/descriptions for public pages (WhatsApp / search previews).
 -- Additive and safe to run once on the live exhibition schema.
--- Pages that use these keys will fail loudly if a value is missing or blank.
+-- App falls back to these same strings if a key is missing/blank so pages never 500.
 
 begin;
 

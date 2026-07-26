@@ -164,44 +164,40 @@ export function buildAboutPage(): Record<string, unknown> {
   };
 }
 
+export const HOME_FAQ_ITEMS = [
+  {
+    question: "Where is the exhibition?",
+    answer:
+      "20 Morris Rd, Forest Grove WA 6286, in the Margaret River region of Western Australia.",
+  },
+  {
+    question: "When is it open?",
+    answer:
+      "Daily from 10am to 5pm, 12–27 September 2026, during Margaret River Region Open Studios 2026.",
+  },
+  {
+    question: "Is admission free?",
+    answer: "Yes. Admission to The Georgette 150th is free.",
+  },
+  {
+    question: "What is the SS Georgette?",
+    answer:
+      "The SS Georgette was a steamship that foundered off Redgate Beach on 1 December 1876. This exhibition marks 150 years since that wreck through photography made at the related coastal sites.",
+  },
+] as const;
+
 export function buildHomeFaq(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "Where is the exhibition?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "20 Morris Rd, Forest Grove WA 6286, in the Margaret River region of Western Australia.",
-        },
+    mainEntity: HOME_FAQ_ITEMS.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
       },
-      {
-        "@type": "Question",
-        name: "When is it open?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Daily from 10am to 5pm, 12–27 September 2026, during Margaret River Region Open Studios 2026.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is admission free?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Yes. Admission to The Georgette 150th is free.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "What is the SS Georgette?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "The SS Georgette was a steamship that foundered off Redgate Beach on 1 December 1876. This exhibition marks 150 years since that wreck through photography made at the related coastal sites.",
-        },
-      },
-    ],
+    })),
   };
 }
 
