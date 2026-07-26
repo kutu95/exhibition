@@ -2,18 +2,32 @@ tunnel: YOUR_TUNNEL_ID
 credentials-file: /home/[your-username]/.cloudflared/YOUR_TUNNEL_ID.json
 
 ingress:
-  # Canonical host
+  # Canonical app host
   - hostname: exhibition.margies.app
     service: http://127.0.0.1:3007
     originRequest:
       noTLSVerify: false
       connectTimeout: 30s
       httpHostHeader: exhibition.margies.app
-  # www → app (middleware then 301s to the canonical host)
+
+  # Alias hosts — Next middleware 301s these to https://exhibition.margies.app
   - hostname: www.exhibition.margies.app
     service: http://127.0.0.1:3007
     originRequest:
       noTLSVerify: false
       connectTimeout: 30s
       httpHostHeader: www.exhibition.margies.app
+  - hostname: margies.app
+    service: http://127.0.0.1:3007
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      httpHostHeader: margies.app
+  - hostname: www.margies.app
+    service: http://127.0.0.1:3007
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      httpHostHeader: www.margies.app
+
   - service: http_status:404

@@ -6,9 +6,21 @@ import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "./lib/admin-auth"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+const CANONICAL_HOST = "exhibition.margies.app";
+const HOSTS_REDIRECT_TO_CANONICAL = new Set([
+  "www.exhibition.margies.app",
+  "margies.app",
+  "www.margies.app",
+]);
+
 function shouldForceHttps(request: NextRequest): boolean {
   const host = request.headers.get("host") ?? "";
-  if (!host.includes("exhibition.margies.app")) {
+  const hostname = host.split(":")[0]?.toLowerCase() ?? "";
+  if (
+    hostname !== CANONICAL_HOST &&
+    !HOSTS_REDIRECT_TO_CANONICAL.has(hostname) &&
+    !host.includes("exhibition.margies.app")
+  ) {
     return false;
   }
 
@@ -36,11 +48,11 @@ export async function middleware(request: NextRequest) {
   const hostHeader = request.headers.get("host") ?? "";
   const hostname = hostHeader.split(":")[0]?.toLowerCase() ?? "";
 
-  // Canonical host: exhibition.margies.app (no www)
-  if (hostname === "www.exhibition.margies.app") {
+  // Canonical host: exhibition.margies.app
+  if (HOSTS_REDIRECT_TO_CANONICAL.has(hostname)) {
     const canonical = new URL(
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
-      "https://exhibition.margies.app",
+      `https://${CANONICAL_HOST}`,
     );
     return NextResponse.redirect(canonical, 301);
   }
@@ -48,7 +60,7 @@ export async function middleware(request: NextRequest) {
   if (shouldForceHttps(request)) {
     // Use the public Host header — request.nextUrl can be the internal
     // bind address (e.g. localhost:3007) behind Cloudflare/nginx.
-    const host = request.headers.get("host") ?? "exhibition.margies.app";
+    const host = request.headers.get("host") ?? CANONICAL_HOST;
     const httpsUrl = new URL(
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
       `https://${host}`,
@@ -61,9 +73,9 @@ export async function middleware(request: NextRequest) {
   if (pathname.length > 1 && pathname.endsWith("/")) {
     const canonical = new URL(
       `${pathname.replace(/\/+$/, "")}${request.nextUrl.search}`,
-      "https://exhibition.margies.app",
+      `https://${CANONICAL_HOST}`,
     );
-    if (hostname === "exhibition.margies.app" || hostname === "www.exhibition.margies.app") {
+    if (hostname === CANONICAL_HOST || HOSTS_REDIRECT_TO_CANONICAL.has(hostname)) {
       return NextResponse.redirect(canonical, 308);
     }
   }
