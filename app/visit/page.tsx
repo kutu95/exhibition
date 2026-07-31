@@ -106,7 +106,7 @@ export default async function VisitPage() {
           <p>
             Author and researcher Marcia van Zeller will give a free public talk on Sunday 20 September at 11am
             (finishing at midday). All welcome. Van Zeller spent years researching the Georgette wreck for her doctoral
-            novel Cruel Capes (Curtin University, 2014) — the first long-form adult narrative about the incident, and
+            novel The Capes (Curtin University, 2014) — the first long-form adult narrative about the incident, and
             the research foundation for the Captain Godfrey AI installation.
           </p>
           <p>Sunday 20 September · 11am–12pm · Free · All welcome · Venue as exhibition</p>

@@ -1,0 +1,199 @@
+.header {
+  margin-bottom: 2.6rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid rgba(10, 22, 40, 0.14);
+}
+
+.title {
+  margin: 0.2rem 0 0.9rem;
+}
+
+.standfirst {
+  margin: 0 0 1.1rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.15rem, 2.4vw, 1.42rem);
+  line-height: 1.5;
+  color: #2b2b2b;
+}
+
+.byline {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6b6b;
+}
+
+.prose {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.prose > * {
+  margin: 0;
+}
+
+.prose p {
+  line-height: 1.85;
+}
+
+.prose h2,
+.prose h3,
+.sourcesHeading {
+  /* Clears the fixed nav when a heading anchor is the scroll target. */
+  scroll-margin-top: 96px;
+}
+
+.prose h2 {
+  margin-top: 1.6rem;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 3.4vw, 2.35rem);
+  line-height: 1.15;
+  color: var(--color-navy);
+}
+
+.prose h3 {
+  margin-top: 1rem;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+  line-height: 1.2;
+  color: var(--color-navy);
+}
+
+.prose blockquote {
+  margin: 0.6rem 0;
+  padding: 0.2rem 0 0.2rem 1.4rem;
+  border-left: 2px solid var(--color-gold);
+  font-family: var(--font-heading);
+  font-size: clamp(1.1rem, 2.3vw, 1.35rem);
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--color-navy);
+}
+
+.prose blockquote p {
+  margin: 0;
+  line-height: inherit;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.5rem;
+  line-height: 1.8;
+}
+
+.prose a {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.sources {
+  margin-top: 3.4rem;
+  padding: 1.6rem 1.7rem;
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  background: rgba(10, 22, 40, 0.03);
+}
+
+.sourcesHeading {
+  margin: 0 0 1rem;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 1.35rem;
+  color: var(--color-navy);
+}
+
+.sourcesList {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.7rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #333;
+}
+
+.sourcesList a {
+  border-bottom: 1px solid currentColor;
+}
+
+.correctionNote {
+  margin: 1.3rem 0 0;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgba(10, 22, 40, 0.14);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: #444;
+}
+
+.related {
+  margin-top: 3rem;
+}
+
+.relatedTitle {
+  margin: 0 0 1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.relatedList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+
+.relatedList a {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(10, 22, 40, 0.18);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.relatedList a:hover {
+  background: rgba(10, 22, 40, 0.04);
+  border-color: rgba(10, 22, 40, 0.34);
+}
+
+.relatedLinkTitle {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  line-height: 1.25;
+  color: var(--color-navy);
+}
+
+.relatedLinkText {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #4a4a4a;
+}
+
+.bottomLinks {
+  margin-top: 2.6rem;
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.bottomLinks a {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+}

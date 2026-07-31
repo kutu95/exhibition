@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { getPublishedHistoryPages } from "../lib/history-content";
 import { siteConfig } from "../lib/metadata";
 import { supabaseAdmin } from "../lib/supabase/admin";
 
@@ -16,15 +17,26 @@ const staticLastMod = new Date("2026-07-31");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Service role: public catalogue only — vault products must never appear.
-  const { data: products, error } = await supabaseAdmin
-    .from("products")
-    .select("slug, created_at")
-    .eq("is_available", true)
-    .eq("visibility", "public");
+  const [{ data: products, error }, historyPages] = await Promise.all([
+    supabaseAdmin
+      .from("products")
+      .select("slug, created_at")
+      .eq("is_available", true)
+      .eq("visibility", "public"),
+    getPublishedHistoryPages(),
+  ]);
 
   if (error) {
     console.error("Sitemap product query failed", error);
   }
+
+  // Drafts have no `status: published`, so they are absent here as well as unroutable.
+  const historyUrls = historyPages.map((page) => ({
+    url: `${siteConfig.url}/history/${page.slug}`,
+    lastModified: new Date(page.updated),
+    changeFrequency: "monthly" as const,
+    priority: page.sitemapPriority,
+  }));
 
   const productUrls = ((products ?? []) as ProductSitemapRow[]).map((product) => ({
     url: `${siteConfig.url}/shop/${product.slug}`,
@@ -65,6 +77,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: `${siteConfig.url}/history`,
+      lastModified: staticLastMod,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    ...historyUrls,
     {
       url: `${siteConfig.url}/installations`,
       lastModified: staticLastMod,

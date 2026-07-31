@@ -34,7 +34,7 @@ export const SEO_FALLBACKS: Record<SeoContentKey, string> = {
     "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
   seo_story_title: "The Story | The Georgette 150th",
   seo_story_description:
-    "On 1 December 1876 the SS Georgette foundered off Western Australia. Eight drowned. This is the story the history books got wrong.",
+    "On 1 December 1876 the SS Georgette foundered off Western Australia. Seven drowned when the lifeboat capsized. This is the story the history books got wrong.",
   seo_about_title: "About Photographer John Bowskill | The Georgette 150th",
   seo_about_description:
     "Meet photographer John Bowskill — The Georgette 150th exhibition, coastal photography near Redgate Beach, and immersive installations in Margaret River.",

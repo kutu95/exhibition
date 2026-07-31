@@ -56,7 +56,7 @@ export default async function StoryPage() {
         data={buildArticle({
           headline: "The Story of the Georgette",
           description:
-            "On 1 December 1876 the SS Georgette foundered off Western Australia. Eight drowned when the lifeboat capsized. The account of the wreck, the rescue at Calgardup Bay, and the contested roles of Grace Bussell and Sam Isaacs.",
+            "On 1 December 1876 the SS Georgette foundered off Western Australia. Seven drowned when the lifeboat capsized. The account of the wreck, the rescue at Calgardup Bay, and the contested roles of Grace Bussell and Sam Isaacs.",
           path: "/story",
           image: siteConfig.ogImage.story,
           section: "Maritime history",
@@ -91,7 +91,13 @@ export default async function StoryPage() {
           <p>
             The Georgette left Fremantle on 29 November 1876 — an iron screw-steamer under sail and steam, three years
             into colonial service, carrying fifty passengers and a cargo of jarrah south along the coast, bound for
-            Adelaide. By the evening of 30 November, rounding Cape Naturaliste, the ship had begun to leak. The Chief
+            Adelaide. Eight months earlier the same ship had been fitted with a twelve-pounder gun and sent after an
+            American whaleship carrying six escaped Fenian prisoners; she came back{" "}
+            <Link href="/history/catalpa-pursuit" className="text-link">
+              empty-handed
+            </Link>
+            , and the colonial government had been shopping for her replacement ever since. By the evening of 30
+            November, rounding Cape Naturaliste, the ship had begun to leak. The Chief
             Engineer reported extra water in the bilge. Captain John Godfrey was informed. He ordered the pumps checked
             and did not go below himself.
           </p>
@@ -107,26 +113,28 @@ export default async function StoryPage() {
           <h2>The lifeboat</h2>
           <p>
             In the darkness before dawn, with the ship going down fast, Godfrey ordered the lifeboat and gig launched.
-            Men, women and children were placed aboard the lifeboat— 22 of them, some with infants in arms. The lifeboat
-            was to be towed astern until the ship grounded and a safer landing could be arranged.
+            The women and children were placed aboard the lifeboat, some with infants in arms, under the charge of the
+            first mate. The lifeboat was to be towed astern until the ship grounded and a safer landing could be
+            arranged.
           </p>
           <p>
             The gig, a smaller boat with 14 aboard, came to shore at Injidup beach miles to the north but the lifeboat
-            never reached the shore. As it was lowered into the sea, it stove in against the hull and capsized. Eight
-            people drowned. In the chaos that followed — crew jumping overboard, the gig being cut loose, survivors
-            clinging to the upturned hull — what had been a managed evacuation became a catastrophe.
+            never reached the shore. Ordered to slack the painter and let her drift clear, the mate did not; the next
+            sea lifted her under the ship&apos;s counter, stove her in against the iron plating and capsized her. Seven
+            people drowned — two women and five children. In the chaos that followed — crew jumping overboard,
+            survivors clinging to the upturned hull — what had been a managed evacuation became a catastrophe.
           </p>
         </FadeInSection>
 
         <FadeInSection className={styles.prose}>
           <h2>The beach</h2>
           <p>
-            The Georgette grounded in Calgardup Bay in the early morning of 1 December 1876. Approximately fifty
+            The Georgette grounded in Calgardup Bay in the mid-afternoon of 1 December 1876. Approximately fifty
             passengers and crew made it ashore through the surf — some by the ship&apos;s remaining boats, some by a
             rope hauled between the ship and the beach, some by swimming.
           </p>
           <p>
-            Later that morning, Grace Bussell — sixteen years old, from the nearby Wallcliffe homestead — and Sam Isaacs,
+            While that was going on, Grace Bussell — sixteen years old, from the nearby Wallcliffe homestead — and Sam Isaacs,
             an Aboriginal stockman employed by her family, rode down through the dunes to the beach. What happened next
             has been told many ways.
           </p>
@@ -134,7 +142,12 @@ export default async function StoryPage() {
             The press at the time credited Grace Bussell with riding repeatedly into the surf to pull survivors to
             safety — a story that spread through the colony and reached London. She was compared to Grace Darling, the
             English lighthouse keeper&apos;s daughter celebrated for her own sea rescue. Medals were struck. Paintings
-            were made. The legend was set.
+            were made. The legend was set — and{" "}
+            <Link href="/history/grace-bussell-legend" className="text-link">
+              its construction can be traced year by year
+            </Link>{" "}
+            through the newspapers, from the first comparison in 1877 to the survivor who, fifty-nine years later,
+            remembered a revolver that was never there.
           </p>
           <p>
             But passenger George Leake — a young law student who had been on board and narrowly escaped drowning — left
@@ -226,6 +239,7 @@ export default async function StoryPage() {
         />
 
         <div className={styles.bottomLinks}>
+          <Link href="/history">History &amp; research →</Link>
           <Link href="/book">Read the author&apos;s preface →</Link>
           <Link href="/installations#talk">Author talk →</Link>
           <Link href="/installations">Explore the installations →</Link>

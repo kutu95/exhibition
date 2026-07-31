@@ -3,6 +3,13 @@ const nextConfig = {
   output: "standalone",
   poweredByHeader: false,
   compress: true,
+  // Markdown is read at request time; file tracing cannot infer these from a
+  // dynamic readFile path, so the standalone bundle needs them listed.
+  outputFileTracingIncludes: {
+    "/history": ["./content/history/**/*.md"],
+    "/history/[slug]": ["./content/history/**/*.md"],
+    "/sitemap.xml": ["./content/history/**/*.md"],
+  },
   turbopack: {
     root: __dirname,
   },

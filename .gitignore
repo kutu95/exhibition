@@ -17,3 +17,7 @@ worker/.venv/
 worker/google-oauth-client*.json
 worker/google-oauth-token*.json
 client_secret_*.apps.googleusercontent.com.json
+
+# Unpublished book manuscript — source material for the site, never published
+# from here. This repo is public, and GitHub renders and gets indexed.
+manuscript/

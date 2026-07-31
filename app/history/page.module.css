@@ -1,0 +1,102 @@
+.header {
+  margin-bottom: 2.8rem;
+}
+
+.title {
+  margin: 0.2rem 0 1.2rem;
+}
+
+.intro {
+  margin: 0 0 1.1rem;
+  line-height: 1.85;
+  color: #333;
+}
+
+.intro em {
+  font-style: italic;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.5rem 1.6rem;
+  border: 1px solid rgba(10, 22, 40, 0.18);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.card:hover {
+  background: rgba(10, 22, 40, 0.04);
+  border-color: rgba(10, 22, 40, 0.34);
+}
+
+.cardEyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+  line-height: 1.2;
+  color: var(--color-navy);
+}
+
+.cardText {
+  line-height: 1.7;
+  color: #444;
+}
+
+.cardMeta {
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6b6b6b;
+}
+
+.empty {
+  margin: 0;
+  line-height: 1.8;
+  color: #444;
+}
+
+.callout {
+  margin-top: 3rem;
+  padding: 1.5rem 1.6rem;
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  background: rgba(10, 22, 40, 0.03);
+}
+
+.calloutTitle {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--color-navy);
+}
+
+.calloutText {
+  margin: 0;
+  line-height: 1.75;
+  color: #333;
+}
+
+.bottomLinks {
+  margin-top: 2.6rem;
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.bottomLinks a {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+}

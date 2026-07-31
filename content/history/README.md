@@ -23,20 +23,19 @@ it is marked inline:
 Do not publish a page with markers still in it. On a history site, an unsourced
 confident assertion is worse than an acknowledged gap.
 
-## Two contradictions in the current live copy
+## Two contradictions in the live copy — both now resolved
 
-Both should be resolved before any of this is published, because they currently
-appear on pages Google has already crawled.
+1. **Seven or eight drowned?** Settled as *seven drowned when the lifeboat capsized*
+   — two women and five children, per Sub-Inspector Morby's sworn testimony, George
+   Leake's letter, the *Inquirer* of 6 December 1876, and the inquiry's published
+   verdict. Every claim on the site is now scoped to the capsize rather than stated
+   as a total, because the author recalls an eighth death aboard the vessel that the
+   manuscript does not document. Note that Morby's seventy-two souls does not
+   reconcile with forty-three ashore at Wallcliffe plus fourteen in the gig plus
+   seven drowned; the shortfall is unexplained.
 
-1. **Seven or eight drowned?**
-   - `/story` says *"Eight people drowned"* (`app/story/page.tsx`).
-   - The homepage fallback copy says *"Seven people drowned when the lifeboat capsized"* (`app/page.tsx`).
-   - `seo_story_description` also says *"Seven drowned"* (`lib/seo-content.ts`, and the
-     `site_content` row that overrides it).
-
-2. **The title of Marcia van Zeller's novel.**
-   - `/story` calls it *The Capes*.
-   - `/visit` and `/installations` call it *Cruel Capes* (Curtin University, 2014).
+2. **The title of Marcia van Zeller's novel.** Confirmed as *The Capes* (Curtin
+   University, 2014). All pages corrected.
 
 ## Suggested publication shape
 

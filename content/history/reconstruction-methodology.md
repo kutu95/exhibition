@@ -29,9 +29,9 @@ Georgette who narrowly escaped drowning, wrote his own account in 1877 which
 contradicts parts of the published press version of the rescue.
 
 **Institutional archives.** Marcia van Zeller's research for her doctoral novel
-(Curtin University, 2014) drew on the State Records Office of Western Australia and
-the Battye Library. [VERIFY: the novel is called *The Capes* in one place on this
-site and *Cruel Capes* in another.]
+*The Capes* (Curtin University, 2014) drew on the State Records Office of Western
+Australia and the Battye Library. The inquiry transcript is held at the State Records
+Office; George Leake's 1877 letter is at the Battye Library.
 
 **Oral history.** An account passed down through Sam Isaacs' own descendants, which
 differs materially from the newspaper version. [SOURCE NEEDED — attribution.]

@@ -63,9 +63,8 @@ the page.
 ## Why the record reads the way it does
 
 Marcia van Zeller, whose research into the Georgette formed the basis of her
-doctoral novel [VERIFY: *The Capes* or *Cruel Capes*? — the site currently uses
-both] (Curtin University, 2014), has argued that Sam Isaacs' contribution was
-systematically underplayed.
+doctoral novel *The Capes* (Curtin University, 2014), has argued that Sam Isaacs'
+contribution was systematically underplayed.
 
 Not, on her account, by any single act of erasure — but by the accumulated weight
 of a culture that found Grace Bussell's story more convenient, more romantic, and

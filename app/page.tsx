@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 const contentKeys = ["hero_background_image", "hero_video", "holding_page_body"] as const;
 
 const fallbackHoldingBody =
-  "On 1 December 1876, the steamship Georgette foundered off Redgate Beach on the south-west coast of Western Australia. Eight people drowned when the lifeboat capsized. A captain's certificate was suspended. An Aboriginal stockman's courage was written out of the history books. One hundred and fifty years later, John Bowskill returns to the site — to the water, the rock, the sand — with a camera.";
+  "On 1 December 1876, the steamship Georgette foundered off Redgate Beach on the south-west coast of Western Australia. Seven people drowned when the lifeboat capsized. A captain's certificate was suspended. An Aboriginal stockman's courage was written out of the history books. One hundred and fifty years later, John Bowskill returns to the site — to the water, the rock, the sand — with a camera.";
 
 export default async function HomePage() {
   const [, contentResult] = await Promise.all([

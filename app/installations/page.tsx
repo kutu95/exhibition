@@ -210,7 +210,7 @@ export default async function InstallationsPage() {
               <h2 className="heading-section">Marcia van Zeller</h2>
               <p className={styles.talkSubheading}>The Truth About the Georgette</p>
               <p>
-                Marcia van Zeller spent years researching the wreck of the SS Georgette for her doctoral novel Cruel
+                Marcia van Zeller spent years researching the wreck of the SS Georgette for her doctoral novel The
                 Capes, completed at Curtin University in 2014. Her research took her to the State Records Office of
                 Western Australia, the Battye Library, the tiny Busselton courtroom where the marine inquiry was held in
                 December 1876, and to the coast itself — Redgate Beach, Calgardup Bay, the locations of this exhibition.

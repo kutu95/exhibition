@@ -68,7 +68,7 @@ export const installationPages: Record<InstallationSlug, InstallationPageContent
       "Captain John Godfrey will speak with you. He stands in the weeks after the Busselton marine inquiry of December 1876: certificate suspended, reputation contested, memory still sharp. Ask about the night the Georgette went down, the lifeboat, Grace Bussell, Sam Isaacs — he answers in character, in real time.",
     howItWorks: [
       "The installation is a one-to-one conversation with a MetaHuman figure of Captain Godfrey, animated live. Visitors speak; he replies. Conversations typically last between five and fifteen minutes, with a small waiting area outside the space.",
-      "He is not playing back fixed recordings. Character is informed by the Busselton marine inquiry transcript, Marcia van Zeller’s research in Cruel Capes, and passenger accounts such as George Leake’s. Every exchange is different.",
+      "He is not playing back fixed recordings. Character is informed by the Busselton marine inquiry transcript, Marcia van Zeller’s research in The Capes, and passenger accounts such as George Leake’s. Every exchange is different.",
       "Voice and likeness are provided by a human performer (voice cloned for the character). An AI model stands in for the captain’s conversational mind, with the figure driven through a real-time graphics / game-engine stack on a high-end workstation.",
       "Tying that together is custom software in the pipeline that orchestrates the voice and the animations — keeping speech, lip-sync, and character performance in step for a live conversation. That process and the custom orchestration software are available for licensing; enquire below.",
     ],
