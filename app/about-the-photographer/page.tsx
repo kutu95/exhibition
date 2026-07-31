@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
-import { buildPageMetadata } from "../../lib/seo-content";
+import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import {
   buildAboutPage,
   buildBreadcrumb,
@@ -19,7 +19,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("about");
 }
 
-export default function AboutPhotographerPage() {
+export default async function AboutPhotographerPage() {
+  await awaitPageMetadata("about");
+
   return (
     <>
       <JsonLd data={buildAboutPage()} />

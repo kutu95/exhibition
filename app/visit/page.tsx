@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
 import { TalkRegistrationForm } from "../../components/TalkRegistrationForm";
-import { buildPageMetadata } from "../../lib/seo-content";
+import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import { buildBreadcrumb, buildExhibitionEvent } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
@@ -11,7 +11,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("visit");
 }
 
-export default function VisitPage() {
+export default async function VisitPage() {
+  await awaitPageMetadata("visit");
+
   return (
     <section className="section container">
       <JsonLd data={buildExhibitionEvent()} />

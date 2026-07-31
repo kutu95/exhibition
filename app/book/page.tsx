@@ -6,8 +6,9 @@ import Link from "next/link";
 
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
-import { buildPageMetadata } from "../../lib/seo-content";
-import { buildBreadcrumb } from "../../lib/structured-data";
+import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
+import { siteConfig } from "../../lib/metadata";
+import { buildArticle, buildBreadcrumb } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
 /** Place the February 2024 drone wreck photograph at this path. */
@@ -35,9 +36,21 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("book");
 }
 
-export default function BookSamplerPage() {
+export default async function BookSamplerPage() {
+  await awaitPageMetadata("book");
+
   return (
     <>
+      <JsonLd
+        data={buildArticle({
+          headline: "Author’s Preface — The Georgette",
+          description:
+            "John Bowskill on the drone flight that revealed the wreck at Calgardup Bay, the 1872 Dumbarton shipyard that built the SS Georgette, and the research that followed the ship back to the Clyde.",
+          path: "/book",
+          image: siteConfig.ogImage.story,
+          section: "Maritime history",
+        })}
+      />
       <JsonLd
         data={buildBreadcrumb([
           { name: "Home", path: "/" },

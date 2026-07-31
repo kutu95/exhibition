@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EmailSignupForm } from "../components/EmailSignupForm";
 import { HeroVideo } from "../components/HeroVideo";
 import { JsonLd } from "../components/JsonLd";
-import { buildPageMetadata } from "../lib/seo-content";
+import { awaitPageMetadata, buildPageMetadata } from "../lib/seo-content";
 import {
   buildExhibitionEvent,
   buildHomeFaq,
@@ -22,14 +22,20 @@ export async function generateMetadata(): Promise<Metadata> {
 const contentKeys = ["hero_background_image", "hero_video", "holding_page_body"] as const;
 
 const fallbackHoldingBody =
-  "On 1 December 1876, the steamship Georgette foundered off Redgate Beach on the south-west coast of Western Australia. Seven people drowned when the lifeboat capsized. A captain's certificate was suspended. An Aboriginal stockman's courage was written out of the history books. One hundred and fifty years later, John Bowskill returns to the site — to the water, the rock, the sand — with a camera.";
+  "On 1 December 1876, the steamship Georgette foundered off Redgate Beach on the south-west coast of Western Australia. Eight people drowned when the lifeboat capsized. A captain's certificate was suspended. An Aboriginal stockman's courage was written out of the history books. One hundred and fifty years later, John Bowskill returns to the site — to the water, the rock, the sand — with a camera.";
 
 export default async function HomePage() {
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
-    .from("site_content")
-    .select("content_key, content_value")
-    .in("content_key", [...contentKeys]);
+  const [, contentResult] = await Promise.all([
+    awaitPageMetadata("home"),
+    (async () => {
+      const supabase = await createSupabaseServerClient();
+      return supabase
+        .from("site_content")
+        .select("content_key, content_value")
+        .in("content_key", [...contentKeys]);
+    })(),
+  ]);
+  const { data } = contentResult;
 
   const contentMap = new Map(
     (data ?? []).map((row) => [row.content_key, row.content_value]) as Array<[string, string | null]>,
@@ -77,6 +83,7 @@ export default async function HomePage() {
               </p>
               <nav className={styles.aboutLinks} aria-label="Continue exploring">
                 <Link href="/story">The story →</Link>
+                <Link href="/book">Author&apos;s preface →</Link>
                 <Link href="/visit">Plan your visit →</Link>
                 <Link href="/about-the-photographer">About the photographer →</Link>
                 <Link href="/shop">Photographs →</Link>

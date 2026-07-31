@@ -7,7 +7,7 @@ import { InstallationPageTracker } from "../../components/InstallationPageTracke
 import { JsonLd } from "../../components/JsonLd";
 import { SectionDivider } from "../../components/SectionDivider";
 import { TalkRegistrationForm } from "../../components/TalkRegistrationForm";
-import { buildPageMetadata } from "../../lib/seo-content";
+import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getInstallationBody } from "../../lib/utils/installation-content";
 import {
@@ -39,11 +39,17 @@ const installationImageKeys = [
 const installationPageContentKeys = [...installationContentKeys, ...installationImageKeys] as const;
 
 export default async function InstallationsPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("site_content")
-    .select("content_key, content_value, media_files(alt_text, url_path)")
-    .in("content_key", [...installationPageContentKeys]);
+  const [, contentResult] = await Promise.all([
+    awaitPageMetadata("installations"),
+    (async () => {
+      const supabase = await createSupabaseServerClient();
+      return supabase
+        .from("site_content")
+        .select("content_key, content_value, media_files(alt_text, url_path)")
+        .in("content_key", [...installationPageContentKeys]);
+    })(),
+  ]);
+  const { data, error } = contentResult;
 
   if (error) {
     throw new Error(`Failed to load installation site content: ${error.message}`);

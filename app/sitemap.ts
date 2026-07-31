@@ -8,7 +8,11 @@ type ProductSitemapRow = {
   created_at: string | null;
 };
 
-const staticLastMod = new Date("2026-07-23");
+/**
+ * Bumped whenever the hand-written page copy changes. A `lastmod` that never
+ * moves tells Google there is nothing to recrawl.
+ */
+const staticLastMod = new Date("2026-07-31");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Service role: public catalogue only — vault products must never appear.
@@ -24,8 +28,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const productUrls = ((products ?? []) as ProductSitemapRow[]).map((product) => ({
     url: `${siteConfig.url}/shop/${product.slug}`,
-    lastModified: new Date(product.created_at || staticLastMod),
-    changeFrequency: "weekly" as const,
+    // Print pages now carry hand-written editorial copy, so the page changed
+    // more recently than the catalogue row it was built from.
+    lastModified: new Date(
+      Math.max(
+        new Date(product.created_at || staticLastMod).getTime(),
+        staticLastMod.getTime(),
+      ),
+    ),
+    changeFrequency: "monthly" as const,
     priority: 0.7,
   }));
 
@@ -89,6 +100,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: staticLastMod,
       changeFrequency: "weekly",
       priority: 0.8,
+    },
+    {
+      url: `${siteConfig.url}/contact`,
+      lastModified: staticLastMod,
+      changeFrequency: "monthly",
+      priority: 0.75,
     },
     ...productUrls,
   ];

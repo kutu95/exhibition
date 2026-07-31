@@ -5,9 +5,9 @@ import Link from "next/link";
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
 import { ShareButtons } from "../../components/ShareButtons";
-import { buildPageMetadata } from "../../lib/seo-content";
+import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import { siteConfig } from "../../lib/metadata";
-import { buildBreadcrumb } from "../../lib/structured-data";
+import { buildArticle, buildBreadcrumb } from "../../lib/structured-data";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import styles from "./page.module.css";
 
@@ -20,11 +20,19 @@ const storyContentKeys = ["story_hero_image"] as const;
 const isManagedLocalMediaPath = (src: string) => src.startsWith("/images/") || src.startsWith("/video/");
 
 export default async function StoryPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("site_content")
-    .select("content_key, content_value")
-    .in("content_key", [...storyContentKeys]);
+  // Hold the shell until metadata is ready — otherwise React flushes </head>
+  // while generateMetadata is still awaiting Supabase, and title/canonical land in <body>.
+  const [, contentResult] = await Promise.all([
+    awaitPageMetadata("story"),
+    (async () => {
+      const supabase = await createSupabaseServerClient();
+      return supabase
+        .from("site_content")
+        .select("content_key, content_value")
+        .in("content_key", [...storyContentKeys]);
+    })(),
+  ]);
+  const { data, error } = contentResult;
 
   if (error) {
     throw new Error(`Failed to load story site content: ${error.message}`);
@@ -44,6 +52,16 @@ export default async function StoryPage() {
 
   return (
     <>
+      <JsonLd
+        data={buildArticle({
+          headline: "The Story of the Georgette",
+          description:
+            "On 1 December 1876 the SS Georgette foundered off Western Australia. Eight drowned when the lifeboat capsized. The account of the wreck, the rescue at Calgardup Bay, and the contested roles of Grace Bussell and Sam Isaacs.",
+          path: "/story",
+          image: siteConfig.ogImage.story,
+          section: "Maritime history",
+        })}
+      />
       <JsonLd
         data={buildBreadcrumb([
           { name: "Home", path: "/" },
@@ -183,9 +201,17 @@ export default async function StoryPage() {
             On a calm day you can see the shadow of it from the shore. Most days you cannot.
           </p>
           <p>
-            John Bowskill has spent the past eight years photographing these locations — Calgardup Bay, Redgate Beach,
-            Isaac Rock, the wreck site — as the basis for this exhibition. The photographs you will see are pictures of
-            places that carry the weight of what happened in them. The history is in the landscape.
+            John Bowskill has spent the past eight years photographing these locations —{" "}
+            <Link href="/shop" className="text-link">
+              Calgardup Bay, Redgate Beach, Isaac Rock, the wreck site
+            </Link>{" "}
+            — as the basis for this exhibition. The photographs you will see are pictures of places that carry the
+            weight of what happened in them. The history is in the landscape. How the research began, and where it led,
+            is described in{" "}
+            <Link href="/book" className="text-link">
+              the author&apos;s preface
+            </Link>
+            .
           </p>
           <p>
             The Georgette 150th opens at Margaret River Region Open Studios on 12 September 2026 — one hundred and
@@ -200,6 +226,7 @@ export default async function StoryPage() {
         />
 
         <div className={styles.bottomLinks}>
+          <Link href="/book">Read the author&apos;s preface →</Link>
           <Link href="/installations#talk">Author talk →</Link>
           <Link href="/installations">Explore the installations →</Link>
           <Link href="/shop">View the photographs →</Link>

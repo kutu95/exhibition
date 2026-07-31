@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 
 import { buildMetadata, siteConfig } from "./metadata";
 import { SEO_CONTENT_LABELS, SEO_CONTENT_KEYS, type SeoContentKey } from "./seo-content-shared";
@@ -33,7 +34,7 @@ export const SEO_FALLBACKS: Record<SeoContentKey, string> = {
     "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
   seo_story_title: "The Story | The Georgette 150th",
   seo_story_description:
-    "On 1 December 1876 the SS Georgette foundered off Western Australia. Seven drowned. This is the story the history books got wrong.",
+    "On 1 December 1876 the SS Georgette foundered off Western Australia. Eight drowned. This is the story the history books got wrong.",
   seo_about_title: "About Photographer John Bowskill | The Georgette 150th",
   seo_about_description:
     "Meet photographer John Bowskill — The Georgette 150th exhibition, coastal photography near Redgate Beach, and immersive installations in Margaret River.",
@@ -141,7 +142,28 @@ function resolveSeoValue(contentKey: SeoContentKey, value: string | null | undef
   return SEO_FALLBACKS[contentKey];
 }
 
-export async function getSeoForPage(pageId: SeoPageId): Promise<SeoContent> {
+/**
+ * Upper bound on how long metadata may wait for Supabase.
+ *
+ * Metadata that resolves after React has flushed the document shell is emitted
+ * *after* `</head>` — React hoists it client-side, but the initial HTML a crawler
+ * parses then has no title, description or canonical. Capping the wait keeps
+ * metadata off the critical path even when the database is slow.
+ */
+const SEO_QUERY_TIMEOUT_MS = 1200;
+
+function staticSeo(pageId: SeoPageId): SeoContent {
+  const config = SEO_PAGE_CONFIG[pageId];
+  return {
+    absoluteTitle: SEO_FALLBACKS[config.titleKey],
+    description: SEO_FALLBACKS[config.descriptionKey],
+    path: config.path,
+    ogImage: config.ogImage,
+    ogType: config.ogType,
+  };
+}
+
+async function loadSeoForPage(pageId: SeoPageId): Promise<SeoContent> {
   const config = SEO_PAGE_CONFIG[pageId];
 
   try {
@@ -153,13 +175,7 @@ export async function getSeoForPage(pageId: SeoPageId): Promise<SeoContent> {
 
     if (error) {
       console.warn(`[seo] Failed to load SEO for "${pageId}": ${error.message}`);
-      return {
-        absoluteTitle: SEO_FALLBACKS[config.titleKey],
-        description: SEO_FALLBACKS[config.descriptionKey],
-        path: config.path,
-        ogImage: config.ogImage,
-        ogType: config.ogType,
-      };
+      return staticSeo(pageId);
     }
 
     const byKey = new Map((data ?? []).map((row) => [row.content_key, row.content_value]));
@@ -173,14 +189,38 @@ export async function getSeoForPage(pageId: SeoPageId): Promise<SeoContent> {
     };
   } catch (err) {
     console.warn(`[seo] Unexpected error loading SEO for "${pageId}":`, err);
-    return {
-      absoluteTitle: SEO_FALLBACKS[config.titleKey],
-      description: SEO_FALLBACKS[config.descriptionKey],
-      path: config.path,
-      ogImage: config.ogImage,
-      ogType: config.ogType,
-    };
+    return staticSeo(pageId);
   }
+}
+
+/**
+ * Deduplicated per request: `generateMetadata` and the page body can both await
+ * this and share a single Supabase round-trip. Pages should await it so React
+ * cannot flush the shell before the metadata is ready.
+ */
+export const getSeoForPage = cache(async (pageId: SeoPageId): Promise<SeoContent> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<SeoContent>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`[seo] Timed out loading SEO for "${pageId}" — using fallback.`);
+      resolve(staticSeo(pageId));
+    }, SEO_QUERY_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([loadSeoForPage(pageId), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
+/**
+ * Await at the top of a page whose body does no other async work. Without it
+ * React flushes the shell immediately and the still-pending metadata lands after
+ * `</head>`, leaving crawlers an initial response with no title or canonical.
+ */
+export async function awaitPageMetadata(pageId: SeoPageId): Promise<void> {
+  await getSeoForPage(pageId);
 }
 
 export async function buildPageMetadata(pageId: SeoPageId): Promise<Metadata> {

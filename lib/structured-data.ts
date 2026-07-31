@@ -4,6 +4,35 @@ import { siteConfig } from "./metadata";
 const logoUrl = `${siteConfig.url}/logo.png`;
 const defaultImageUrl = `${siteConfig.url}${siteConfig.ogImage.default}`;
 
+/** Profiles Google can use to reconcile the publisher and the artist as one entity. */
+const socialProfiles = [siteConfig.social.facebook, siteConfig.social.instagram].filter(
+  (href): href is string => Boolean(href),
+);
+
+function absoluteUrl(pathOrUrl: string): string {
+  return pathOrUrl.startsWith("http") ? pathOrUrl : `${siteConfig.url}${pathOrUrl}`;
+}
+
+/** The subject the whole site is about — reused so Google sees one consistent entity. */
+export function buildShipEntity(): Record<string, unknown> {
+  return {
+    "@type": "Vehicle",
+    name: "SS Georgette",
+    alternateName: "Georgette",
+    description:
+      "Iron screw-steamer built in 1872 at Dumbarton on the Clyde, wrecked off Redgate Beach in Calgardup Bay, Western Australia, on 1 December 1876.",
+  };
+}
+
+function buildArtistPerson(): Record<string, unknown> {
+  return {
+    "@type": "Person",
+    name: siteConfig.artist,
+    url: `${siteConfig.url}/about-the-photographer`,
+    ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
+  };
+}
+
 function buildLogoImage() {
   return {
     "@type": "ImageObject",
@@ -36,11 +65,14 @@ export function buildWebsite(): Record<string, unknown> {
     description: siteConfig.description,
     inLanguage: "en-AU",
     image: buildOgImageObject(),
+    about: buildShipEntity(),
+    ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
     publisher: {
       "@type": "Organization",
       name: siteConfig.name,
       url: siteConfig.url,
       logo: buildLogoImage(),
+      ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
     },
   };
 }
@@ -124,6 +156,7 @@ export function buildPhotographerPerson(): Record<string, unknown> {
     name: siteConfig.artist,
     url: `${siteConfig.url}/about-the-photographer`,
     image: `${siteConfig.url}/images/john-bowskill-portrait.jpg`,
+    ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
     jobTitle: "Photographer",
     description:
       "Photographer behind The Georgette 150th Photographic Exhibition. Coastal photography around Redgate Beach, immersive installations, and the many stories of the SS Georgette.",
@@ -219,10 +252,9 @@ export function buildProduct(product: ProductWithVariantsAndImages): Record<stri
     description: product.description || "",
     url: `${siteConfig.url}/shop/${product.slug}`,
     image: imageUrl,
-    brand: {
-      "@type": "Person",
-      name: siteConfig.artist,
-    },
+    sku: product.slug,
+    category: "Fine art photographic print",
+    brand: buildArtistPerson(),
     offers: product.product_variants
       .filter((variant) => variant.is_active)
       .map((variant) => ({
@@ -231,12 +263,111 @@ export function buildProduct(product: ProductWithVariantsAndImages): Record<stri
         price: (variant.price_aud / 100).toFixed(2),
         priceCurrency: "AUD",
         availability: "https://schema.org/InStock",
+        itemCondition: "https://schema.org/NewCondition",
         url: `${siteConfig.url}/shop/${product.slug}`,
-        seller: {
-          "@type": "Person",
-          name: siteConfig.artist,
-        },
+        seller: buildArtistPerson(),
       })),
+  };
+}
+
+/**
+ * The photograph as a creative work, distinct from the Product offer wrapped
+ * around it. Gives the print pages a subject and a place rather than only a price.
+ */
+export function buildPhotographWork(
+  product: ProductWithVariantsAndImages,
+  caption: string | null,
+  placeName: string | null,
+): Record<string, unknown> {
+  const primaryImage =
+    product.product_images.find((image) => image.is_primary)?.image_url ||
+    product.product_images[0]?.image_url ||
+    "";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Photograph",
+    name: product.title,
+    ...(caption ? { caption, description: caption } : {}),
+    url: `${siteConfig.url}/shop/${product.slug}`,
+    ...(primaryImage ? { image: absoluteUrl(primaryImage) } : {}),
+    creator: buildArtistPerson(),
+    copyrightHolder: buildArtistPerson(),
+    inLanguage: "en-AU",
+    about: buildShipEntity(),
+    ...(placeName
+      ? {
+          contentLocation: {
+            "@type": "Place",
+            name: placeName,
+            address: {
+              "@type": "PostalAddress",
+              addressRegion: "WA",
+              addressCountry: "AU",
+            },
+          },
+        }
+      : {}),
+    isPartOf: {
+      "@type": "ExhibitionEvent",
+      name: siteConfig.name,
+      url: siteConfig.url,
+    },
+  };
+}
+
+export function buildPrintsItemList(
+  prints: Array<{ slug: string; title: string }>,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Limited edition prints — The Georgette 150th",
+    numberOfItems: prints.length,
+    itemListOrder: "https://schema.org/ItemListUnordered",
+    itemListElement: prints.map((print, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: print.title,
+      url: `${siteConfig.url}/shop/${print.slug}`,
+    })),
+  };
+}
+
+/** Long-form editorial pages (/story, /book) — signals reading material, not a listing. */
+export function buildArticle({
+  headline,
+  description,
+  path,
+  image,
+  section,
+}: {
+  headline: string;
+  description: string;
+  path: string;
+  image?: string;
+  section: string;
+}): Record<string, unknown> {
+  const url = `${siteConfig.url}${path}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline,
+    description,
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    author: buildArtistPerson(),
+    publisher: {
+      "@type": "Organization",
+      name: siteConfig.name,
+      url: siteConfig.url,
+      logo: buildLogoImage(),
+    },
+    image: image ? absoluteUrl(image) : defaultImageUrl,
+    articleSection: section,
+    about: buildShipEntity(),
+    inLanguage: "en-AU",
+    isAccessibleForFree: true,
   };
 }
 

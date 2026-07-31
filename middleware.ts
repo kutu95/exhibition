@@ -97,16 +97,19 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !isAdminRoute) {
     return response;
   }
 
+  // Admin only. Refreshing the Supabase session on public pages added a network
+  // round-trip to every request — including every crawl — for a session nothing
+  // outside /admin reads.
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {

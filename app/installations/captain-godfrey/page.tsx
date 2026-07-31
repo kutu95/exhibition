@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { InstallationDetail } from "../../../components/InstallationDetail";
 import { JsonLd } from "../../../components/JsonLd";
 import { installationPages } from "../../../lib/installation-pages";
-import { buildPageMetadata } from "../../../lib/seo-content";
+import { awaitPageMetadata, buildPageMetadata } from "../../../lib/seo-content";
 import { buildBreadcrumb } from "../../../lib/structured-data";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getInstallationBody } from "../../../lib/utils/installation-content";
@@ -19,11 +19,17 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CaptainGodfreyPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("site_content")
-    .select("content_key, content_value, media_files(alt_text, url_path)")
-    .in("content_key", [content.bodyKey, content.imageKey]);
+  const [, contentResult] = await Promise.all([
+    awaitPageMetadata("captain-godfrey"),
+    (async () => {
+      const supabase = await createSupabaseServerClient();
+      return supabase
+        .from("site_content")
+        .select("content_key, content_value, media_files(alt_text, url_path)")
+        .in("content_key", [content.bodyKey, content.imageKey]);
+    })(),
+  ]);
+  const { data, error } = contentResult;
 
   if (error) {
     throw new Error(`Failed to load Captain Godfrey content: ${error.message}`);
