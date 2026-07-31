@@ -13,7 +13,7 @@ type ProductSitemapRow = {
  * Bumped whenever the hand-written page copy changes. A `lastmod` that never
  * moves tells Google there is nothing to recrawl.
  */
-const staticLastMod = new Date("2026-07-31");
+const staticLastMod = new Date("2026-08-01");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Service role: public catalogue only — vault products must never appear.

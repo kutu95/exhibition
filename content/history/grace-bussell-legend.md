@@ -6,7 +6,7 @@ description: "Grace Bussell was called Australia's Grace Darling within eight we
 eyebrow: "1877–1935 · The making of a rescue story"
 status: published
 published: "2026-07-31"
-updated: "2026-07-31"
+updated: "2026-08-01"
 ogImage: "/og/story.jpg"
 sitemapPriority: 0.85
 sources:

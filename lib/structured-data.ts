@@ -341,12 +341,16 @@ export function buildArticle({
   path,
   image,
   section,
+  datePublished,
+  dateModified,
 }: {
   headline: string;
   description: string;
   path: string;
   image?: string;
   section: string;
+  datePublished?: string;
+  dateModified?: string;
 }): Record<string, unknown> {
   const url = `${siteConfig.url}${path}`;
   return {
@@ -356,6 +360,8 @@ export function buildArticle({
     description,
     url,
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    ...(datePublished ? { datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
     author: buildArtistPerson(),
     publisher: {
       "@type": "Organization",

@@ -57,6 +57,8 @@ export default async function HistoryArticlePage({ params }: PageProps) {
           path: `/history/${page.slug}`,
           image: page.ogImage,
           section: "Maritime history",
+          datePublished: page.published,
+          dateModified: page.updated,
         })}
       />
       <JsonLd
