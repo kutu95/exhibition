@@ -15,6 +15,7 @@ const navLinks = [
   { href: "/installations", label: "Installations" },
   { href: "/shop", label: "Photographs" },
   { href: "/visit", label: "Visit" },
+  { href: "/contact", label: "Contact" },
 ];
 
 type SiteNavProps = {
