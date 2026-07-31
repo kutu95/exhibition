@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_rethrow } from "next/navigation";
 import { cache } from "react";
 
 import { buildMetadata, siteConfig } from "./metadata";
@@ -188,6 +189,9 @@ async function loadSeoForPage(pageId: SeoPageId): Promise<SeoContent> {
       ogType: config.ogType,
     };
   } catch (err) {
+    // Reading cookies during a static-render probe throws by design: it is how Next
+    // marks the route dynamic. Swallowing it would hide real Supabase failures.
+    unstable_rethrow(err);
     console.warn(`[seo] Unexpected error loading SEO for "${pageId}":`, err);
     return staticSeo(pageId);
   }
