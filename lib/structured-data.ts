@@ -13,14 +13,22 @@ function absoluteUrl(pathOrUrl: string): string {
   return pathOrUrl.startsWith("http") ? pathOrUrl : `${siteConfig.url}${pathOrUrl}`;
 }
 
-/** The subject the whole site is about — reused so Google sees one consistent entity. */
+/**
+ * The subject the whole site is about — reused so Google sees one consistent entity.
+ *
+ * Deliberately not `Vehicle`: schema.org files that under `Product`, so Search
+ * Console judged the ship against Product snippets and failed it for having no
+ * offers, review or aggregateRating. A wreck is not for sale. `sameAs` carries
+ * the identity that the type no longer does.
+ */
 export function buildShipEntity(): Record<string, unknown> {
   return {
-    "@type": "Vehicle",
+    "@type": "Thing",
     name: "SS Georgette",
     alternateName: "Georgette",
     description:
       "Iron screw-steamer built in 1872 at Dumbarton on the Clyde, wrecked off Redgate Beach in Calgardup Bay, Western Australia, on 1 December 1876.",
+    sameAs: ["https://en.wikipedia.org/wiki/SS_Georgette", "https://www.wikidata.org/wiki/Q7393741"],
   };
 }
 
