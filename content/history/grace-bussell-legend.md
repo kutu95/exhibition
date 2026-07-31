@@ -147,9 +147,9 @@ Even the corrective had to be framed against the legend.
 
 ## Where it stands
 
-The plaque above Redgate Beach still tells the settled version. Children read it on the walk up from the car park. The waves are always high in it, the girl always rides into them, the man beside her is always secondary, and the captain is not mentioned.
+For most of a century the sign above Redgate Beach told the settled version, and that was the version visitors carried back down to the car park: the waves high, the girl riding into them, the man beside her secondary, the captain unmentioned.
 
-Not everyone has accepted the arrangement. When Parks and Wildlife revised the interpretive display at Redgate in recent years, an officer named Peter Simmons looked at the proposed images and noticed that every one of them had Grace in the foreground and Sam behind her. He went to the illustrator and asked for them to be switched. It was as if Grace was the thing and Sam just followed, he said. That was kind of not true.
+The display that stands there now tells a considerably more balanced story. When Parks and Wildlife revised it in recent years, an officer named Peter Simmons looked at the proposed images and noticed that every one of them had Grace in the foreground and Sam behind her. He went to the illustrator and asked for them to be switched. It was as if Grace was the thing and Sam just followed, he said. That was kind of not true.
 
 The historian Marcia van Zeller, whose 2014 Curtin University thesis remains the most thorough modern reconsideration of the wreck, put the cost of the legend plainly:
 

@@ -73,8 +73,8 @@ export default async function HistoryIndexPage() {
           <p className={styles.intro}>
             These pages set out what the primary records actually say: the marine inquiry transcript, contemporary
             newspaper reports, Lloyd&apos;s Register survey documents, and the letters of people who were there. Where
-            the sources contradict each other — and on the Georgette they often do — the contradictions are set out
-            side by side rather than resolved for the reader.
+            the sources contradict each other — and on the Georgette they often do — the contradictions are all
+            presented.
           </p>
         </header>
 

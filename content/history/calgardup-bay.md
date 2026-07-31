@@ -17,9 +17,9 @@ front of them. This page describes the place.
 
 Calgardup Bay is the stretch of shoreline south of Margaret River, on the section
 of coast now followed by the Cape to Cape Track. Redgate Beach is its best-known
-access point; there is an interpretive plaque above the Redgate car park that gives
-the wreck story in a compressed paragraph, in the version with Grace Bussell on the
-horse.
+access point; there is an interpretive display above the Redgate car park that gives
+the wreck story in compressed form. Revised in recent years, it now presents a more
+balanced account than the older sign it replaced.
 
 It is granite-and-limestone country with reef close inshore, exposed to the full
 Southern Ocean swell. That combination is why the Georgette's grounding here on
