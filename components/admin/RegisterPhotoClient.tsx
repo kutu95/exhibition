@@ -66,6 +66,7 @@ function MasterThumbnail({ filename }: { filename: string }) {
 }
 export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: RegisterPhotoClientProps) {
   const router = useRouter();
+  const [files, setFiles] = useState(masterFiles);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
@@ -88,6 +89,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
     ),
   );
   const [saving, setSaving] = useState(false);
+  const [deletingFilename, setDeletingFilename] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -171,6 +173,40 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
     }
   };
 
+  const deleteMasterFile = async (file: MasterFileCandidate) => {
+    const confirmed = window.confirm(
+      `Delete "${file.filename}" from the Masters folder?\n\nThis cannot be undone. Only unlinked masters can be deleted.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingFilename(file.filename);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/master-files?filename=${encodeURIComponent(file.filename)}`,
+        { method: "DELETE" },
+      );
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) {
+        setError(body?.error ?? "Failed to delete master TIFF.");
+        return;
+      }
+
+      setFiles((current) => current.filter((item) => item.filename !== file.filename));
+      if (masterFilename === file.filename) {
+        setMasterFilename("");
+      }
+      setSuccess(`Deleted ${file.filename} from the Masters folder.`);
+    } catch (deleteError) {
+      console.error(deleteError);
+      setError("Failed to delete master TIFF.");
+    } finally {
+      setDeletingFilename(null);
+    }
+  };
+
   const toggleTemplate = (templateId: string) => {
     const template = activeTemplates.find((item) => item.id === templateId);
     setSelectedTemplateIds((current) =>
@@ -204,26 +240,37 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
         <h2>New Master TIFFs</h2>
         <p className={styles.muted}>
           These files are in `MASTER_FILES_DIR` and are not yet attached to a product. Thumbnails are generated on demand
-          from the master TIFF (first load of a large file can take a few seconds).
+          from the master TIFF (first load of a large file can take a few seconds). Delete only removes unlinked files
+          from disk.
         </p>
-        {masterFiles.length > 0 ? (
+        {error ? <p className={styles.error}>{error}</p> : null}
+        {success ? <p className={styles.success}>{success}</p> : null}
+        {files.length > 0 ? (
           <div className={styles.fileList}>
-            {masterFiles.map((file) => (
-              <button
+            {files.map((file) => (
+              <div
                 key={file.filename}
-                className={file.filename === masterFilename ? styles.fileButtonActive : styles.fileButton}
-                type="button"
-                onClick={() => selectMasterFile(file)}
+                className={file.filename === masterFilename ? styles.fileRowActive : styles.fileRow}
               >
-                <MasterThumbnail filename={file.filename} />
-                <span className={styles.fileMeta}>
-                  <strong>{file.filename}</strong>
-                  <span>{formatBytes(file.size_bytes)}</span>
-                  <span>{formatResolution(file)}</span>
-                  <span>Aspect ratio {file.aspect_ratio ?? "unavailable"}</span>
-                  <span>Modified {new Date(file.modified_at).toLocaleString("en-AU")}</span>
-                </span>
-              </button>
+                <button className={styles.fileSelect} type="button" onClick={() => selectMasterFile(file)}>
+                  <MasterThumbnail filename={file.filename} />
+                  <span className={styles.fileMeta}>
+                    <strong>{file.filename}</strong>
+                    <span>{formatBytes(file.size_bytes)}</span>
+                    <span>{formatResolution(file)}</span>
+                    <span>Aspect ratio {file.aspect_ratio ?? "unavailable"}</span>
+                    <span>Modified {new Date(file.modified_at).toLocaleString("en-AU")}</span>
+                  </span>
+                </button>
+                <button
+                  className={styles.deleteButton}
+                  type="button"
+                  disabled={deletingFilename === file.filename}
+                  onClick={() => deleteMasterFile(file)}
+                >
+                  {deletingFilename === file.filename ? "Deleting…" : "Delete"}
+                </button>
+              </div>
             ))}
           </div>
         ) : (

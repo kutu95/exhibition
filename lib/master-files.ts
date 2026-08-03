@@ -294,3 +294,53 @@ export const listUnregisteredMasterFiles = async (): Promise<MasterFileCandidate
 
   return candidates.sort((a, b) => b.modified_at.localeCompare(a.modified_at));
 };
+
+/**
+ * Delete a master TIFF from disk only when no product_variant references it.
+ * Also removes a matching AppleDouble `._filename` sidecar if present.
+ */
+export const deleteUnregisteredMasterFile = async (
+  filename: string,
+): Promise<{ deleted: string; sidecars_deleted: string[] }> => {
+  const safeName = safeMasterFilename(filename);
+  const { rows } = await queryPostgres<{ master_filename: string; product_count: string }>(
+    `
+      select master_filename, count(*)::text as product_count
+      from exhibition.product_variants
+      where master_filename = $1
+      group by master_filename
+    `,
+    [safeName],
+  );
+
+  if (rows.length > 0) {
+    throw new Error(
+      `Cannot delete "${safeName}" — it is linked to ${rows[0].product_count} product variant(s). Remove or change the master on those products first.`,
+    );
+  }
+
+  const filePath = resolveMasterFilePath(safeName);
+  try {
+    await fs.access(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Master TIFF was not found: ${safeName}`);
+    }
+    throw error;
+  }
+
+  await fs.unlink(filePath);
+
+  const sidecarsDeleted: string[] = [];
+  const sidecarName = `._${safeName}`;
+  const sidecarPath = path.join(getMasterFilesDir(), sidecarName);
+  try {
+    await fs.unlink(sidecarPath);
+    sidecarsDeleted.push(sidecarName);
+  } catch {
+    // No sidecar — fine.
+  }
+
+  return { deleted: safeName, sidecars_deleted: sidecarsDeleted };
+};
+
