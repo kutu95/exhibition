@@ -68,7 +68,20 @@ See `lib/master-files.ts` for listing and validation used by Register Photo.
 | API | `POST /api/admin/register-photo` (same as Register Photo) |
 | Client | `components/admin/ImportPhotoWizardClient.tsx` |
 
-Hard-gated steps from placing a master TIFF in `MASTER_FILES_DIR` (no browser TIFF upload) through details, print templates, web image, and publish. Ends with a product online and ready for ordering. Keep going only when the current step’s completion rules pass. Admin help for preparing masters: `/admin/help/master-tiff`.
+Hard-gated steps from placing a master TIFF in `MASTER_FILES_DIR` (no browser TIFF upload) through details, **print sizes** (paper × long-edge matrix), web image, and publish. Ends with a product online and ready for ordering.
+
+**Happy path for sellable prints:** each selected paper × long-edge combo becomes a `product_variants` row with:
+
+- `fit_mode = custom_size`, `size_lock = long_edge`
+- `width_mm` / `height_mm` derived from the master aspect (`deriveAspectPreservingSizeMm`)
+- `lab_cost_aud` from Pixel Perfect sq-in rates × area
+- `price_aud` = lab × global markup (`site_content` key `print_price_markup_factor`, default `3`, editable on `/admin/print-profiles`)
+- Shop label like `Hahnemühle Photo Rag · A3 long edge (420×236 mm)`
+- Fulfilment note to order **custom paper** at those mm
+
+ISO `variant_templates` are optional seeds / legacy (still used by Register Photo). The Import Wizard does not require them.
+
+Admin help for preparing masters: `/admin/help/master-tiff`.
 
 ### Path A2: Register Photo (single-screen form)
 
@@ -81,14 +94,15 @@ Hard-gated steps from placing a master TIFF in `MASTER_FILES_DIR` (no browser TI
 Workflow:
 
 1. Choose a master TIFF from the scanned `MASTER_FILES_DIR` list.
-2. Enter title, slug, edition size, metadata, and select **variant templates** (print sizes/prices).
+2. Enter title, slug, edition size, metadata, and select **variant templates** (print sizes/prices) — or use Import Wizard for paper × long-edge custom sizes.
 3. **Web image** — one of:
    - **Generate from master:** `lib/web-image-generation.ts` runs `worker/generate_web_image.py` (sRGB, EXIF-aware, max edge 2400px, JPEG quality 90).
    - **Upload:** JPEG/PNG/WebP up to 8MB.
 4. File is written under **`public/images/{slug}-{uuid}.jpg`** (or uploaded extension) and recorded in **`media_files`**.
 5. **`registerPrintProduct()`** (`lib/product-registration.ts`):
    - Inserts `products` (`product_type: print`, `is_available: true`)
-   - Inserts `product_variants` by **copying active `variant_templates`** (width/height mm, border, paper, `print_dpi`, pricing, etc.) and sets **`master_filename`** on each variant
+   - Inserts `product_variants` either from **`custom_size_variants`** (explicit paper × long edge + formula/override price) or by **copying active `variant_templates`**
+   - Sets **`master_filename`** on each variant
    - Inserts primary `product_images`
    - Checkout uses **inline Stripe pricing** from `product_variants.price_aud` (no Stripe catalog sync)
 
@@ -112,8 +126,9 @@ Create or edit products and variants manually. Each variant can pick a **print t
 |-------|------|----------|
 | Master TIFF | Source for web gen + print worker | `MASTER_FILES_DIR` on disk |
 | Web JPEG | Shop and product pages | `public/images/...` (+ optional `media_files`) |
-| Variant row | Price, dimensions, paper, DPI, **`master_filename`** | `exhibition.product_variants` |
-| Templates | Reusable size/price presets | `exhibition.variant_templates` |
+| Variant row | Price, dimensions, paper, DPI, **`master_filename`**, framing (`fit_mode` / `size_lock`) | `exhibition.product_variants` |
+| Templates | Optional reusable presets (Register Photo / editor seeds) | `exhibition.variant_templates` |
+| Markup | Global retail = lab × factor (default 3) | `site_content.print_price_markup_factor` |
 
 The public site **does not** serve master TIFFs to shoppers.
 

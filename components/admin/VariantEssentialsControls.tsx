@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
-  formatVariantLabel,
+  formatCustomSizeVariantLabel,
   LONG_EDGE_PRESETS,
   OTHER_PAPER_ID,
   type PrintTypeCode,
@@ -15,8 +15,10 @@ import {
   tierGuidance,
   TIER_OPTIONS,
 } from "../../lib/print-catalogue";
+import { DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
 import {
   computeMarginGuidance,
+  computeRetailFromLabCost,
   deriveAspectPreservingSizeMm,
   estimatePixelPerfectLabCost,
   formatDualSize,
@@ -46,6 +48,7 @@ type VariantEssentialsControlsProps = {
   value: VariantEssentialsValue;
   masterPixelWidth: number | null;
   masterPixelHeight: number | null;
+  markupFactor?: number;
   onChange: (next: VariantEssentialsValue) => void;
 };
 
@@ -59,16 +62,41 @@ export function VariantEssentialsControls({
   value,
   masterPixelWidth,
   masterPixelHeight,
+  markupFactor: markupFactorProp = DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
   onChange,
 }: VariantEssentialsControlsProps) {
   const [sizeUnit, setSizeUnit] = useState<SizeUnit>("mm");
   const [preferCustomSize, setPreferCustomSize] = useState(false);
+  const [markupFactor, setMarkupFactor] = useState(markupFactorProp);
   const printType = (value.print_type || "fine_art") as PrintTypeCode;
   const paperOptions = useMemo(() => papersForPrintType(printType), [printType]);
   const paperSelect = paperSelectValue(value.paper_type);
   const customPaper = paperSelect === OTHER_PAPER_ID ? value.paper_type : "";
   const aspectSummary = formatPhotoAspectSummary(masterPixelWidth, masterPixelHeight);
   const hasMasterPixels = Boolean(masterPixelWidth && masterPixelHeight && masterPixelWidth > 0 && masterPixelHeight > 0);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/admin/print-pricing/markup");
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as { markup_factor?: number };
+        if (typeof body.markup_factor === "number" && !cancelled) {
+          setMarkupFactor(body.markup_factor);
+        }
+      } catch {
+        // Keep prop / default.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setMarkupFactor(markupFactorProp);
+  }, [markupFactorProp]);
 
   const widthMm = Number.parseInt(value.width_mm || "0", 10) || 0;
   const heightMm = Number.parseInt(value.height_mm || "0", 10) || 0;
@@ -120,7 +148,12 @@ export function VariantEssentialsControls({
         tier_label: value.tier_label.trim() || suggestedTier,
         variant_label: value.variant_label.trim()
           ? value.variant_label
-          : formatVariantLabel(size.width_mm, size.height_mm, paper),
+          : formatCustomSizeVariantLabel({
+              paperLabel: paper,
+              widthMm: size.width_mm,
+              heightMm: size.height_mm,
+              longEdgeMm: nextLongEdgeMm,
+            }),
       }),
     );
   };
@@ -131,9 +164,20 @@ export function VariantEssentialsControls({
     const height = Number.parseInt(value.height_mm || "0", 10);
     const nextLabel =
       width > 0 && height > 0 && paper
-        ? formatVariantLabel(width, height, paper)
+        ? formatCustomSizeVariantLabel({
+            paperLabel: paper,
+            widthMm: width,
+            heightMm: height,
+            longEdgeMm: Math.max(width, height),
+          })
         : value.variant_label;
     onChange(withLabCost({ ...value, paper_type: paper, variant_label: nextLabel }));
+  };
+
+  const applyFormulaPrice = () => {
+    if (!labEstimate) return;
+    const retail = computeRetailFromLabCost(labEstimate.labCostAud, markupFactor);
+    onChange({ ...value, price_dollars: retail.toFixed(2), lab_cost_dollars: labEstimate.labCostAud.toFixed(2) });
   };
 
   return (
@@ -170,22 +214,25 @@ export function VariantEssentialsControls({
           Print type
           <select
             value={printType}
-            onChange={(event) => {
+              onChange={(event) => {
               const nextPrintType = event.target.value as PrintTypeCode;
               const papers = papersForPrintType(nextPrintType);
               const nextPaper = papers[0]?.label ?? "";
+              const width = Number.parseInt(value.width_mm || "0", 10) || 0;
+              const height = Number.parseInt(value.height_mm || "0", 10) || 0;
               onChange(
                 withLabCost({
                   ...value,
                   print_type: nextPrintType,
                   paper_type: nextPaper,
                   variant_label:
-                    value.width_mm && value.height_mm && nextPaper
-                      ? formatVariantLabel(
-                          Number.parseInt(value.width_mm, 10),
-                          Number.parseInt(value.height_mm, 10),
-                          nextPaper,
-                        )
+                    width > 0 && height > 0 && nextPaper
+                      ? formatCustomSizeVariantLabel({
+                          paperLabel: nextPaper,
+                          widthMm: width,
+                          heightMm: height,
+                          longEdgeMm: Math.max(width, height),
+                        })
                       : value.variant_label,
                 }),
               );
@@ -291,6 +338,11 @@ export function VariantEssentialsControls({
             value={value.price_dollars}
             onChange={(event) => onChange({ ...value, price_dollars: event.target.value })}
           />
+          {labEstimate ? (
+            <button type="button" className={styles.formulaButton} onClick={applyFormulaPrice}>
+              Apply formula price ({markupFactor}× lab)
+            </button>
+          ) : null}
         </label>
 
         <label>
@@ -348,7 +400,10 @@ export function VariantEssentialsControls({
           ) : (
             <p className={styles.marginMeta}>Enter a retail price to see margin.</p>
           )}
-          <p className={styles.marginNote}>{labEstimate.note}. Lab cost is auto-filled for this size/paper.</p>
+          <p className={styles.marginNote}>
+            {labEstimate.note}. Lab cost is auto-filled for this size/paper. Formula retail uses the global{" "}
+            {markupFactor}× markup (Print Templates).
+          </p>
         </div>
       ) : paperSelect === OTHER_PAPER_ID || value.print_type === "metal" ? (
         <p className={styles.warning}>

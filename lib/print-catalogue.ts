@@ -223,6 +223,19 @@ export const formatVariantLabel = (widthMm: number, heightMm: number, paper: str
   return `${widthMm}×${heightMm} mm / ${paperPart}`;
 };
 
+/** Shop-facing label for aspect-true custom sizes: paper · preset (W×H mm). */
+export const formatCustomSizeVariantLabel = (args: {
+  paperLabel: string;
+  widthMm: number;
+  heightMm: number;
+  longEdgeMm: number;
+}): string => {
+  const paper = args.paperLabel.trim() || "Print";
+  const preset = LONG_EDGE_PRESETS.find((item) => item.mm === args.longEdgeMm);
+  const sizeName = preset ? preset.labelMm.replace(/\s*\(\d+\s*mm\)\s*$/i, "").trim() : `${args.longEdgeMm} mm long edge`;
+  return `${paper} · ${sizeName} (${args.widthMm}×${args.heightMm} mm)`;
+};
+
 export const defaultPrintTypeForPaper = (paperLabel: string): PrintTypeCode => {
   const match = findPaperByLabel(paperLabel);
   return match?.printType ?? "fine_art";

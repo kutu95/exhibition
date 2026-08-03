@@ -1,6 +1,7 @@
 import { ImportPhotoWizardClient } from "../../../components/admin/ImportPhotoWizardClient";
 import { getMasterFilesDir, type MasterFileCandidate } from "../../../lib/master-files";
-import type { Theme, VariantTemplate } from "../../../lib/supabase/types";
+import { getPrintPriceMarkupFactor } from "../../../lib/print-markup";
+import type { Theme } from "../../../lib/supabase/types";
 import { fetchAdminJson } from "../_lib/fetch-admin";
 
 const resolveMasterFilesDirDisplay = (): string => {
@@ -18,14 +19,14 @@ const resolveMasterFilesDirDisplay = (): string => {
 export default async function ImportWizardPage() {
   const results = await Promise.allSettled([
     fetchAdminJson<{ files: MasterFileCandidate[] }>("/api/admin/master-files"),
-    fetchAdminJson<VariantTemplate[]>("/api/admin/variant-templates"),
     fetchAdminJson<Theme[]>("/api/admin/themes"),
+    getPrintPriceMarkupFactor(),
   ]);
 
   const loadErrors: string[] = [];
   let masterFiles: MasterFileCandidate[] = [];
-  let variantTemplates: VariantTemplate[] = [];
   let themes: Theme[] = [];
+  let markupFactor = 3;
 
   if (results[0].status === "fulfilled") {
     masterFiles = results[0].value.files;
@@ -37,35 +38,28 @@ export default async function ImportWizardPage() {
   }
 
   if (results[1].status === "fulfilled") {
-    variantTemplates = results[1].value;
+    themes = results[1].value;
   } else {
     const reason = results[1].reason;
-    loadErrors.push(
-      reason instanceof Error
-        ? reason.message
-        : "Failed to load print templates. Apply the additive SQL migrations if variant_templates is missing.",
-    );
+    loadErrors.push(reason instanceof Error ? reason.message : "Failed to load themes.");
   }
 
   if (results[2].status === "fulfilled") {
-    themes = results[2].value;
-  } else {
-    const reason = results[2].reason;
-    loadErrors.push(reason instanceof Error ? reason.message : "Failed to load themes.");
+    markupFactor = results[2].value;
   }
 
   return (
     <div>
       <h1>Import Photo Wizard</h1>
       <p style={{ maxWidth: "48rem", color: "#555", marginTop: 0 }}>
-        Guided steps from master TIFF on the server share to a shop product ready for ordering.
-        For a single-screen form, use Register Photo.
+        Guided steps from master TIFF on the server share to a shop product ready for ordering. Print sizes are built
+        as aspect-true custom paper (paper × long edge) with square-inch retail pricing.
       </p>
       <ImportPhotoWizardClient
         initialMasterFiles={masterFiles}
-        variantTemplates={variantTemplates}
         themes={themes}
         masterFilesDirPath={resolveMasterFilesDirDisplay()}
+        initialMarkupFactor={markupFactor}
         loadErrors={loadErrors}
       />
     </div>

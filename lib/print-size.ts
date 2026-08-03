@@ -127,3 +127,54 @@ export const computeMarginGuidance = (retailAud: number, labCostAud: number): Ma
   const marginPercent = retailAud > 0 ? Math.round(((retailAud - labCostAud) / retailAud) * 1000) / 10 : null;
   return { retailAud, labCostAud, marginAud, marginPercent };
 };
+
+/** Retail dollars from lab cost × markup (e.g. 3×). Rounded to cents. */
+export const computeRetailFromLabCost = (labCostAud: number, markupFactor: number): number => {
+  if (!Number.isFinite(labCostAud) || labCostAud < 0 || !Number.isFinite(markupFactor) || markupFactor < 1) {
+    throw new Error("Lab cost and markup factor must be valid numbers (markup ≥ 1).");
+  }
+  return Math.round(labCostAud * markupFactor * 100) / 100;
+};
+
+export type VariantPricing = {
+  widthMm: number;
+  heightMm: number;
+  labCostAud: number;
+  labCostCents: number;
+  retailAud: number;
+  retailCents: number;
+  markupFactor: number;
+  ratePerSqInAud: number;
+  rateTier: Exclude<PixelPerfectRateTier, null>;
+  areaSqIn: number;
+  note: string;
+};
+
+/**
+ * Lab cost from Pixel Perfect sq-in rates, retail = lab × markup.
+ * Returns null when paper has no sq-in rate (quote-only substrates).
+ */
+export const computeVariantPricing = (args: {
+  widthMm: number;
+  heightMm: number;
+  paperLabel: string;
+  markupFactor: number;
+}): VariantPricing | null => {
+  const estimate = estimatePixelPerfectLabCost(args.widthMm, args.heightMm, args.paperLabel);
+  if (!estimate) return null;
+
+  const retailAud = computeRetailFromLabCost(estimate.labCostAud, args.markupFactor);
+  return {
+    widthMm: Math.round(args.widthMm),
+    heightMm: Math.round(args.heightMm),
+    labCostAud: estimate.labCostAud,
+    labCostCents: Math.round(estimate.labCostAud * 100),
+    retailAud,
+    retailCents: Math.round(retailAud * 100),
+    markupFactor: args.markupFactor,
+    ratePerSqInAud: estimate.ratePerSqInAud,
+    rateTier: estimate.rateTier,
+    areaSqIn: estimate.areaSqIn,
+    note: estimate.note,
+  };
+};

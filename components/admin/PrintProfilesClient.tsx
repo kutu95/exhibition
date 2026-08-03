@@ -1,8 +1,13 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  PIXEL_PERFECT_PRICELIST_NOTE,
+  PIXEL_PERFECT_SQ_IN_RATES_AUD,
+} from "../../lib/print-catalogue";
+import { DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
 import type { PrintProfile, VariantTemplate } from "../../lib/supabase/types";
 import { formatDateTime } from "../../lib/utils/dates";
 import styles from "./PrintProfilesClient.module.css";
@@ -10,6 +15,7 @@ import styles from "./PrintProfilesClient.module.css";
 type PrintProfilesClientProps = {
   initialProfiles: PrintProfile[];
   initialVariantTemplates: VariantTemplate[];
+  initialMarkupFactor?: number;
 };
 
 type TemplateDraft = {
@@ -232,7 +238,11 @@ const draftPayload = (draft: TemplateDraft) => ({
   edition_size: intOrNull(draft.edition_size),
 });
 
-export function PrintProfilesClient({ initialProfiles, initialVariantTemplates }: PrintProfilesClientProps) {
+export function PrintProfilesClient({
+  initialProfiles,
+  initialVariantTemplates,
+  initialMarkupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
+}: PrintProfilesClientProps) {
   const router = useRouter();
   const [profiles, setProfiles] = useState(initialProfiles);
   const [variantTemplates, setVariantTemplates] = useState(initialVariantTemplates);
@@ -248,6 +258,58 @@ export function PrintProfilesClient({ initialProfiles, initialVariantTemplates }
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newTemplateFormOpen, setNewTemplateFormOpen] = useState(false);
+  const [markupFactor, setMarkupFactor] = useState(String(initialMarkupFactor));
+  const [savingMarkup, setSavingMarkup] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/admin/print-pricing/markup");
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as { markup_factor?: number };
+        if (typeof body.markup_factor === "number" && !cancelled) {
+          setMarkupFactor(String(body.markup_factor));
+        }
+      } catch {
+        // Keep server-rendered / default value.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const saveMarkupFactor = async () => {
+    const parsed = Number.parseFloat(markupFactor);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 20) {
+      setError("Markup factor must be a number between 1 and 20.");
+      return;
+    }
+
+    setSavingMarkup(true);
+    setError(null);
+    setMessage(null);
+
+    const response = await fetch("/api/admin/print-pricing/markup", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markup_factor: parsed }),
+    });
+
+    setSavingMarkup(false);
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(body?.error ?? "Failed to save markup factor.");
+      return;
+    }
+
+    const body = (await response.json()) as { markup_factor: number };
+    setMarkupFactor(String(body.markup_factor));
+    setMessage(`Retail markup set to ${body.markup_factor}× lab cost.`);
+    router.refresh();
+  };
 
   const uploadProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -461,6 +523,37 @@ export function PrintProfilesClient({ initialProfiles, initialVariantTemplates }
 
   return (
     <div className={styles.wrap}>
+      <section className={styles.panel}>
+        <h2>Square-inch retail pricing</h2>
+        <p className={styles.muted}>
+          Import Wizard and product editor use Pixel Perfect lab cost (area × rate) × this markup for suggested
+          retail. Existing catalogue prices are unchanged until you re-save a variant.
+        </p>
+        <p className={styles.muted}>
+          {PIXEL_PERFECT_PRICELIST_NOTE}: standard inkjet ${PIXEL_PERFECT_SQ_IN_RATES_AUD.standard_inkjet.toFixed(3)}
+          /sq in · premium inkjet ${PIXEL_PERFECT_SQ_IN_RATES_AUD.premium_inkjet.toFixed(3)}/sq in (read-only).
+        </p>
+        <div className={styles.grid}>
+          <label>
+            Retail markup factor
+            <input
+              type="number"
+              min="1"
+              max="20"
+              step="0.1"
+              value={markupFactor}
+              onChange={(event) => setMarkupFactor(event.target.value)}
+            />
+          </label>
+        </div>
+        <p className={styles.muted}>Default is {DEFAULT_PRINT_PRICE_MARKUP_FACTOR}×. Allowed range 1–20.</p>
+        {message ? <p className={styles.success}>{message}</p> : null}
+        {error ? <p className={styles.error}>{error}</p> : null}
+        <button className={styles.button} type="button" disabled={savingMarkup} onClick={() => void saveMarkupFactor()}>
+          {savingMarkup ? "Saving…" : "Save markup"}
+        </button>
+      </section>
+
       <section className={styles.panel}>
         <h2>Optional Reference ICC Profiles</h2>
         <p className={styles.muted}>

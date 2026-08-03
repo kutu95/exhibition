@@ -326,6 +326,62 @@
   margin: 0.75rem 0;
 }
 
+.matrixPickers {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.chipList {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.chip {
+  align-items: flex-start;
+  border: 1px solid #e1e1e1;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.chip input {
+  margin-top: 0.2rem;
+}
+
+.variantMatrix {
+  margin-top: 1.25rem;
+}
+
+.matrixTable {
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.matrixTable th,
+.matrixTable td {
+  border-bottom: 1px solid #ececec;
+  padding: 0.45rem 0.35rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.matrixTable th {
+  color: #555;
+  font-weight: 500;
+}
+
+.priceInput {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  max-width: 7rem;
+  padding: 0.35rem 0.45rem;
+  width: 100%;
+}
+
 .templateOption {
   border: 1px solid #e1e1e1;
   padding: 0;

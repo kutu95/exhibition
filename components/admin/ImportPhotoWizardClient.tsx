@@ -4,11 +4,20 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
-import type { VariantFramingInput } from "../../lib/print-framing";
-import type { Theme, VariantTemplate } from "../../lib/supabase/types";
+import {
+  defaultPrintTypeForPaper,
+  formatCustomSizeVariantLabel,
+  LONG_EDGE_PRESETS,
+  PAPER_OPTIONS,
+  PIXEL_PERFECT_PRICELIST_NOTE,
+  type PaperOption,
+  type PrintTypeCode,
+} from "../../lib/print-catalogue";
+import { DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
+import { computeVariantPricing, deriveAspectPreservingSizeMm, formatDualSize } from "../../lib/print-size";
+import type { Theme } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ImportPhotoWizardClient.module.css";
-import { defaultVariantFraming, PrintFramingControls } from "./PrintFramingControls";
 import { ThemeSelector } from "./ThemeSelector";
 
 type MasterFileCandidate = {
@@ -24,19 +33,31 @@ type MasterFileCandidate = {
 
 type ImportPhotoWizardClientProps = {
   initialMasterFiles: MasterFileCandidate[];
-  variantTemplates: VariantTemplate[];
   themes: Theme[];
   masterFilesDirPath: string;
+  initialMarkupFactor?: number;
   loadErrors?: string[];
 };
 
 type WebImageMode = "generate" | "upload";
 
+type VariantCombo = {
+  key: string;
+  paper: PaperOption;
+  longEdgeMm: number;
+  widthMm: number;
+  heightMm: number;
+  labCostAud: number | null;
+  formulaRetailAud: number | null;
+  formulaRetailCents: number | null;
+  note: string | null;
+};
+
 const STEP_LABELS = [
   "Before you start",
   "Master TIFF",
   "Product details",
-  "Print templates",
+  "Print sizes",
   "Web image",
   "Review & publish",
   "Ready for order",
@@ -44,14 +65,17 @@ const STEP_LABELS = [
 
 const photoTypeOptions = ["", "Still camera", "Drone", "Underwater"];
 
+const DEFAULT_PAPER_IDS = ["hm-photo-rag"];
+const DEFAULT_LONG_EDGE_MMS = [420, 594];
+
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 };
 
-const formatDollars = (cents: number | null): string | null =>
-  cents === null ? null : `$${(cents / 100).toFixed(2)}`;
+const formatMoney = (value: number): string =>
+  value.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
 
 const formatResolution = (file: MasterFileCandidate): string =>
   file.pixel_width && file.pixel_height
@@ -60,6 +84,8 @@ const formatResolution = (file: MasterFileCandidate): string =>
 
 const masterThumbnailUrl = (filename: string): string =>
   `/api/admin/master-files/thumbnail?filename=${encodeURIComponent(filename)}`;
+
+const comboKey = (paperId: string, longEdgeMm: number): string => `${paperId}|${longEdgeMm}`;
 
 function MasterThumbnail({
   filename,
@@ -98,9 +124,9 @@ function MasterThumbnail({
 
 export function ImportPhotoWizardClient({
   initialMasterFiles,
-  variantTemplates,
   themes,
   masterFilesDirPath,
+  initialMarkupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
   loadErrors = [],
 }: ImportPhotoWizardClientProps) {
   const [step, setStep] = useState(0);
@@ -118,17 +144,12 @@ export function ImportPhotoWizardClient({
   const [editionSize, setEditionSize] = useState("10");
   const [isFeatured, setIsFeatured] = useState(false);
   const [visibility, setVisibility] = useState<"public" | "vault">("public");
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(DEFAULT_PAPER_IDS);
+  const [selectedLongEdges, setSelectedLongEdges] = useState<number[]>(DEFAULT_LONG_EDGE_MMS);
+  const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
   const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
   const [themeOptions, setThemeOptions] = useState(themes);
-  const [templatePrices, setTemplatePrices] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      variantTemplates
-        .filter((template) => template.is_active)
-        .map((template) => [template.id, (template.base_price_aud / 100).toFixed(2)]),
-    ),
-  );
-  const [templateFraming, setTemplateFraming] = useState<Record<string, VariantFramingInput>>({});
+  const [markupFactor, setMarkupFactor] = useState(initialMarkupFactor);
   const [webImageMode, setWebImageMode] = useState<WebImageMode>("generate");
   const [webImage, setWebImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -136,20 +157,76 @@ export function ImportPhotoWizardClient({
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [variantsCreated, setVariantsCreated] = useState(0);
 
-  const activeTemplates = useMemo(
-    () => variantTemplates.filter((template) => template.is_active),
-    [variantTemplates],
-  );
-
   const selectedMaster = useMemo(
     () => masterFiles.find((file) => file.filename === masterFilename) ?? null,
     [masterFiles, masterFilename],
   );
 
-  const selectedTemplates = useMemo(
-    () => activeTemplates.filter((template) => selectedTemplateIds.includes(template.id)),
-    [activeTemplates, selectedTemplateIds],
+  const hasMasterPixels = Boolean(
+    selectedMaster?.pixel_width &&
+      selectedMaster?.pixel_height &&
+      selectedMaster.pixel_width > 0 &&
+      selectedMaster.pixel_height > 0,
   );
+
+  const sellablePapers = useMemo(
+    () => PAPER_OPTIONS.filter((paper) => paper.rateTier !== null),
+    [],
+  );
+
+  const variantCombos = useMemo((): VariantCombo[] => {
+    if (!hasMasterPixels || !selectedMaster) return [];
+
+    const combos: VariantCombo[] = [];
+    for (const paperId of selectedPaperIds) {
+      const paper = sellablePapers.find((item) => item.id === paperId);
+      if (!paper) continue;
+      for (const longEdgeMm of selectedLongEdges) {
+        const size = deriveAspectPreservingSizeMm(
+          longEdgeMm,
+          selectedMaster.pixel_width!,
+          selectedMaster.pixel_height!,
+        );
+        const pricing = computeVariantPricing({
+          widthMm: size.width_mm,
+          heightMm: size.height_mm,
+          paperLabel: paper.label,
+          markupFactor,
+        });
+        combos.push({
+          key: comboKey(paper.id, longEdgeMm),
+          paper,
+          longEdgeMm,
+          widthMm: size.width_mm,
+          heightMm: size.height_mm,
+          labCostAud: pricing?.labCostAud ?? null,
+          formulaRetailAud: pricing?.retailAud ?? null,
+          formulaRetailCents: pricing?.retailCents ?? null,
+          note: pricing?.note ?? null,
+        });
+      }
+    }
+    return combos;
+  }, [hasMasterPixels, markupFactor, selectedLongEdges, selectedMaster, selectedPaperIds, sellablePapers]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await adminClientFetch("/api/admin/print-pricing/markup");
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as { markup_factor?: number };
+        if (typeof body.markup_factor === "number" && !cancelled) {
+          setMarkupFactor(body.markup_factor);
+        }
+      } catch {
+        // Keep server-provided default.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refreshMasterFiles = useCallback(async () => {
     setRefreshingMasters(true);
@@ -198,8 +275,7 @@ export function ImportPhotoWizardClient({
       setSlugTouched(false);
     }
     if (masterChanged) {
-      setSelectedTemplateIds([]);
-      setTemplateFraming({});
+      setPriceOverrides({});
       setWebImageMode("generate");
       setWebImage(null);
       setCreatedProductId(null);
@@ -208,50 +284,30 @@ export function ImportPhotoWizardClient({
     }
   };
 
-  const toggleTemplate = (templateId: string) => {
-    const template = activeTemplates.find((item) => item.id === templateId);
-    setSelectedTemplateIds((current) =>
-      current.includes(templateId)
-        ? current.filter((id) => id !== templateId)
-        : [...current, templateId],
+  const togglePaper = (paperId: string) => {
+    setSelectedPaperIds((current) =>
+      current.includes(paperId) ? current.filter((id) => id !== paperId) : [...current, paperId],
     );
-    if (template && !templatePrices[templateId]) {
-      setTemplatePrices((current) => ({
-        ...current,
-        [templateId]: (template.base_price_aud / 100).toFixed(2),
-      }));
-    }
-    setTemplateFraming((current) => {
-      if (current[templateId]) return current;
-      return { ...current, [templateId]: defaultVariantFraming() };
-    });
   };
 
-  const selectAllTemplates = () => {
-    setSelectedTemplateIds(activeTemplates.map((template) => template.id));
-    setTemplatePrices((current) => ({
-      ...Object.fromEntries(
-        activeTemplates.map((template) => [template.id, (template.base_price_aud / 100).toFixed(2)]),
-      ),
-      ...current,
-    }));
-    setTemplateFraming((current) => ({
-      ...Object.fromEntries(activeTemplates.map((template) => [template.id, current[template.id] ?? defaultVariantFraming()])),
-      ...current,
-    }));
+  const toggleLongEdge = (mm: number) => {
+    setSelectedLongEdges((current) =>
+      current.includes(mm) ? current.filter((value) => value !== mm) : [...current, mm].sort((a, b) => a - b),
+    );
   };
 
-  const deselectAllTemplates = () => {
-    setSelectedTemplateIds([]);
-    setSelectedThemeIds([]);
+  const retailDollarsForCombo = (combo: VariantCombo): string => {
+    if (priceOverrides[combo.key] !== undefined) return priceOverrides[combo.key];
+    return combo.formulaRetailAud !== null ? combo.formulaRetailAud.toFixed(2) : "";
   };
 
   const editionNumber = Number.parseInt(editionSize, 10);
   const detailsValid = Boolean(title.trim() && slug.trim() && Number.isInteger(editionNumber) && editionNumber >= 1);
-  const templatesValid =
-    selectedTemplateIds.length > 0 &&
-    selectedTemplateIds.every((id) => {
-      const value = Number.parseFloat(templatePrices[id] || "");
+  const sizesValid =
+    hasMasterPixels &&
+    variantCombos.length > 0 &&
+    variantCombos.every((combo) => {
+      const value = Number.parseFloat(retailDollarsForCombo(combo) || "");
       return Number.isFinite(value) && value >= 0;
     });
   const webImageValid = webImageMode === "generate" || webImage instanceof File;
@@ -259,13 +315,13 @@ export function ImportPhotoWizardClient({
   const stepComplete = (index: number): boolean => {
     switch (index) {
       case 0:
-        return understood && activeTemplates.length > 0;
+        return understood;
       case 1:
         return Boolean(masterFilename && selectedMaster);
       case 2:
         return detailsValid;
       case 3:
-        return templatesValid;
+        return sizesValid;
       case 4:
         return webImageValid;
       case 5:
@@ -279,9 +335,6 @@ export function ImportPhotoWizardClient({
 
   const canGoNext = step < 5 ? stepComplete(step) : false;
   const nextBlockedReason = (() => {
-    if (step === 0 && activeTemplates.length === 0) {
-      return "Configure at least one active print template before importing.";
-    }
     if (step === 0 && !understood) {
       return "Confirm that you understand the pipeline before continuing.";
     }
@@ -291,8 +344,11 @@ export function ImportPhotoWizardClient({
     if (step === 2 && !detailsValid) {
       return "Title, slug, and edition size (1 or more) are required.";
     }
-    if (step === 3 && !templatesValid) {
-      return "Select at least one print template with a valid price.";
+    if (step === 3 && !hasMasterPixels) {
+      return "Master TIFF pixel dimensions are required to compute custom sizes.";
+    }
+    if (step === 3 && !sizesValid) {
+      return "Select at least one paper and long-edge size with a valid retail price.";
     }
     if (step === 4 && !webImageValid) {
       return "Choose auto-generate, or upload a JPEG/PNG/WebP override.";
@@ -324,10 +380,11 @@ export function ImportPhotoWizardClient({
     setEditionSize("10");
     setIsFeatured(false);
     setVisibility("public");
-    setSelectedTemplateIds([]);
+    setSelectedPaperIds(DEFAULT_PAPER_IDS);
+    setSelectedLongEdges(DEFAULT_LONG_EDGE_MMS);
+    setPriceOverrides({});
     setSelectedThemeIds([]);
     setThemeOptions(themes);
-    setTemplateFraming({});
     setWebImageMode("generate");
     setWebImage(null);
     setSaving(false);
@@ -362,28 +419,23 @@ export function ImportPhotoWizardClient({
     }
     formData.set("is_featured", String(isFeatured));
     formData.set("visibility", visibility);
-    formData.set("variant_template_ids", JSON.stringify(selectedTemplateIds));
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
     formData.set(
-      "variant_template_prices",
+      "custom_size_variants",
       JSON.stringify(
-        Object.fromEntries(
-          selectedTemplateIds.map((templateId) => [
-            templateId,
-            Math.round((Number.parseFloat(templatePrices[templateId] || "0") || 0) * 100),
-          ]),
-        ),
-      ),
-    );
-    formData.set(
-      "variant_framing",
-      JSON.stringify(
-        Object.fromEntries(
-          selectedTemplateIds.map((templateId) => [
-            templateId,
-            templateFraming[templateId] ?? defaultVariantFraming(),
-          ]),
-        ),
+        variantCombos.map((combo) => {
+          const dollars = Number.parseFloat(retailDollarsForCombo(combo) || "0") || 0;
+          const formulaCents = combo.formulaRetailCents;
+          const overrideCents = Math.round(dollars * 100);
+          const priceAud =
+            formulaCents !== null && overrideCents === formulaCents ? null : overrideCents;
+          return {
+            paper_type: combo.paper.label,
+            print_type: combo.paper.printType as PrintTypeCode,
+            long_edge_mm: combo.longEdgeMm,
+            price_aud: priceAud,
+          };
+        }),
       ),
     );
     if (webImageMode === "upload" && webImage) {
@@ -423,8 +475,7 @@ export function ImportPhotoWizardClient({
             ))}
           </ul>
           <p style={{ marginBottom: 0 }}>
-            On production this usually means <code>MASTER_FILES_DIR</code> is missing or unreachable, or the{" "}
-            <code>variant_templates</code> table needs the additive SQL migrations.
+            On production this usually means <code>MASTER_FILES_DIR</code> is missing or unreachable.
           </p>
         </div>
       ) : null}
@@ -461,32 +512,25 @@ export function ImportPhotoWizardClient({
                 You place a master <code>.tif</code> / <code>.tiff</code> in <code>{masterFilesDirPath}</code>{" "}
                 (with an embedded ICC profile).
               </li>
-              <li>You add title, slug, edition size, and choose print sizes (templates).</li>
+              <li>
+                You add title, slug, edition size, then choose papers and long-edge sizes. Each combo becomes an
+                aspect-true custom-size variant priced from Pixel Perfect sq-in cost × markup (
+                {markupFactor}× — editable on{" "}
+                <Link href="/admin/print-profiles">Print Templates</Link>).
+              </li>
               <li>The app creates a public web JPEG (or uses your override), product, variants, and Stripe prices.</li>
               <li>The product is marked available and appears on <code>/shop</code>.</li>
-              <li>After a sale, a separate fulfilment worker builds the lab TIFF from the same master.</li>
+              <li>After a sale, fulfilment orders custom paper at the computed mm from the same master.</li>
             </ul>
             <h3>You will need</h3>
             <ul>
-              <li>At least one active print template under{" "}
-                <Link href="/admin/print-profiles">Print Templates</Link>.
-              </li>
               <li>Access to the master files share on the server (not the public website folder).</li>
               <li>
                 A master TIFF prepared in Photoshop with an embedded ICC profile — see{" "}
-                <Link href="/admin/help/master-tiff">Preparing a master TIFF</Link> (Lightroom → Photoshop → Convert
-                to Adobe RGB → Save As TIFF).
+                <Link href="/admin/help/master-tiff">Preparing a master TIFF</Link>.
               </li>
             </ul>
           </div>
-
-          {activeTemplates.length === 0 ? (
-            <p className={styles.blocker}>
-              No active print templates are configured. Create and activate templates before importing a photo.
-            </p>
-          ) : (
-            <p className={styles.success}>{activeTemplates.length} active print template(s) available.</p>
-          )}
 
           <div className={styles.checklist}>
             <label className={styles.checkboxRow}>
@@ -494,11 +538,10 @@ export function ImportPhotoWizardClient({
                 type="checkbox"
                 checked={understood}
                 onChange={(event) => setUnderstood(event.target.checked)}
-                disabled={activeTemplates.length === 0}
               />
               <span>
-                I understand: masters go on the server share (not browser upload), print sizes come from templates, and
-                registering publishes the product for ordering.
+                I understand: masters go on the server share (not browser upload), print sizes are custom paper from
+                long edge + sq-in pricing, and registering publishes the product for ordering.
               </span>
             </label>
           </div>
@@ -511,7 +554,7 @@ export function ImportPhotoWizardClient({
           <div className={styles.explain}>
             <p>
               Copy the finished master into <code>{masterFilesDirPath}</code>. Use filename only later — no folder path.
-              The file must include an embedded ICC colour profile.
+              The file must include an embedded ICC colour profile. Pixel dimensions are required for custom sizes.
             </p>
             <p>
               Large masters are not uploaded through the browser. When the copy finishes, refresh the list below and
@@ -651,96 +694,108 @@ export function ImportPhotoWizardClient({
 
       {step === 3 ? (
         <section className={styles.panel}>
-          <h2>4. Print templates</h2>
+          <h2>4. Print sizes</h2>
           <p className={styles.explain}>
-            Choose which sellable sizes to create. Dimensions, paper, and DPI are copied onto each variant with this
-            master filename. Manage templates on{" "}
-            <Link href="/admin/print-profiles">Print Templates</Link>.
+            Pick papers and long-edge presets. Each combination becomes a shop variant at the master photo&apos;s
+            aspect ratio (<code>custom_size</code>), priced as lab cost × {markupFactor}× markup. Adjust retail per row
+            if needed. Markup and rates: <Link href="/admin/print-profiles">Print Templates</Link>.
           </p>
-          <div className={styles.templateActions}>
-            <button className={styles.secondaryButton} type="button" onClick={selectAllTemplates}>
-              Select all
-            </button>
-            <button className={styles.secondaryButton} type="button" onClick={deselectAllTemplates}>
-              Deselect all
-            </button>
-            <span className={styles.muted}>{selectedTemplateIds.length} selected</span>
-          </div>
-          <div className={styles.templateList}>
-            {activeTemplates.map((template) => (
-              <details className={styles.templateOption} key={template.id}>
-                <summary className={styles.templateSummary}>
-                  <input
-                    type="checkbox"
-                    checked={selectedTemplateIds.includes(template.id)}
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={() => toggleTemplate(template.id)}
-                  />
-                  <span>
-                    <strong>{template.variant_label}</strong>
-                    <span className={styles.muted}>
-                      {[
-                        template.tier_label,
-                        template.paper_type,
-                        template.finish,
-                        template.is_framed ? template.frame_type ?? "framed" : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" / ")}
-                    </span>
-                  </span>
-                  <span className={styles.priceField} onClick={(event) => event.stopPropagation()}>
-                    Price AUD
+          <p className={styles.muted}>{PIXEL_PERFECT_PRICELIST_NOTE}.</p>
+
+          {!hasMasterPixels ? (
+            <p className={styles.blocker}>
+              This master has no readable pixel dimensions. Re-scan masters or pick another file — custom sizes cannot
+              be computed without them.
+            </p>
+          ) : null}
+
+          <div className={styles.matrixPickers}>
+            <div>
+              <h3>Papers</h3>
+              <div className={styles.chipList}>
+                {sellablePapers.map((paper) => (
+                  <label key={paper.id} className={styles.chip}>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={templatePrices[template.id] ?? ""}
-                      disabled={!selectedTemplateIds.includes(template.id)}
-                      onChange={(event) =>
-                        setTemplatePrices((current) => ({ ...current, [template.id]: event.target.value }))
-                      }
+                      type="checkbox"
+                      checked={selectedPaperIds.includes(paper.id)}
+                      onChange={() => togglePaper(paper.id)}
                     />
-                  </span>
-                </summary>
-                <div className={styles.templateDetails}>
-                  <span className={styles.muted}>
-                    {template.width_mm} x {template.height_mm} mm
-                    {template.edition_size ? `, edition ${template.edition_size}` : ""}
-                    {`, ${template.print_dpi} DPI`}
-                  </span>
-                  <span className={styles.muted}>
-                    Default ${(template.base_price_aud / 100).toFixed(2)}
-                    {formatDollars(template.lab_cost_aud) ? `, lab cost ${formatDollars(template.lab_cost_aud)}` : ""}
-                  </span>
-                </div>
-              </details>
-            ))}
+                    <span>
+                      {paper.label}
+                      <span className={styles.muted}> · {defaultPrintTypeForPaper(paper.label)}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3>Long-edge sizes</h3>
+              <div className={styles.chipList}>
+                {LONG_EDGE_PRESETS.map((preset) => (
+                  <label key={preset.mm} className={styles.chip}>
+                    <input
+                      type="checkbox"
+                      checked={selectedLongEdges.includes(preset.mm)}
+                      onChange={() => toggleLongEdge(preset.mm)}
+                    />
+                    <span>{preset.labelMm}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {selectedTemplates.length > 0 && selectedMaster ? (
-            <div className={styles.framingList}>
-              <h3>Framing for selected sizes</h3>
-              <p className={styles.explain}>
-                Cover &amp; crop fills the print size (default). Custom size keeps the whole photo and adjusts one
-                edge for a Pixel Perfect custom paper order.
-              </p>
-              {selectedTemplates.map((template) => (
-                <PrintFramingControls
-                  key={template.id}
-                  label={template.variant_label}
-                  templateWidthMm={template.width_mm}
-                  templateHeightMm={template.height_mm}
-                  pixelWidth={selectedMaster.pixel_width}
-                  pixelHeight={selectedMaster.pixel_height}
-                  previewUrl={masterThumbnailUrl(selectedMaster.filename)}
-                  value={templateFraming[template.id] ?? defaultVariantFraming()}
-                  onChange={(next) =>
-                    setTemplateFraming((current) => ({ ...current, [template.id]: next }))
-                  }
-                />
-              ))}
+          {variantCombos.length > 0 ? (
+            <div className={styles.variantMatrix}>
+              <h3>
+                Variants to create ({variantCombos.length})
+              </h3>
+              <table className={styles.matrixTable}>
+                <thead>
+                  <tr>
+                    <th>Label</th>
+                    <th>Size</th>
+                    <th>Lab cost</th>
+                    <th>Formula retail</th>
+                    <th>Retail AUD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variantCombos.map((combo) => (
+                    <tr key={combo.key}>
+                      <td>
+                        {formatCustomSizeVariantLabel({
+                          paperLabel: combo.paper.label,
+                          widthMm: combo.widthMm,
+                          heightMm: combo.heightMm,
+                          longEdgeMm: combo.longEdgeMm,
+                        })}
+                      </td>
+                      <td>{formatDualSize(combo.widthMm, combo.heightMm)}</td>
+                      <td>{combo.labCostAud !== null ? formatMoney(combo.labCostAud) : "—"}</td>
+                      <td>
+                        {combo.formulaRetailAud !== null ? formatMoney(combo.formulaRetailAud) : "—"}
+                        <span className={styles.muted}> ({markupFactor}×)</span>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          className={styles.priceInput}
+                          value={retailDollarsForCombo(combo)}
+                          onChange={(event) =>
+                            setPriceOverrides((current) => ({ ...current, [combo.key]: event.target.value }))
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+          ) : hasMasterPixels ? (
+            <p className={styles.blocker}>Select at least one paper and one long-edge size.</p>
           ) : null}
         </section>
       ) : null}
@@ -766,7 +821,9 @@ export function ImportPhotoWizardClient({
                 />
                 <span>
                   <strong>Auto-generate from master TIFF</strong>
-                  <span className={styles.muted}>Recommended. Created during registration from {masterFilename || "the selected master"}.</span>
+                  <span className={styles.muted}>
+                    Recommended. Created during registration from {masterFilename || "the selected master"}.
+                  </span>
                 </span>
               </label>
             </div>
@@ -860,9 +917,15 @@ export function ImportPhotoWizardClient({
                 <th>Variants</th>
                 <td>
                   <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
-                    {selectedTemplates.map((template) => (
-                      <li key={template.id}>
-                        {template.variant_label} — ${templatePrices[template.id] || "0.00"} AUD
+                    {variantCombos.map((combo) => (
+                      <li key={combo.key}>
+                        {formatCustomSizeVariantLabel({
+                          paperLabel: combo.paper.label,
+                          widthMm: combo.widthMm,
+                          heightMm: combo.heightMm,
+                          longEdgeMm: combo.longEdgeMm,
+                        })}{" "}
+                        — ${retailDollarsForCombo(combo) || "0.00"} AUD
                       </li>
                     ))}
                   </ul>
@@ -883,7 +946,7 @@ export function ImportPhotoWizardClient({
           <div className={styles.explain}>
             <p>
               Customers can buy it now at <code>/shop/{slug}</code>. After payment, fulfilment waits for the print
-              worker to prepare a lab TIFF from the same master TIFF.
+              worker to prepare a lab TIFF from the same master TIFF (custom paper at the stored mm).
             </p>
           </div>
           <div className={styles.doneLinks}>

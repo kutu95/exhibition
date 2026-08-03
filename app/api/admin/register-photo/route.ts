@@ -27,30 +27,52 @@ const extensionByMimeType: Record<string, string> = {
 };
 const maxImageBytes = 8 * 1024 * 1024;
 
-const formSchema = z.object({
-  title: z.string().min(1),
-  slug: z.string().min(1),
-  description: z.string().nullable(),
-  location_tag: z.string().nullable(),
-  photo_type_tag: z.enum(photoTypeOptions).nullable(),
-  is_featured: z.boolean(),
-  visibility: z.enum(["public", "vault"]).default("public"),
-  edition_size: z.number().int().positive(),
-  master_filename: z.string().min(1),
-  master_pixel_width: z.number().int().positive().nullable(),
-  master_pixel_height: z.number().int().positive().nullable(),
-  variant_template_ids: z.array(z.string().uuid()).min(1),
-  variant_template_prices: z.record(z.string().uuid(), z.number().int().nonnegative()),
-  variant_framing: z.record(
-    z.string().uuid(),
-    z.object({
-      fit_mode: z.enum(["cover_crop", "custom_size"]),
-      crop_offset: z.number().min(-1).max(1),
-      size_lock: z.enum(["long_edge", "width", "height"]).nullable(),
-    }),
-  ),
-  theme_ids: z.array(z.string().uuid()),
-});
+const formSchema = z
+  .object({
+    title: z.string().min(1),
+    slug: z.string().min(1),
+    description: z.string().nullable(),
+    location_tag: z.string().nullable(),
+    photo_type_tag: z.enum(photoTypeOptions).nullable(),
+    is_featured: z.boolean(),
+    visibility: z.enum(["public", "vault"]).default("public"),
+    edition_size: z.number().int().positive(),
+    master_filename: z.string().min(1),
+    master_pixel_width: z.number().int().positive().nullable(),
+    master_pixel_height: z.number().int().positive().nullable(),
+    variant_template_ids: z.array(z.string().uuid()).default([]),
+    variant_template_prices: z.record(z.string().uuid(), z.number().int().nonnegative()).default({}),
+    variant_framing: z
+      .record(
+        z.string().uuid(),
+        z.object({
+          fit_mode: z.enum(["cover_crop", "custom_size"]),
+          crop_offset: z.number().min(-1).max(1),
+          size_lock: z.enum(["long_edge", "width", "height"]).nullable(),
+        }),
+      )
+      .default({}),
+    custom_size_variants: z
+      .array(
+        z.object({
+          paper_type: z.string().min(1),
+          print_type: z.enum(["fine_art", "photo", "canvas", "metal"]).nullable().optional(),
+          long_edge_mm: z.number().int().positive(),
+          price_aud: z.number().int().nonnegative().nullable().optional(),
+          border_mm: z.number().int().nonnegative().optional(),
+          print_dpi: z.number().int().positive().optional(),
+          finish: z.string().nullable().optional(),
+          edition_size: z.number().int().positive().nullable().optional(),
+          tier_label: z.string().nullable().optional(),
+        }),
+      )
+      .default([]),
+    theme_ids: z.array(z.string().uuid()),
+  })
+  .refine(
+    (data) => data.custom_size_variants.length > 0 || data.variant_template_ids.length > 0,
+    { message: "Select at least one print size (custom variants or templates)." },
+  );
 
 const stringField = (formData: FormData, key: string): string | null => {
   const value = formData.get(key);
@@ -134,6 +156,62 @@ const variantFramingField = (
       return [[templateId, { fit_mode: fitMode, crop_offset: cropOffset, size_lock: sizeLock }]];
     }),
   );
+};
+
+const customSizeVariantsField = (
+  formData: FormData,
+): Array<{
+  paper_type: string;
+  print_type?: "fine_art" | "photo" | "canvas" | "metal" | null;
+  long_edge_mm: number;
+  price_aud?: number | null;
+  border_mm?: number;
+  print_dpi?: number;
+  finish?: string | null;
+  edition_size?: number | null;
+  tier_label?: string | null;
+}> => {
+  const value = formData.get("custom_size_variants");
+  if (typeof value !== "string" || !value.trim()) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const record = item as Record<string, unknown>;
+    const paper = typeof record.paper_type === "string" ? record.paper_type.trim() : "";
+    const longEdge = typeof record.long_edge_mm === "number" ? record.long_edge_mm : Number(record.long_edge_mm);
+    if (!paper || !Number.isFinite(longEdge) || longEdge <= 0) return [];
+
+    const printType =
+      record.print_type === "fine_art" ||
+      record.print_type === "photo" ||
+      record.print_type === "canvas" ||
+      record.print_type === "metal"
+        ? record.print_type
+        : null;
+
+    return [
+      {
+        paper_type: paper,
+        print_type: printType,
+        long_edge_mm: Math.round(longEdge),
+        price_aud: typeof record.price_aud === "number" ? Math.round(record.price_aud) : null,
+        border_mm: typeof record.border_mm === "number" ? Math.round(record.border_mm) : undefined,
+        print_dpi: typeof record.print_dpi === "number" ? Math.round(record.print_dpi) : undefined,
+        finish: typeof record.finish === "string" ? record.finish : null,
+        edition_size: typeof record.edition_size === "number" ? Math.round(record.edition_size) : null,
+        tier_label: typeof record.tier_label === "string" ? record.tier_label : null,
+      },
+    ];
+  });
 };
 
 type SavedWebImage = {
@@ -265,6 +343,7 @@ export async function POST(request: Request) {
     variant_template_ids: variantTemplateIdsField(formData),
     variant_template_prices: variantTemplatePricesField(formData),
     variant_framing: variantFramingField(formData),
+    custom_size_variants: customSizeVariantsField(formData),
     theme_ids: themeIdsField(formData),
   });
 
@@ -315,6 +394,19 @@ export async function POST(request: Request) {
     }
     if (error instanceof Error && error.message === "NO_ACTIVE_VARIANT_TEMPLATES") {
       return NextResponse.json({ error: "No active variant templates found." }, { status: 500 });
+    }
+    if (error instanceof Error && error.message === "MASTER_PIXELS_REQUIRED_FOR_CUSTOM_SIZE") {
+      return NextResponse.json(
+        { error: "Master TIFF pixel dimensions are required for custom-size variants." },
+        { status: 400 },
+      );
+    }
+    if (error instanceof Error && error.message.startsWith("NO_SQ_IN_RATE_FOR_PAPER:")) {
+      const paper = error.message.replace("NO_SQ_IN_RATE_FOR_PAPER:", "");
+      return NextResponse.json(
+        { error: `No Pixel Perfect square-inch rate for “${paper}”. Choose another paper or set a price override.` },
+        { status: 400 },
+      );
     }
     if (isStripeConfigurationError(error)) {
       return NextResponse.json(

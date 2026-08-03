@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatCustomSizeVariantLabel,
   formatVariantLabel,
   paperSelectValue,
   papersForPrintType,
@@ -10,6 +11,8 @@ import {
 } from "../lib/print-catalogue";
 import {
   computeMarginGuidance,
+  computeRetailFromLabCost,
+  computeVariantPricing,
   deriveAspectPreservingSizeMm,
   estimatePixelPerfectLabCost,
   formatDualSize,
@@ -32,6 +35,17 @@ describe("print catalogue", () => {
     expect(formatVariantLabel(594, 445, "Hahnemühle Photo Rag 308gsm")).toBe(
       "594×445 mm / Hahnemühle Photo Rag 308gsm",
     );
+  });
+
+  it("formats custom-size shop labels with long-edge name and mm", () => {
+    expect(
+      formatCustomSizeVariantLabel({
+        paperLabel: "Hahnemühle Photo Rag 308gsm",
+        widthMm: 420,
+        heightMm: 236,
+        longEdgeMm: 420,
+      }),
+    ).toBe("Hahnemühle Photo Rag 308gsm · A3 long edge (420×236 mm)");
   });
 
   it("maps custom paper labels to other select value", () => {
@@ -99,5 +113,17 @@ describe("print size helpers", () => {
     expect(margin).not.toBeNull();
     expect(margin!.marginAud).toBeCloseTo(92.13, 1);
     expect(margin!.marginPercent).toBeGreaterThan(70);
+  });
+
+  it("applies markup to lab cost for retail", () => {
+    expect(computeRetailFromLabCost(27.87, 3)).toBeCloseTo(83.61, 2);
+    const pricing = computeVariantPricing({
+      widthMm: inchesToMm(14),
+      heightMm: inchesToMm(11),
+      paperLabel: "Hahnemühle Photo Rag 308gsm",
+      markupFactor: 3,
+    });
+    expect(pricing).not.toBeNull();
+    expect(pricing!.retailAud).toBeCloseTo(pricing!.labCostAud * 3, 2);
   });
 });
