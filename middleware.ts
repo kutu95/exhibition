@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "./lib/admin-auth";
+import { arePurchasesAllowedForHost } from "./lib/purchases-access";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -96,6 +97,10 @@ export async function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
+  requestHeaders.set(
+    "x-purchases-allowed",
+    arePurchasesAllowedForHost(hostHeader) ? "1" : "0",
+  );
 
   const response = NextResponse.next({
     request: {

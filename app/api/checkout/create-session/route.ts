@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { queryPostgres } from "../../../../lib/postgres";
+import {
+  arePurchasesAllowedForRequest,
+  PURCHASES_DISABLED_MESSAGE,
+} from "../../../../lib/purchases-access";
 import { stripe } from "../../../../lib/stripe";
 import { hasActiveVaultSessionFromRequest } from "../../../../lib/vault-access";
 
@@ -25,6 +29,10 @@ type VariantCheckoutRow = {
 
 export async function POST(request: Request) {
   try {
+    if (!arePurchasesAllowedForRequest(request)) {
+      return NextResponse.json({ error: PURCHASES_DISABLED_MESSAGE }, { status: 403 });
+    }
+
     const payload = await request.json();
     const parsed = checkoutSessionSchema.safeParse(payload);
 

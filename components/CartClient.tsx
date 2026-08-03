@@ -5,17 +5,20 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useCart } from "./CartProvider";
+import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import styles from "./CartClient.module.css";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
+import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import { formatAUD } from "../lib/utils/currency";
 
 export function CartClient() {
   const { items, itemCount, subtotalAud, updateQuantity, removeItem } = useCart();
+  const purchasesAllowed = usePurchasesAllowed();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleCheckout = async () => {
-    if (items.length === 0) return;
+    if (!purchasesAllowed || items.length === 0) return;
 
     try {
       setIsCheckingOut(true);
@@ -103,9 +106,16 @@ export function CartClient() {
           <span>{formatAUD(subtotalAud)}</span>
         </p>
         <p className={styles.note}>Shipping calculated at checkout. Free within Australia.</p>
-        <button className="button-solid" type="button" onClick={handleCheckout} disabled={isCheckingOut}>
-          {isCheckingOut ? "Redirecting..." : "Checkout"}
-        </button>
+        {purchasesAllowed ? (
+          <button className="button-solid" type="button" onClick={handleCheckout} disabled={isCheckingOut}>
+            {isCheckingOut ? "Redirecting..." : "Checkout"}
+          </button>
+        ) : (
+          <p className={styles.purchaseNotice}>
+            {PURCHASES_DISABLED_MESSAGE}{" "}
+            <Link href="/contact">Contact</Link>
+          </p>
+        )}
         <Link href="/shop" className={styles.continue}>
           Continue shopping
         </Link>

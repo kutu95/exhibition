@@ -5,9 +5,11 @@ import { ReactNode } from "react";
 
 import { CartProvider } from "../components/CartProvider";
 import { FavouritesProvider } from "../components/FavouritesProvider";
+import { PurchasesAccessProvider } from "../components/PurchasesAccessProvider";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteNav } from "../components/SiteNav";
 import { buildMetadata, siteConfig } from "../lib/metadata";
+import { arePurchasesAllowedForHost } from "../lib/purchases-access";
 import "./globals.css";
 
 const baseMetadata = buildMetadata({});
@@ -56,8 +58,15 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const pathname = (await headers()).get("x-pathname") ?? "";
+  const headerStore = await headers();
+  const pathname = headerStore.get("x-pathname") ?? "";
   const isAdminRoute = pathname.startsWith("/admin");
+  const purchasesHeader = headerStore.get("x-purchases-allowed");
+  const purchasesAllowed =
+    purchasesHeader === "1" ||
+    purchasesHeader === "0"
+      ? purchasesHeader === "1"
+      : arePurchasesAllowedForHost(headerStore.get("host"));
   const isStripeBypassEnabled = ["1", "true", "yes", "on"].includes(
     (process.env.CHECKOUT_BYPASS_STRIPE ?? "").trim().toLowerCase(),
   );
@@ -105,13 +114,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {isAdminRoute ? (
           <main style={{ minHeight: "100vh", paddingTop: 0 }}>{children}</main>
         ) : (
-          <CartProvider>
-            <FavouritesProvider>
-              <SiteNav exhibitionTitle={exhibitionTitle} />
-              <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
-              <SiteFooter exhibitionTitle={exhibitionTitle} />
-            </FavouritesProvider>
-          </CartProvider>
+          <PurchasesAccessProvider allowed={purchasesAllowed}>
+            <CartProvider>
+              <FavouritesProvider>
+                <SiteNav exhibitionTitle={exhibitionTitle} />
+                <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
+                <SiteFooter exhibitionTitle={exhibitionTitle} />
+              </FavouritesProvider>
+            </CartProvider>
+          </PurchasesAccessProvider>
         )}
       </body>
     </html>

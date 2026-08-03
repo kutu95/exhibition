@@ -7,8 +7,10 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
 import { FavouriteButton } from "./FavouriteButton";
+import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { readCart } from "../lib/cart";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
+import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { formatAUD } from "../lib/utils/currency";
 import styles from "./ProductDetailClient.module.css";
@@ -34,6 +36,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addItem, itemCount } = useCart();
+  const purchasesAllowed = usePurchasesAllowed();
 
   const selectedVariant = useMemo(
     () => product.product_variants.find((variant) => variant.id === selectedVariantId),
@@ -71,6 +74,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   };
 
   const handleAddToCart = () => {
+    if (!purchasesAllowed) return;
     const item = cartLine();
     if (!item || !selectedVariant) return;
     setError(null);
@@ -84,6 +88,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   };
 
   const handleBuyNow = async () => {
+    if (!purchasesAllowed) return;
     const item = cartLine();
     if (!item || !selectedVariant) return;
 
@@ -220,24 +225,35 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             size="detail"
             className={styles.favouriteButton}
           />
-          <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
-            Add to cart
-          </button>
-          <button
-            className={`button-outline ${styles.buyButton}`}
-            type="button"
-            onClick={handleBuyNow}
-            disabled={isCheckingOut}
-          >
-            {isCheckingOut
-              ? "Redirecting..."
-              : itemCount > 0
-                ? "Buy now (includes cart)"
-                : "Buy now"}
-          </button>
+          {purchasesAllowed ? (
+            <>
+              <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
+                Add to cart
+              </button>
+              <button
+                className={`button-outline ${styles.buyButton}`}
+                type="button"
+                onClick={handleBuyNow}
+                disabled={isCheckingOut}
+              >
+                {isCheckingOut
+                  ? "Redirecting..."
+                  : itemCount > 0
+                    ? "Buy now (includes cart)"
+                    : "Buy now"}
+              </button>
+            </>
+          ) : null}
         </div>
 
-        {itemCount > 0 ? (
+        {!purchasesAllowed ? (
+          <p className={styles.purchaseNotice}>
+            {PURCHASES_DISABLED_MESSAGE}{" "}
+            <Link href="/contact">Contact</Link>
+          </p>
+        ) : null}
+
+        {purchasesAllowed && itemCount > 0 ? (
           <p className={styles.cartFeedback}>
             {itemCount} item{itemCount === 1 ? "" : "s"} already in your cart.{" "}
             <Link href="/cart">View cart</Link>

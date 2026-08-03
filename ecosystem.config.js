@@ -21,6 +21,8 @@ module.exports = {
         APP_ROOT: root,
         // Explicit: PM2 process env overrides .env* files. Keep Stripe live in production.
         CHECKOUT_BYPASS_STRIPE: "false",
+        // Temporary: only allow purchases when Host is localhost / private LAN.
+        PURCHASES_LAN_ONLY: "true",
       },
       error_file: "./logs/pm2-error.log",
       out_file: "./logs/pm2-out.log",
