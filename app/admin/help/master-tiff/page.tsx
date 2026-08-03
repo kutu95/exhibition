@@ -91,6 +91,12 @@ export default function MasterTiffHelpPage() {
             product record). Example: <code>redgate-drift-01.tif</code>
           </li>
           <li>
+            Prefer saving directly into the Masters folder from Photoshop, or copy with a tool that does not write macOS
+            AppleDouble sidecars. Finder copies onto the NAS often create junk files named{" "}
+            <code>._your-file.tif</code> next to the real TIFF — the Import Wizard and Register Photo scan delete those
+            automatically and never offer them as masters.
+          </li>
+          <li>
             In the <strong>TIFF Options</strong> dialog that appears next:
             <ul>
               <li>

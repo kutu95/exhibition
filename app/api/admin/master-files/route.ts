@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Sidecar purge runs inside listUnregisteredMasterFiles (macOS ._ AppleDouble junk).
     const files = await listUnregisteredMasterFiles();
     return NextResponse.json({ files });
   } catch (error) {

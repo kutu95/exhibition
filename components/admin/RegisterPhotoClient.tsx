@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
@@ -39,6 +39,31 @@ const formatDollars = (cents: number | null): string | null => (cents === null ?
 const formatResolution = (file: MasterFileCandidate): string =>
   file.pixel_width && file.pixel_height ? `${file.pixel_width} x ${file.pixel_height} px` : "Resolution unavailable";
 
+const masterThumbnailUrl = (filename: string): string =>
+  `/api/admin/master-files/thumbnail?filename=${encodeURIComponent(filename)}`;
+
+function MasterThumbnail({ filename }: { filename: string }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [filename]);
+
+  if (failed) {
+    return <div className={styles.thumbPlaceholder}>Preview unavailable</div>;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- admin preview from authenticated API
+    <img
+      className={styles.thumb}
+      src={masterThumbnailUrl(filename)}
+      alt={`Preview of ${filename}`}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: RegisterPhotoClientProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -178,7 +203,8 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
       <section className={styles.panel}>
         <h2>New Master TIFFs</h2>
         <p className={styles.muted}>
-          These files are in `MASTER_FILES_DIR` and are not yet attached to a product.
+          These files are in `MASTER_FILES_DIR` and are not yet attached to a product. Thumbnails are generated on demand
+          from the master TIFF (first load of a large file can take a few seconds).
         </p>
         {masterFiles.length > 0 ? (
           <div className={styles.fileList}>
@@ -189,11 +215,14 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
                 type="button"
                 onClick={() => selectMasterFile(file)}
               >
-                <strong>{file.filename}</strong>
-                <span>{formatBytes(file.size_bytes)}</span>
-                <span>{formatResolution(file)}</span>
-                <span>Aspect ratio {file.aspect_ratio ?? "unavailable"}</span>
-                <span>Modified {new Date(file.modified_at).toLocaleString("en-AU")}</span>
+                <MasterThumbnail filename={file.filename} />
+                <span className={styles.fileMeta}>
+                  <strong>{file.filename}</strong>
+                  <span>{formatBytes(file.size_bytes)}</span>
+                  <span>{formatResolution(file)}</span>
+                  <span>Aspect ratio {file.aspect_ratio ?? "unavailable"}</span>
+                  <span>Modified {new Date(file.modified_at).toLocaleString("en-AU")}</span>
+                </span>
               </button>
             ))}
           </div>

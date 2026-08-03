@@ -25,6 +25,22 @@ const TIFF_IMAGE_HEIGHT_TAG = 257;
 const TIFF_TYPE_SHORT = 3;
 const TIFF_TYPE_LONG = 4;
 
+/**
+ * macOS writes AppleDouble metadata as `._original.tif` when copying onto SMB/NAS
+ * (and similar non-HFS volumes). Those keep a .tif extension, so a naive scan
+ * treats them as masters. They are not images and are safe to delete.
+ */
+export const isAppleDoubleSidecar = (filename: string): boolean =>
+  path.basename(filename).startsWith("._");
+
+export const isIgnorableMasterDirEntry = (filename: string): boolean => {
+  const base = path.basename(filename);
+  if (!base || base === "." || base === "..") return true;
+  if (base === ".DS_Store" || base === "Thumbs.db") return true;
+  if (base.startsWith("._") || base.startsWith(".")) return true;
+  return false;
+};
+
 type TiffDimensions = {
   width: number;
   height: number;
@@ -51,6 +67,10 @@ export const safeMasterFilename = (filename: string): string => {
   const trimmed = filename.trim();
   if (!trimmed || path.basename(trimmed) !== trimmed) {
     throw new Error("Master filename must be a filename only, not a path.");
+  }
+
+  if (isIgnorableMasterDirEntry(trimmed) || isAppleDoubleSidecar(trimmed)) {
+    throw new Error("That file is a system sidecar (for example a macOS ._ metadata file), not a master TIFF.");
   }
 
   const extension = path.extname(trimmed).toLowerCase();
@@ -200,8 +220,36 @@ export const readTiffDimensions = async (filePath: string): Promise<TiffDimensio
   }
 };
 
+/**
+ * Remove macOS AppleDouble `._*` junk from the masters folder.
+ * Returns how many files were deleted (best-effort; failures are skipped).
+ */
+export const purgeAppleDoubleSidecars = async (dir?: string): Promise<number> => {
+  const targetDir = dir ?? getMasterFilesDir();
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(targetDir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+
+  let deleted = 0;
+  for (const entry of entries) {
+    if (!entry.isFile() || !isAppleDoubleSidecar(entry.name)) continue;
+    try {
+      await fs.unlink(path.join(targetDir, entry.name));
+      deleted += 1;
+    } catch {
+      // Leave it; listing will still ignore it.
+    }
+  }
+  return deleted;
+};
+
 export const listUnregisteredMasterFiles = async (): Promise<MasterFileCandidate[]> => {
   const dir = getMasterFilesDir();
+  await purgeAppleDoubleSidecars(dir);
+
   let entries: Dirent[];
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
@@ -224,6 +272,7 @@ export const listUnregisteredMasterFiles = async (): Promise<MasterFileCandidate
 
   for (const entry of entries) {
     if (!entry.isFile()) continue;
+    if (isIgnorableMasterDirEntry(entry.name)) continue;
 
     const extension = path.extname(entry.name).toLowerCase();
     if (!tiffExtensions.has(extension) || registered.has(entry.name)) continue;
