@@ -119,7 +119,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <FavouritesProvider>
                 <SiteNav exhibitionTitle={exhibitionTitle} />
                 <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
-                <SiteFooter exhibitionTitle={exhibitionTitle} />
+                <SiteFooter exhibitionTitle={exhibitionTitle} showCollectionsCta={purchasesAllowed} />
               </FavouritesProvider>
             </CartProvider>
           </PurchasesAccessProvider>

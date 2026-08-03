@@ -45,9 +45,11 @@ function SocialIcon({ name }: { name: "facebook" | "instagram" }) {
 
 type SiteFooterProps = {
   exhibitionTitle: string;
+  /** When false, hide the private-collections request band (LAN-only gate). */
+  showCollectionsCta?: boolean;
 };
 
-export function SiteFooter({ exhibitionTitle }: SiteFooterProps) {
+export function SiteFooter({ exhibitionTitle, showCollectionsCta = true }: SiteFooterProps) {
   return (
     <footer className={styles.footer}>
       <div className={`container ${styles.top}`}>
@@ -92,15 +94,17 @@ export function SiteFooter({ exhibitionTitle }: SiteFooterProps) {
         </div>
       </div>
 
-      <div className={`container ${styles.collectionsBand}`}>
-        <p>
-          <span className={styles.collectionsLead}>Further collections.</span> Very limited edition work, reserved for
-          collectors and invited guests.
-        </p>
-        <Link className={styles.collectionsLink} href="/collections/request">
-          Request access
-        </Link>
-      </div>
+      {showCollectionsCta ? (
+        <div className={`container ${styles.collectionsBand}`}>
+          <p>
+            <span className={styles.collectionsLead}>Further collections.</span> Very limited edition work, reserved for
+            collectors and invited guests.
+          </p>
+          <Link className={styles.collectionsLink} href="/collections/request">
+            Request access
+          </Link>
+        </div>
+      ) : null}
 
       <div className={`container ${styles.bottom}`}>
         <p>

@@ -1,16 +1,19 @@
 /**
- * Temporary gate: online purchases only when the visitor is on the LAN.
+ * Temporary gate: purchases and private-collections access only on the LAN.
  *
  * Detection is by Host header — the public site is always exhibition.margies.app
  * (via Cloudflare). LAN access today is the SSH tunnel to localhost:3007, which
  * arrives as Host: localhost. A future direct LAN bind (192.168.x.x) is also
  * treated as allowed. Cloudflare-fronted traffic is never LAN, even from home Wi‑Fi.
  *
- * Flip with PURCHASES_LAN_ONLY=false (or unset) when public sales reopen.
+ * Flip with PURCHASES_LAN_ONLY=false (or unset) when public sales / collections reopen.
  */
 
 export const PURCHASES_DISABLED_MESSAGE =
   "Online purchases are temporarily unavailable. Prints can be ordered at the exhibition, or via the contact page.";
+
+export const COLLECTIONS_DISABLED_MESSAGE =
+  "Private collections access is temporarily unavailable online. Please enquire via the contact page, or ask at the exhibition.";
 
 export function isPurchasesLanOnlyEnabled(): boolean {
   const value = process.env.PURCHASES_LAN_ONLY?.trim().toLowerCase();
@@ -38,6 +41,7 @@ export function isLanHostname(hostname: string): boolean {
   return false;
 }
 
+/** Purchases, vault unlock, and /collections/* share this gate while LAN-only mode is on. */
 export function arePurchasesAllowedForHost(hostHeader: string | null | undefined): boolean {
   if (!isPurchasesLanOnlyEnabled()) return true;
   return isLanHostname(hostnameFromHostHeader(hostHeader));
@@ -46,3 +50,6 @@ export function arePurchasesAllowedForHost(hostHeader: string | null | undefined
 export function arePurchasesAllowedForRequest(request: Request): boolean {
   return arePurchasesAllowedForHost(request.headers.get("host"));
 }
+
+export const areCollectionsAllowedForHost = arePurchasesAllowedForHost;
+export const areCollectionsAllowedForRequest = arePurchasesAllowedForRequest;

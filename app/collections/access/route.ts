@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { areCollectionsAllowedForRequest } from "../../../lib/purchases-access";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 import {
   createVaultSessionToken,
@@ -25,6 +26,10 @@ export async function GET(request: Request) {
       maxAge: 0,
     });
     return response;
+  }
+
+  if (!areCollectionsAllowedForRequest(request)) {
+    return NextResponse.redirect(new URL("/collections/request", base));
   }
 
   if (!rawToken) {

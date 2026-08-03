@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { handleRouteError } from "../../../../lib/api-route-errors";
+import {
+  areCollectionsAllowedForRequest,
+  COLLECTIONS_DISABLED_MESSAGE,
+} from "../../../../lib/purchases-access";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
 
 const requestSchema = z.object({
@@ -13,6 +17,10 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    if (!areCollectionsAllowedForRequest(request)) {
+      return NextResponse.json({ error: COLLECTIONS_DISABLED_MESSAGE }, { status: 403 });
+    }
+
     const parsed = requestSchema.safeParse(await request.json());
     if (!parsed.success) {
       return NextResponse.json(
