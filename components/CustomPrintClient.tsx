@@ -17,11 +17,12 @@ import {
   computeCustomPrintPricing,
   CUSTOM_FRAME_OPTIONS,
   CUSTOM_LONG_EDGE_DEFAULT_MM,
-  CUSTOM_LONG_EDGE_MAX_MM,
   CUSTOM_LONG_EDGE_MIN_MM,
+  CUSTOM_ROLL_WIDTH_MAX_MM,
   CUSTOM_RTH_CANVAS_ID,
   deriveCustomSizeFromLongEdge,
   listCustomMediaOptions,
+  maxCustomLongEdgeMm,
   type CustomFrameStyleId,
   type CustomMediaOption,
 } from "../lib/print-custom";
@@ -94,6 +95,11 @@ export function CustomPrintClient({
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
   const [busy, setBusy] = useState<"cart" | "buy" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const maxLongEdgeMm = useMemo(
+    () => maxCustomLongEdgeMm(pixelWidth, pixelHeight),
+    [pixelHeight, pixelWidth],
+  );
 
   const size = useMemo(
     () => deriveCustomSizeFromLongEdge(longEdgeMm, pixelWidth, pixelHeight),
@@ -254,7 +260,8 @@ export function CustomPrintClient({
           </FramedPreview>
           <p className={styles.muted}>
             Size keeps this photograph&apos;s aspect ratio. Long edge from {CUSTOM_LONG_EDGE_MIN_MM}–
-            {CUSTOM_LONG_EDGE_MAX_MM} mm.
+            {maxLongEdgeMm} mm (Pixel Perfect prints up to {CUSTOM_ROLL_WIDTH_MAX_MM} mm / 64″ on the
+            short edge).
           </p>
         </div>
 
@@ -287,22 +294,22 @@ export function CustomPrintClient({
             <input
               type="range"
               min={CUSTOM_LONG_EDGE_MIN_MM}
-              max={CUSTOM_LONG_EDGE_MAX_MM}
+              max={maxLongEdgeMm}
               step={1}
-              value={longEdgeMm}
+              value={Math.min(longEdgeMm, maxLongEdgeMm)}
               onChange={(event) => setLongEdgeMm(Number.parseInt(event.target.value, 10))}
             />
             <div className={styles.longEdgeRow}>
               <input
                 type="number"
                 min={CUSTOM_LONG_EDGE_MIN_MM}
-                max={CUSTOM_LONG_EDGE_MAX_MM}
+                max={maxLongEdgeMm}
                 value={longEdgeMm}
                 onChange={(event) => {
                   const next = Number.parseInt(event.target.value || "0", 10);
                   if (!Number.isFinite(next)) return;
                   setLongEdgeMm(
-                    Math.min(CUSTOM_LONG_EDGE_MAX_MM, Math.max(CUSTOM_LONG_EDGE_MIN_MM, next)),
+                    Math.min(maxLongEdgeMm, Math.max(CUSTOM_LONG_EDGE_MIN_MM, next)),
                   );
                 }}
               />

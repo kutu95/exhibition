@@ -47,7 +47,7 @@ export const longEdgeFromDimensions = (widthMm: number, heightMm: number): numbe
 
 export const matchLongEdgePreset = (widthMm: number, heightMm: number): number | "custom" => {
   const longEdge = longEdgeFromDimensions(widthMm, heightMm);
-  const presets = [297, 420, 594, 841, 1189];
+  const presets = [297, 420, 594, 841, 1189, 1524, 1626];
   return presets.includes(longEdge) ? longEdge : "custom";
 };
 

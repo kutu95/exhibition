@@ -30,8 +30,43 @@ import {
 export const SHOW_CUSTOM_PRINT_PAGE = true;
 
 export const CUSTOM_LONG_EDGE_MIN_MM = 200;
-export const CUSTOM_LONG_EDGE_MAX_MM = 1189;
 export const CUSTOM_LONG_EDGE_DEFAULT_MM = 594;
+
+/**
+ * Pixel Perfect Epson P20070 roll width (64″). One print edge must stay within this;
+ * the other can be longer for panoramas (“1.5 m wide by as long as you need”).
+ */
+export const CUSTOM_ROLL_WIDTH_MAX_MM = 1626;
+
+/** Practical online long-edge ceiling for extreme panoramas (short edge still ≤ roll). */
+export const CUSTOM_LONG_EDGE_ABS_MAX_MM = 3658;
+
+/**
+ * Absolute Zod/API ceiling. Prefer {@link maxCustomLongEdgeMm} for a given photo
+ * so the short edge never exceeds {@link CUSTOM_ROLL_WIDTH_MAX_MM}.
+ */
+export const CUSTOM_LONG_EDGE_MAX_MM = CUSTOM_LONG_EDGE_ABS_MAX_MM;
+
+/** Largest long edge that still fits the printer for this photo’s aspect ratio. */
+export const maxCustomLongEdgeMm = (pixelWidth: number, pixelHeight: number): number => {
+  if (pixelWidth <= 0 || pixelHeight <= 0) return CUSTOM_ROLL_WIDTH_MAX_MM;
+  const longPx = Math.max(pixelWidth, pixelHeight);
+  const shortPx = Math.min(pixelWidth, pixelHeight);
+  const fromRoll = Math.floor(CUSTOM_ROLL_WIDTH_MAX_MM * (longPx / shortPx));
+  return Math.min(
+    CUSTOM_LONG_EDGE_ABS_MAX_MM,
+    Math.max(CUSTOM_ROLL_WIDTH_MAX_MM, fromRoll),
+  );
+};
+
+export const clampCustomLongEdgeMm = (
+  longEdgeMm: number,
+  pixelWidth: number,
+  pixelHeight: number,
+): number => {
+  const max = maxCustomLongEdgeMm(pixelWidth, pixelHeight);
+  return Math.min(max, Math.max(CUSTOM_LONG_EDGE_MIN_MM, Math.round(longEdgeMm)));
+};
 
 export const CUSTOM_RTH_CANVAS_ID = "rth-canvas-package";
 
@@ -290,9 +325,6 @@ export const deriveCustomSizeFromLongEdge = (
   pixelWidth: number,
   pixelHeight: number,
 ): { width_mm: number; height_mm: number; aspect_ratio: string | null } => {
-  const clamped = Math.min(
-    CUSTOM_LONG_EDGE_MAX_MM,
-    Math.max(CUSTOM_LONG_EDGE_MIN_MM, Math.round(longEdgeMm)),
-  );
+  const clamped = clampCustomLongEdgeMm(longEdgeMm, pixelWidth, pixelHeight);
   return deriveAspectPreservingSizeMm(clamped, pixelWidth, pixelHeight);
 };

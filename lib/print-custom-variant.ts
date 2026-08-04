@@ -2,9 +2,10 @@ import { withTransaction } from "./postgres";
 import { getOfferPricingBundle } from "./print-offer-bundle";
 import {
   computeCustomPrintPricing,
-  CUSTOM_LONG_EDGE_MAX_MM,
+  CUSTOM_LONG_EDGE_ABS_MAX_MM,
   CUSTOM_LONG_EDGE_MIN_MM,
   deriveCustomSizeFromLongEdge,
+  maxCustomLongEdgeMm,
   type CustomFrameStyleId,
 } from "./print-custom";
 import { getMasterFileDimensions } from "./master-files";
@@ -41,11 +42,10 @@ type ProductContext = {
 export const createCustomPrintVariant = async (
   input: CreateCustomPrintVariantInput,
 ): Promise<CreateCustomPrintVariantResult> => {
-  if (
-    !Number.isFinite(input.longEdgeMm) ||
-    input.longEdgeMm < CUSTOM_LONG_EDGE_MIN_MM ||
-    input.longEdgeMm > CUSTOM_LONG_EDGE_MAX_MM
-  ) {
+  if (!Number.isFinite(input.longEdgeMm) || input.longEdgeMm < CUSTOM_LONG_EDGE_MIN_MM) {
+    throw new Error("INVALID_LONG_EDGE");
+  }
+  if (input.longEdgeMm > CUSTOM_LONG_EDGE_ABS_MAX_MM) {
     throw new Error("INVALID_LONG_EDGE");
   }
 
@@ -118,6 +118,10 @@ export const createCustomPrintVariant = async (
 
     if (!pixelWidth || !pixelHeight || pixelWidth <= 0 || pixelHeight <= 0) {
       throw new Error("PRODUCT_PIXELS_UNAVAILABLE");
+    }
+
+    if (input.longEdgeMm > maxCustomLongEdgeMm(pixelWidth, pixelHeight)) {
+      throw new Error("INVALID_LONG_EDGE");
     }
 
     const size = deriveCustomSizeFromLongEdge(input.longEdgeMm, pixelWidth, pixelHeight);

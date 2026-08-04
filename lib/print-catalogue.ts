@@ -126,6 +126,8 @@ export const LONG_EDGE_PRESETS: LongEdgePreset[] = [
   { mm: 594, labelMm: "A2 long edge (594 mm)", labelIn: "A2 long edge (23.4 in)" },
   { mm: 841, labelMm: "A1 long edge (841 mm)", labelIn: "A1 long edge (33.1 in)" },
   { mm: 1189, labelMm: "A0 long edge (1189 mm)", labelIn: "A0 long edge (46.8 in)" },
+  { mm: 1524, labelMm: "60 in long edge (1524 mm)", labelIn: "60 in long edge (60 in)" },
+  { mm: 1626, labelMm: "64 in / printer width (1626 mm)", labelIn: "64 in / printer width (64 in)" },
 ];
 
 export const OTHER_PAPER_ID = "__other__";
@@ -182,7 +184,7 @@ export const TIER_OPTIONS: TierOption[] = [
   {
     id: "tier-6",
     label: "Tier 6 - Statement",
-    summary: "Hero / gallery scale. Around A0 long edge (~1189 mm / 46.8 in).",
+    summary: "Hero / gallery scale. A0 and beyond, up to Pixel Perfect’s ~1.5 m roll width.",
     longEdgeMinMm: 1001,
     longEdgeMaxMm: 10000,
   },
