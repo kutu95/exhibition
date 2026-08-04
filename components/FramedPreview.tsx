@@ -25,9 +25,14 @@ export const FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM = 594;
 /**
  * On-screen length we treat as the print’s long edge. The preview photo is
  * roughly this size; moulding px = faceMm / printLongMm × this value.
- * (No ResizeObserver — measuring outer width created a soft plateau near ~550mm.)
  */
 export const FRAME_PREVIEW_PHOTO_LONG_EDGE_PX = 520;
+
+/**
+ * Preview-only mat width (mm each side). Not included in fulfilment —
+ * visual finish between photo and moulding.
+ */
+export const FRAME_PREVIEW_MAT_MM = 40;
 
 type FramedPreviewProps = {
   frame?: FramedPreviewStyle;
@@ -66,6 +71,16 @@ export function ringPxForPrintLongEdge(
   return Math.max(1, Math.round((FRAME_MOULDING_MM[frame] / printMm) * photoLongEdgePx));
 }
 
+/** Preview-only mat thickness in CSS px (scales with print long-edge). */
+export function matPxForPrintLongEdge(
+  printLongEdgeMm: number,
+  photoLongEdgePx: number = FRAME_PREVIEW_PHOTO_LONG_EDGE_PX,
+): number {
+  const printMm = Math.max(1, printLongEdgeMm);
+  const raw = Math.round((FRAME_PREVIEW_MAT_MM / printMm) * photoLongEdgePx);
+  return Math.min(56, Math.max(8, raw));
+}
+
 /** @deprecated Use ringPxForPrintLongEdge */
 export function ringPxForPreviewWidth(
   frame: FramedPreviewStyle,
@@ -88,6 +103,10 @@ export function FramedPreview({
     () => (framed ? ringPxForPrintLongEdge(frame, longEdgeMm) : 0),
     [frame, framed, longEdgeMm],
   );
+  const matPx = useMemo(
+    () => (framed ? matPxForPrintLongEdge(longEdgeMm) : 0),
+    [framed, longEdgeMm],
+  );
 
   const { aspectRatio, ...restStyle } = style ?? {};
 
@@ -99,6 +118,7 @@ export function FramedPreview({
         ...restStyle,
         aspectRatio: "auto",
         ["--ring" as string]: `${ringPx}px`,
+        ["--mat" as string]: `${matPx}px`,
       }
     : style;
   const mediaStyle: CSSProperties | undefined = framed
@@ -111,12 +131,19 @@ export function FramedPreview({
       style={wrapStyle}
       data-frame={frame}
       data-ring-px={framed ? ringPx : undefined}
+      data-mat-px={framed ? matPx : undefined}
       data-long-edge-mm={framed ? longEdgeMm : undefined}
     >
       {framed ? <div className={`${styles.ring} ${ringClass}`} aria-hidden /> : null}
-      <div className={framed ? styles.mediaFramed : styles.media} style={mediaStyle}>
-        {children}
-      </div>
+      {framed ? (
+        <div className={styles.mat}>
+          <div className={styles.mediaFramed} style={mediaStyle}>
+            {children}
+          </div>
+        </div>
+      ) : (
+        <div className={styles.media}>{children}</div>
+      )}
     </div>
   );
 }

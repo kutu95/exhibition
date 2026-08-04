@@ -9,11 +9,11 @@
 }
 
 .framed {
-  background: #f4f1ec;
+  background: #111;
   box-shadow:
     0 0.35rem 1.1rem rgba(10, 22, 40, 0.18),
     0 0.08rem 0.25rem rgba(10, 22, 40, 0.12);
-  /* --ring set in px from JS (moulding mm ÷ print long-edge). */
+  /* Moulding zone — filled by inset ring shadows */
   padding: var(--ring, 18px);
 }
 
@@ -46,6 +46,17 @@
     inset 0 0 0 var(--ring, 10px) #0a0a0a;
 }
 
+/* Preview-only white mat between moulding and photo (not on the lab order). */
+.mat {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--mat, 24px);
+  background: #f7f4ef;
+  box-shadow: inset 0 0 0 1px rgba(10, 22, 40, 0.06);
+}
+
 .media {
   position: relative;
   z-index: 1;
@@ -56,13 +67,10 @@
   height: 100%;
 }
 
-/* Photo box keeps the image aspect ratio; outer padding is the moulding. */
 .mediaFramed {
   position: relative;
-  z-index: 1;
   width: 100%;
   min-width: 0;
-  flex: 0 0 auto;
   overflow: hidden;
   background: #111;
 }
