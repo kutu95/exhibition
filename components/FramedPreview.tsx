@@ -101,7 +101,7 @@ export function FramedPreview({
   const photoAspect = parseAspectRatio(aspectRatio);
 
   useLayoutEffect(() => {
-    if (!framed || frame === "none") {
+    if (!framed) {
       setRingPx(0);
       return;
     }
