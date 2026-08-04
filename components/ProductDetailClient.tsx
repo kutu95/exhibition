@@ -8,6 +8,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useCart } from "./CartProvider";
 import { FavouriteButton } from "./FavouriteButton";
 import {
+  type FrameColourId,
   FramedPreview,
   mapOfferPresentationToFrame,
 } from "./FramedPreview";
@@ -44,6 +45,13 @@ type ProductDetailClientProps = {
 
 const FINISH_OPTIONS: OfferFinishId[] = ["archival_matte", "rth_canvas"];
 const PRESENTATION_OPTIONS: OfferPresentationId[] = ["unframed", "framed"];
+const FRAME_COLOUR_OPTIONS: { id: FrameColourId; label: string }[] = [
+  { id: "black", label: "Black" },
+  { id: "silver", label: "Silver" },
+  { id: "teak", label: "Teak" },
+  { id: "gold", label: "Gold" },
+  { id: "white", label: "White" },
+];
 
 const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   const wIn = Math.round(mmToInches(widthMm) * 10) / 10;
@@ -88,6 +96,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   const [presentationId, setPresentationId] = useState<OfferPresentationId>(
     defaultAxes.finishId === "rth_canvas" ? "unframed" : defaultAxes.presentationId,
   );
+  const [frameColour, setFrameColour] = useState<FrameColourId>("black");
 
   const initialVariantId =
     variants.find((variant) => variant.id === preselectVariantId)?.id ?? variants[0]?.id ?? "";
@@ -234,6 +243,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
               : "none"
           }
           longEdgeMm={OFFER_SIZES.find((size) => size.id === sizeId)?.longEdgeMm ?? 594}
+          frameColour={frameColour}
           className={styles.mainImageWrap}
           style={
             imageRatio
@@ -429,6 +439,34 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                       </label>
                     );
                   })}
+                </div>
+              </fieldset>
+            ) : null}
+            {finishId === "archival_matte" && presentationId === "framed" ? (
+              <fieldset className={styles.offerFieldset}>
+                <legend>Frame colour</legend>
+                <div className={styles.frameColourOptions}>
+                  {FRAME_COLOUR_OPTIONS.map((option) => (
+                    <label
+                      key={option.id}
+                      className={`${styles.frameColourOption} ${
+                        frameColour === option.id ? styles.frameColourOptionActive : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="frame-colour"
+                        checked={frameColour === option.id}
+                        onChange={() => setFrameColour(option.id)}
+                      />
+                      <span
+                        className={styles.frameColourSwatch}
+                        data-frame-colour={option.id}
+                        aria-hidden
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
                 </div>
               </fieldset>
             ) : null}

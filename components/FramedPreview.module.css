@@ -17,6 +17,16 @@
     -0.08rem 0.12rem 0.2rem rgba(10, 22, 40, 0.2);
   /* Moulding zone — filled by inset ring shadows */
   padding: var(--ring, 18px);
+  --standard-1: #5a5a5a;
+  --standard-2: #1c1c1c;
+  --standard-3: #111;
+  --standard-4: #2e2e2e;
+  --standard-5: #0a0a0a;
+  --standard-6: #3a3a3a;
+  --deluxe-1: #3a3a3a;
+  --deluxe-2: #111;
+  --deluxe-3: #2a1810;
+  --deluxe-4: #0a0a0a;
 }
 
 /* Frame chrome on its own overlay so host `border:` shorthand cannot
@@ -31,21 +41,73 @@
 
 .ringStandard {
   box-shadow:
-    inset 0 0 0 calc(var(--ring, 18px) * 0.1) #5a5a5a,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.22) #1c1c1c,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.7) #111,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.82) #2e2e2e,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.92) #0a0a0a,
-    inset 0 0 0 var(--ring, 18px) #3a3a3a;
+    inset 0 0 0 calc(var(--ring, 18px) * 0.1) var(--standard-1),
+    inset 0 0 0 calc(var(--ring, 18px) * 0.22) var(--standard-2),
+    inset 0 0 0 calc(var(--ring, 18px) * 0.7) var(--standard-3),
+    inset 0 0 0 calc(var(--ring, 18px) * 0.82) var(--standard-4),
+    inset 0 0 0 calc(var(--ring, 18px) * 0.92) var(--standard-5),
+    inset 0 0 0 var(--ring, 18px) var(--standard-6);
 }
 
 .ringDeluxe {
   /* Slim 10mm face / 25mm deep Deluxe — narrow front, deeper wall cue. */
   box-shadow:
-    inset 0 0 0 calc(var(--ring, 10px) * 0.2) #3a3a3a,
-    inset 0 0 0 calc(var(--ring, 10px) * 0.45) #111,
-    inset 0 0 0 calc(var(--ring, 10px) * 0.75) #2a1810,
-    inset 0 0 0 var(--ring, 10px) #0a0a0a;
+    inset 0 0 0 calc(var(--ring, 10px) * 0.2) var(--deluxe-1),
+    inset 0 0 0 calc(var(--ring, 10px) * 0.45) var(--deluxe-2),
+    inset 0 0 0 calc(var(--ring, 10px) * 0.75) var(--deluxe-3),
+    inset 0 0 0 var(--ring, 10px) var(--deluxe-4);
+}
+
+.framed[data-frame-colour="silver"] {
+  --standard-1: #e5e7eb;
+  --standard-2: #bcc3cb;
+  --standard-3: #8a949e;
+  --standard-4: #ced4db;
+  --standard-5: #6f7882;
+  --standard-6: #a2adb7;
+  --deluxe-1: #e7eaee;
+  --deluxe-2: #c5ccd4;
+  --deluxe-3: #9aa3ad;
+  --deluxe-4: #838d98;
+}
+
+.framed[data-frame-colour="teak"] {
+  --standard-1: #b18258;
+  --standard-2: #8d613a;
+  --standard-3: #6e4727;
+  --standard-4: #9c724b;
+  --standard-5: #57361c;
+  --standard-6: #7d5534;
+  --deluxe-1: #ae7b4e;
+  --deluxe-2: #8b603b;
+  --deluxe-3: #654025;
+  --deluxe-4: #4e311c;
+}
+
+.framed[data-frame-colour="gold"] {
+  --standard-1: #f2d889;
+  --standard-2: #d3b45f;
+  --standard-3: #b18e3f;
+  --standard-4: #e3c772;
+  --standard-5: #8f6f2d;
+  --standard-6: #c8a451;
+  --deluxe-1: #f0d27c;
+  --deluxe-2: #cfaf5c;
+  --deluxe-3: #ac8a3f;
+  --deluxe-4: #876929;
+}
+
+.framed[data-frame-colour="white"] {
+  --standard-1: #ffffff;
+  --standard-2: #ececec;
+  --standard-3: #d9d9d9;
+  --standard-4: #f5f5f5;
+  --standard-5: #c9c9c9;
+  --standard-6: #e3e3e3;
+  --deluxe-1: #ffffff;
+  --deluxe-2: #efefef;
+  --deluxe-3: #d9d9d9;
+  --deluxe-4: #cacaca;
 }
 
 /* Preview-only white mat between moulding and photo (not on the lab order). */

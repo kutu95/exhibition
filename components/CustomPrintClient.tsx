@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
-import { FramedPreview, mapCustomFrameToPreview } from "./FramedPreview";
+import {
+  type FrameColourId,
+  FramedPreview,
+  mapCustomFrameToPreview,
+} from "./FramedPreview";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { readCart } from "../lib/cart";
 import {
@@ -49,6 +53,14 @@ type CustomPrintClientProps = {
   papers: ManagedPaper[];
 };
 
+const FRAME_COLOUR_OPTIONS: { id: FrameColourId; label: string }[] = [
+  { id: "black", label: "Black" },
+  { id: "silver", label: "Silver" },
+  { id: "teak", label: "Teak" },
+  { id: "gold", label: "Gold" },
+  { id: "white", label: "White" },
+];
+
 const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   const wIn = Math.round(mmToInches(widthMm) * 10) / 10;
   const hIn = Math.round(mmToInches(heightMm) * 10) / 10;
@@ -79,6 +91,7 @@ export function CustomPrintClient({
   const [longEdgeMm, setLongEdgeMm] = useState(CUSTOM_LONG_EDGE_DEFAULT_MM);
   const [mediaId, setMediaId] = useState(defaultMedia?.id ?? "");
   const [frameStyle, setFrameStyle] = useState<CustomFrameStyleId>("none");
+  const [frameColour, setFrameColour] = useState<FrameColourId>("black");
   const [busy, setBusy] = useState<"cart" | "buy" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -221,6 +234,7 @@ export function CustomPrintClient({
         <div className={styles.visual}>
           <FramedPreview
             frame={mapCustomFrameToPreview(effectiveFrame)}
+            frameColour={frameColour}
             longEdgeMm={longEdgeMm}
             className={styles.imageWrap}
             style={
@@ -346,6 +360,34 @@ export function CustomPrintClient({
                     </label>
                   ))}
                 </div>
+                {effectiveFrame !== "none" ? (
+                  <fieldset className={styles.fieldset}>
+                    <legend className={styles.legend}>Frame colour</legend>
+                    <div className={styles.frameColourOptions}>
+                      {FRAME_COLOUR_OPTIONS.map((option) => (
+                        <label
+                          key={option.id}
+                          className={`${styles.frameColourOption} ${
+                            frameColour === option.id ? styles.frameColourOptionActive : ""
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="custom-frame-colour"
+                            checked={frameColour === option.id}
+                            onChange={() => setFrameColour(option.id)}
+                          />
+                          <span
+                            className={styles.frameColourSwatch}
+                            data-frame-colour={option.id}
+                            aria-hidden
+                          />
+                          <span>{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ) : null}
               </>
             )}
           </fieldset>

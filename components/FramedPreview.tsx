@@ -9,6 +9,7 @@ import {
 import styles from "./FramedPreview.module.css";
 
 export type FramedPreviewStyle = "none" | "standard" | "deluxe";
+export type FrameColourId = "black" | "silver" | "teak" | "gold" | "white";
 
 /**
  * Face widths for virtual preview — matches Pixel Perfect
@@ -36,6 +37,7 @@ export const FRAME_PREVIEW_MAT_MM = 40;
 
 type FramedPreviewProps = {
   frame?: FramedPreviewStyle;
+  frameColour?: FrameColourId;
   /** Print long edge in mm — scales moulding so small prints look thicker-framed. */
   longEdgeMm?: number;
   className?: string;
@@ -93,6 +95,7 @@ export function ringPxForPreviewWidth(
 
 export function FramedPreview({
   frame = "none",
+  frameColour = "black",
   longEdgeMm = FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM,
   className,
   style,
@@ -130,6 +133,7 @@ export function FramedPreview({
       className={[styles.wrap, framed ? styles.framed : "", className].filter(Boolean).join(" ")}
       style={wrapStyle}
       data-frame={frame}
+      data-frame-colour={frameColour}
       data-ring-px={framed ? ringPx : undefined}
       data-mat-px={framed ? matPx : undefined}
       data-long-edge-mm={framed ? longEdgeMm : undefined}
