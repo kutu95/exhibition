@@ -6,6 +6,7 @@
 .gallery {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .mainImageWrap {
@@ -14,6 +15,8 @@
      photograph itself, so there is no dead space above or below. */
   aspect-ratio: 3 / 2;
   max-height: min(70vh, 52rem);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   background: rgba(10, 22, 40, 0.04);
 }
@@ -267,7 +270,7 @@
 
 @media (min-width: 950px) {
   .wrap {
-    grid-template-columns: 60% 40%;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     align-items: start;
   }
 }

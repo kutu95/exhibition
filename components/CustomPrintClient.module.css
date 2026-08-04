@@ -22,6 +22,8 @@
 .imageWrap {
   aspect-ratio: 3 / 2;
   max-height: min(70vh, 40rem);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   background: rgba(10, 22, 40, 0.04);
 }

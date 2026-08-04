@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -50,16 +52,19 @@
   z-index: 1;
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
   width: 100%;
   height: 100%;
 }
 
-.framed[data-frame="standard"] .media {
-  margin: 28px;
+/* Padding (not margin) keeps the photo inside the aspect-ratio box so it
+   cannot overflow the gallery column into the sidebar. */
+.framed[data-frame="standard"] {
+  padding: 20px;
 }
 
-.framed[data-frame="deluxe"] .media {
-  margin: 40px;
+.framed[data-frame="deluxe"] {
+  padding: 32px;
 }
 
 @media (min-width: 700px) {
@@ -85,11 +90,11 @@
       inset 0 0 0 40px #7a5438;
   }
 
-  .framed[data-frame="standard"] .media {
-    margin: 34px;
+  .framed[data-frame="standard"] {
+    padding: 26px;
   }
 
-  .framed[data-frame="deluxe"] .media {
-    margin: 48px;
+  .framed[data-frame="deluxe"] {
+    padding: 40px;
   }
 }

@@ -233,7 +233,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             imageRatio
               ? {
                   aspectRatio: `${imageRatio}`,
-                  maxWidth: `calc(min(70vh, 52rem) * ${imageRatio})`,
+                  maxWidth: `min(100%, calc(min(70vh, 52rem) * ${imageRatio}))`,
                 }
               : undefined
           }
