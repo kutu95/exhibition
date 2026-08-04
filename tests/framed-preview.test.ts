@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   FRAME_MOULDING_MM,
+  FRAME_PREVIEW_MAT_MM,
   FRAME_PREVIEW_PHOTO_LONG_EDGE_PX,
+  matPxForPrintLongEdge,
   ringPxForPrintLongEdge,
 } from "../components/FramedPreview";
 
@@ -39,5 +41,21 @@ describe("ringPxForPrintLongEdge", () => {
     const large = ringPxForPrintLongEdge("standard", 841);
     const small = ringPxForPrintLongEdge("standard", 420);
     expect(small).toBeGreaterThan(large);
+  });
+});
+
+describe("matPxForPrintLongEdge", () => {
+  it("scales the preview mat with print long-edge", () => {
+    const large = matPxForPrintLongEdge(841);
+    const medium = matPxForPrintLongEdge(594);
+    const small = matPxForPrintLongEdge(420);
+    expect(medium).toBeGreaterThan(large);
+    expect(small).toBeGreaterThan(medium);
+    expect(medium).toBe(
+      Math.min(
+        56,
+        Math.max(8, Math.round((FRAME_PREVIEW_MAT_MM / 594) * FRAME_PREVIEW_PHOTO_LONG_EDGE_PX)),
+      ),
+    );
   });
 });
