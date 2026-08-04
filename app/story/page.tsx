@@ -92,12 +92,9 @@ export default async function StoryPage() {
             The Georgette left Fremantle on 29 November 1876 — an iron screw-steamer under sail and steam, three years
             into colonial service, carrying fifty passengers and a cargo of jarrah south along the coast, bound for
             Adelaide. Eight months earlier the same ship had been fitted with a twelve-pounder gun and sent after an
-            American whaleship carrying six escaped Fenian prisoners; she came back{" "}
-            <Link href="/history/catalpa-pursuit" className="text-link">
-              empty-handed
-            </Link>
-            , and the colonial government had been shopping for her replacement ever since. By the evening of 30
-            November, rounding Cape Naturaliste, the ship had begun to leak. The Chief
+            American whaleship carrying six escaped Fenian prisoners; she came back empty-handed, and the colonial
+            government had been shopping for her replacement ever since. By the evening of 30 November, rounding Cape
+            Naturaliste, the ship had begun to leak. The Chief
             Engineer reported extra water in the bilge. Captain John Godfrey was informed. He ordered the pumps checked
             and did not go below himself.
           </p>
@@ -142,12 +139,9 @@ export default async function StoryPage() {
             The press at the time credited Grace Bussell with riding repeatedly into the surf to pull survivors to
             safety — a story that spread through the colony and reached London. She was compared to Grace Darling, the
             English lighthouse keeper&apos;s daughter celebrated for her own sea rescue. Medals were struck. Paintings
-            were made. The legend was set — and{" "}
-            <Link href="/history/grace-bussell-legend" className="text-link">
-              its construction can be traced year by year
-            </Link>{" "}
-            through the newspapers, from the first comparison in 1877 to the survivor who, fifty-nine years later,
-            remembered a revolver that was never there.
+            were made. The legend was set — and its construction can be traced year by year through the newspapers, from
+            the first comparison in 1877 to the survivor who, fifty-nine years later, remembered a revolver that was
+            never there.
           </p>
           <p>
             But passenger George Leake — a young law student who had been on board and narrowly escaped drowning — left
@@ -239,7 +233,6 @@ export default async function StoryPage() {
         />
 
         <div className={styles.bottomLinks}>
-          <Link href="/history">History &amp; research →</Link>
           <Link href="/book">Read the author&apos;s preface →</Link>
           <Link href="/installations#talk">Author talk →</Link>
           <Link href="/installations">Explore the installations →</Link>

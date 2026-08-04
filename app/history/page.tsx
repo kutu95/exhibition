@@ -12,11 +12,13 @@ const PAGE_DESCRIPTION =
   "Research into the SS Georgette, wrecked at Calgardup Bay on 1 December 1876: the Catalpa pursuit, the marine inquiry, and how the Grace Bussell rescue story was made. Drawn from primary records.";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const pages = await getPublishedHistoryPages();
   return buildMetadata({
     absoluteTitle: `${PAGE_TITLE} | ${siteConfig.name}`,
     description: PAGE_DESCRIPTION,
     path: "/history",
     ogImage: siteConfig.ogImage.story,
+    ...(pages.length === 0 ? { noIndex: true } : {}),
   });
 }
 

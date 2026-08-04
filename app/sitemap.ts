@@ -13,7 +13,7 @@ type ProductSitemapRow = {
  * Bumped whenever the hand-written page copy changes. A `lastmod` that never
  * moves tells Google there is nothing to recrawl.
  */
-const staticLastMod = new Date("2026-08-01");
+const staticLastMod = new Date("2026-08-05");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Service role: public catalogue only — vault products must never appear.
@@ -31,12 +31,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // Drafts have no `status: published`, so they are absent here as well as unroutable.
+  // The /history hub is only listed while at least one research page is live.
   const historyUrls = historyPages.map((page) => ({
     url: `${siteConfig.url}/history/${page.slug}`,
     lastModified: new Date(page.updated),
     changeFrequency: "monthly" as const,
     priority: page.sitemapPriority,
   }));
+
+  const historyHubUrl =
+    historyPages.length > 0
+      ? [
+          {
+            url: `${siteConfig.url}/history`,
+            lastModified: staticLastMod,
+            changeFrequency: "weekly" as const,
+            priority: 0.85,
+          },
+        ]
+      : [];
 
   const productUrls = ((products ?? []) as ProductSitemapRow[]).map((product) => ({
     url: `${siteConfig.url}/shop/${product.slug}`,
@@ -77,12 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    {
-      url: `${siteConfig.url}/history`,
-      lastModified: staticLastMod,
-      changeFrequency: "weekly",
-      priority: 0.85,
-    },
+    ...historyHubUrl,
     ...historyUrls,
     {
       url: `${siteConfig.url}/installations`,

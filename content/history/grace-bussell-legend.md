@@ -4,9 +4,9 @@ shortTitle: "How the legend was made"
 metaTitle: "How the Grace Bussell Legend Was Made — 1877 to 1935"
 description: "Grace Bussell was called Australia's Grace Darling within eight weeks of the Georgette wreck. Two passengers who were there disagreed. Tracing how the story hardened between 1877 and 1935, and what happened to Sam Isaacs in the telling."
 eyebrow: "1877–1935 · The making of a rescue story"
-status: published
+status: draft
 published: "2026-07-31"
-updated: "2026-08-01"
+updated: "2026-08-05"
 ogImage: "/og/story.jpg"
 sitemapPriority: 0.85
 sources:

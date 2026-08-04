@@ -7,7 +7,6 @@ import styles from "./SiteFooter.module.css";
 const links = [
   { href: "/", label: "The Georgette 150th" },
   { href: "/story", label: "The Story" },
-  { href: "/history", label: "History & Research" },
   { href: "/book", label: "Author’s Preface" },
   { href: "/about-the-photographer", label: "About the Photographer" },
   { href: "/installations", label: "Installations" },

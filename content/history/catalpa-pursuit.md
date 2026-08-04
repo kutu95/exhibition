@@ -4,9 +4,9 @@ shortTitle: "The Catalpa pursuit"
 metaTitle: "The Catalpa Pursuit — How the SS Georgette Chased the Fenian Escape, 1876"
 description: "In April 1876 the SS Georgette was fitted with a twelve-pounder and sent after the American whaleship Catalpa, carrying six escaped Fenian prisoners out of Western Australia. She came back empty-handed. An account from the contemporary record."
 eyebrow: "17–19 April 1876 · Fremantle and the Indian Ocean"
-status: published
+status: draft
 published: "2026-07-31"
-updated: "2026-07-31"
+updated: "2026-08-05"
 ogImage: "/og/story.jpg"
 sitemapPriority: 0.85
 sources:
