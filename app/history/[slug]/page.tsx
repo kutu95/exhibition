@@ -11,6 +11,9 @@ import styles from "./page.module.css";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
+/** Set true to show the Sources / citations panel on history articles again. */
+const SHOW_HISTORY_SOURCES = false;
+
 const dateFormatter = new Intl.DateTimeFormat("en-AU", {
   day: "numeric",
   month: "long",
@@ -87,7 +90,7 @@ export default async function HistoryArticlePage({ params }: PageProps) {
         {/* Authored in-repo, not user input — see content/history. */}
         <div className={styles.prose} dangerouslySetInnerHTML={{ __html: page.html }} />
 
-        {page.sources.length > 0 ? (
+        {SHOW_HISTORY_SOURCES && page.sources.length > 0 ? (
           <section className={styles.sources} aria-labelledby="sources-heading">
             <h2 id="sources-heading" className={styles.sourcesHeading}>
               Sources
