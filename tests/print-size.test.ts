@@ -22,6 +22,7 @@ import {
   longEdgeInputToMm,
   matchLongEdgePreset,
   mmToInches,
+  roundRetailPriceAud,
 } from "../lib/print-size";
 
 describe("print catalogue", () => {
@@ -115,15 +116,28 @@ describe("print size helpers", () => {
     expect(margin!.marginPercent).toBeGreaterThan(70);
   });
 
-  it("applies markup to lab cost for retail", () => {
-    expect(computeRetailFromLabCost(27.87, 3)).toBeCloseTo(83.61, 2);
+  it("applies base price plus markup and rounds retail up", () => {
+    // 27.87 * 3 = 83.61 → round up to nearest $5 = 85
+    expect(computeRetailFromLabCost(27.87, 3)).toBe(85);
+    // 25 + 83.61 = 108.61 → 110
+    expect(computeRetailFromLabCost(27.87, 3, 25)).toBe(110);
+    // >= 120 uses $10 steps: 40 + 27.87*3 = 123.61 → 130
+    expect(computeRetailFromLabCost(27.87, 3, 40)).toBe(130);
+    expect(roundRetailPriceAud(0)).toBe(0);
+    expect(roundRetailPriceAud(100)).toBe(100);
+    expect(roundRetailPriceAud(101)).toBe(105);
+    expect(roundRetailPriceAud(120)).toBe(120);
+    expect(roundRetailPriceAud(121)).toBe(130);
+
     const pricing = computeVariantPricing({
       widthMm: inchesToMm(14),
       heightMm: inchesToMm(11),
       paperLabel: "Hahnemühle Photo Rag 308gsm",
       markupFactor: 3,
+      basePriceAud: 10,
     });
     expect(pricing).not.toBeNull();
-    expect(pricing!.retailAud).toBeCloseTo(pricing!.labCostAud * 3, 2);
+    expect(pricing!.retailAud).toBe(roundRetailPriceAud(10 + pricing!.labCostAud * 3));
+    expect(pricing!.basePriceAud).toBe(10);
   });
 });

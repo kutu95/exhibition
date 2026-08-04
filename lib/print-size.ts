@@ -1,9 +1,9 @@
 import { formatMmAspect } from "./print-framing";
 import {
-  findPaperByLabel,
   PIXEL_PERFECT_PRICELIST_NOTE,
-  PIXEL_PERFECT_SQ_IN_RATES_AUD,
-  type PixelPerfectRateTier,
+  ratePerSqInForPaper,
+  seedManagedPapers,
+  type ManagedPaper,
 } from "./print-catalogue";
 
 export const MM_PER_INCH = 25.4;
@@ -85,7 +85,6 @@ export const longEdgeMmToInput = (longEdgeMm: number, unit: SizeUnit): number =>
 export type LabCostEstimate = {
   labCostAud: number;
   ratePerSqInAud: number;
-  rateTier: Exclude<PixelPerfectRateTier, null>;
   areaSqIn: number;
   note: string;
 };
@@ -94,21 +93,19 @@ export const estimatePixelPerfectLabCost = (
   widthMm: number,
   heightMm: number,
   paperLabel: string,
+  papers: ManagedPaper[] = seedManagedPapers(),
 ): LabCostEstimate | null => {
   if (widthMm <= 0 || heightMm <= 0) return null;
 
-  const paper = findPaperByLabel(paperLabel);
-  const rateTier = paper?.rateTier ?? "standard_inkjet";
-  if (!rateTier) return null;
+  const ratePerSqInAud = ratePerSqInForPaper(paperLabel, papers);
+  if (ratePerSqInAud === null) return null;
 
-  const ratePerSqInAud = PIXEL_PERFECT_SQ_IN_RATES_AUD[rateTier];
   const areaSqIn = mmToInches(widthMm) * mmToInches(heightMm);
   const labCostAud = Math.round(areaSqIn * ratePerSqInAud * 100) / 100;
 
   return {
     labCostAud,
     ratePerSqInAud,
-    rateTier,
     areaSqIn: Math.round(areaSqIn * 100) / 100,
     note: PIXEL_PERFECT_PRICELIST_NOTE,
   };
@@ -128,12 +125,27 @@ export const computeMarginGuidance = (retailAud: number, labCostAud: number): Ma
   return { retailAud, labCostAud, marginAud, marginPercent };
 };
 
-/** Retail dollars from lab cost × markup (e.g. 3×). Rounded to cents. */
-export const computeRetailFromLabCost = (labCostAud: number, markupFactor: number): number => {
+/** Round retail up to nearest $5 if under $120, else nearest $10. $0 stays $0. */
+export const roundRetailPriceAud = (priceAud: number): number => {
+  if (!Number.isFinite(priceAud) || priceAud <= 0) return 0;
+  const step = priceAud < 120 ? 5 : 10;
+  return Math.ceil(priceAud / step) * step;
+};
+
+/** Retail = roundUp(basePrice + lab cost × markup). */
+export const computeRetailFromLabCost = (
+  labCostAud: number,
+  markupFactor: number,
+  basePriceAud = 0,
+): number => {
   if (!Number.isFinite(labCostAud) || labCostAud < 0 || !Number.isFinite(markupFactor) || markupFactor < 1) {
     throw new Error("Lab cost and markup factor must be valid numbers (markup ≥ 1).");
   }
-  return Math.round(labCostAud * markupFactor * 100) / 100;
+  if (!Number.isFinite(basePriceAud) || basePriceAud < 0) {
+    throw new Error("Base price must be a number of 0 or more.");
+  }
+  const raw = Math.round((basePriceAud + labCostAud * markupFactor) * 100) / 100;
+  return roundRetailPriceAud(raw);
 };
 
 export type VariantPricing = {
@@ -144,14 +156,14 @@ export type VariantPricing = {
   retailAud: number;
   retailCents: number;
   markupFactor: number;
+  basePriceAud: number;
   ratePerSqInAud: number;
-  rateTier: Exclude<PixelPerfectRateTier, null>;
   areaSqIn: number;
   note: string;
 };
 
 /**
- * Lab cost from Pixel Perfect sq-in rates, retail = lab × markup.
+ * Lab cost from paper sq-in rate, retail = roundUp(base + lab × markup).
  * Returns null when paper has no sq-in rate (quote-only substrates).
  */
 export const computeVariantPricing = (args: {
@@ -159,11 +171,19 @@ export const computeVariantPricing = (args: {
   heightMm: number;
   paperLabel: string;
   markupFactor: number;
+  basePriceAud?: number;
+  papers?: ManagedPaper[];
 }): VariantPricing | null => {
-  const estimate = estimatePixelPerfectLabCost(args.widthMm, args.heightMm, args.paperLabel);
+  const estimate = estimatePixelPerfectLabCost(
+    args.widthMm,
+    args.heightMm,
+    args.paperLabel,
+    args.papers ?? seedManagedPapers(),
+  );
   if (!estimate) return null;
 
-  const retailAud = computeRetailFromLabCost(estimate.labCostAud, args.markupFactor);
+  const basePriceAud = args.basePriceAud ?? 0;
+  const retailAud = computeRetailFromLabCost(estimate.labCostAud, args.markupFactor, basePriceAud);
   return {
     widthMm: Math.round(args.widthMm),
     heightMm: Math.round(args.heightMm),
@@ -172,8 +192,8 @@ export const computeVariantPricing = (args: {
     retailAud,
     retailCents: Math.round(retailAud * 100),
     markupFactor: args.markupFactor,
+    basePriceAud,
     ratePerSqInAud: estimate.ratePerSqInAud,
-    rateTier: estimate.rateTier,
     areaSqIn: estimate.areaSqIn,
     note: estimate.note,
   };

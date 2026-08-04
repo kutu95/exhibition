@@ -10,7 +10,7 @@ import {
   resolvePrintSize,
   type VariantFramingInput,
 } from "./print-framing";
-import { getPrintPriceMarkupFactor } from "./print-markup";
+import { getPrintPricingBundle } from "./print-papers";
 import { computeVariantPricing, deriveAspectPreservingSizeMm } from "./print-size";
 
 /** Explicit paper × long-edge variant (Import Wizard path). Prices in cents. */
@@ -210,7 +210,7 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
   const framingByTemplate = payload.variant_framing ?? {};
   const masterPixelWidth = payload.master_pixel_width ?? null;
   const masterPixelHeight = payload.master_pixel_height ?? null;
-  const markupFactor = useCustomSpecs ? await getPrintPriceMarkupFactor() : null;
+  const pricingSettings = useCustomSpecs ? await getPrintPricingBundle() : null;
 
   return withTransaction(async (client) => {
     const { rows: productRows } = await client.query<ProductRow>(
@@ -269,7 +269,9 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
           widthMm: size.width_mm,
           heightMm: size.height_mm,
           paperLabel: paper,
-          markupFactor: markupFactor ?? 3,
+          markupFactor: pricingSettings?.markupFactor ?? 3,
+          basePriceAud: pricingSettings?.basePriceAud ?? 0,
+          papers: pricingSettings?.papers,
         });
 
         if (!pricing && (spec.price_aud === null || spec.price_aud === undefined)) {

@@ -1,6 +1,11 @@
 import { ImportPhotoWizardClient } from "../../../components/admin/ImportPhotoWizardClient";
 import { getMasterFilesDir, type MasterFileCandidate } from "../../../lib/master-files";
-import { getPrintPriceMarkupFactor } from "../../../lib/print-markup";
+import {
+  DEFAULT_PRINT_PRICE_BASE_AUD,
+  DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
+} from "../../../lib/print-markup";
+import { getPrintPricingBundle } from "../../../lib/print-papers";
+import { seedManagedPapers } from "../../../lib/print-catalogue";
 import type { Theme } from "../../../lib/supabase/types";
 import { fetchAdminJson } from "../_lib/fetch-admin";
 
@@ -20,13 +25,15 @@ export default async function ImportWizardPage() {
   const results = await Promise.allSettled([
     fetchAdminJson<{ files: MasterFileCandidate[] }>("/api/admin/master-files"),
     fetchAdminJson<Theme[]>("/api/admin/themes"),
-    getPrintPriceMarkupFactor(),
+    getPrintPricingBundle(),
   ]);
 
   const loadErrors: string[] = [];
   let masterFiles: MasterFileCandidate[] = [];
   let themes: Theme[] = [];
-  let markupFactor = 3;
+  let markupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR;
+  let basePriceAud = DEFAULT_PRINT_PRICE_BASE_AUD;
+  let papers = seedManagedPapers();
 
   if (results[0].status === "fulfilled") {
     masterFiles = results[0].value.files;
@@ -45,7 +52,9 @@ export default async function ImportWizardPage() {
   }
 
   if (results[2].status === "fulfilled") {
-    markupFactor = results[2].value;
+    markupFactor = results[2].value.markupFactor;
+    basePriceAud = results[2].value.basePriceAud;
+    papers = results[2].value.papers;
   }
 
   return (
@@ -60,6 +69,8 @@ export default async function ImportWizardPage() {
         themes={themes}
         masterFilesDirPath={resolveMasterFilesDirDisplay()}
         initialMarkupFactor={markupFactor}
+        initialBasePriceAud={basePriceAud}
+        initialPapers={papers}
         loadErrors={loadErrors}
       />
     </div>

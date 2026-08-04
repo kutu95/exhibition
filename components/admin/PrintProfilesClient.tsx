@@ -6,8 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   PIXEL_PERFECT_PRICELIST_NOTE,
   PIXEL_PERFECT_SQ_IN_RATES_AUD,
+  PRINT_TYPES,
+  seedManagedPapers,
+  type ManagedPaper,
+  type PrintTypeCode,
 } from "../../lib/print-catalogue";
-import { DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
+import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
 import type { PrintProfile, VariantTemplate } from "../../lib/supabase/types";
 import { formatDateTime } from "../../lib/utils/dates";
 import styles from "./PrintProfilesClient.module.css";
@@ -16,6 +20,8 @@ type PrintProfilesClientProps = {
   initialProfiles: PrintProfile[];
   initialVariantTemplates: VariantTemplate[];
   initialMarkupFactor?: number;
+  initialBasePriceAud?: number;
+  initialPapers?: ManagedPaper[];
 };
 
 type TemplateDraft = {
@@ -242,6 +248,8 @@ export function PrintProfilesClient({
   initialProfiles,
   initialVariantTemplates,
   initialMarkupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
+  initialBasePriceAud = DEFAULT_PRINT_PRICE_BASE_AUD,
+  initialPapers = seedManagedPapers(),
 }: PrintProfilesClientProps) {
   const router = useRouter();
   const [profiles, setProfiles] = useState(initialProfiles);
@@ -259,7 +267,13 @@ export function PrintProfilesClient({
   const [error, setError] = useState<string | null>(null);
   const [newTemplateFormOpen, setNewTemplateFormOpen] = useState(false);
   const [markupFactor, setMarkupFactor] = useState(String(initialMarkupFactor));
+  const [basePriceAud, setBasePriceAud] = useState(
+    Number.isFinite(initialBasePriceAud) ? initialBasePriceAud.toFixed(2) : "0.00",
+  );
+  const [papers, setPapers] = useState<ManagedPaper[]>(initialPapers);
   const [savingMarkup, setSavingMarkup] = useState(false);
+  const [savingPapers, setSavingPapers] = useState(false);
+  const [repricing, setRepricing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -267,9 +281,15 @@ export function PrintProfilesClient({
       try {
         const response = await fetch("/api/admin/print-pricing/markup");
         if (!response.ok || cancelled) return;
-        const body = (await response.json()) as { markup_factor?: number };
-        if (typeof body.markup_factor === "number" && !cancelled) {
-          setMarkupFactor(String(body.markup_factor));
+        const body = (await response.json()) as {
+          markup_factor?: number;
+          base_price_aud?: number;
+          papers?: ManagedPaper[];
+        };
+        if (!cancelled) {
+          if (typeof body.markup_factor === "number") setMarkupFactor(String(body.markup_factor));
+          if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud.toFixed(2));
+          if (Array.isArray(body.papers) && body.papers.length > 0) setPapers(body.papers);
         }
       } catch {
         // Keep server-rendered / default value.
@@ -281,9 +301,14 @@ export function PrintProfilesClient({
   }, []);
 
   const saveMarkupFactor = async () => {
-    const parsed = Number.parseFloat(markupFactor);
-    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 20) {
+    const parsedMarkup = Number.parseFloat(markupFactor);
+    const parsedBase = Number.parseFloat(basePriceAud);
+    if (!Number.isFinite(parsedMarkup) || parsedMarkup < 1 || parsedMarkup > 20) {
       setError("Markup factor must be a number between 1 and 20.");
+      return;
+    }
+    if (!Number.isFinite(parsedBase) || parsedBase < 0) {
+      setError("Base price must be 0 or more.");
       return;
     }
 
@@ -294,21 +319,124 @@ export function PrintProfilesClient({
     const response = await fetch("/api/admin/print-pricing/markup", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markup_factor: parsed }),
+      body: JSON.stringify({ markup_factor: parsedMarkup, base_price_aud: parsedBase }),
     });
 
     setSavingMarkup(false);
 
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      setError(body?.error ?? "Failed to save markup factor.");
+      setError(body?.error ?? "Failed to save pricing settings.");
       return;
     }
 
-    const body = (await response.json()) as { markup_factor: number };
+    const body = (await response.json()) as { markup_factor: number; base_price_aud: number };
     setMarkupFactor(String(body.markup_factor));
-    setMessage(`Retail markup set to ${body.markup_factor}× lab cost.`);
+    setBasePriceAud(body.base_price_aud.toFixed(2));
+    setMessage(
+      `Pricing set to base $${body.base_price_aud.toFixed(2)} + (${body.markup_factor}× lab cost), then round up ($5 under $120 / $10 at $120+).`,
+    );
     router.refresh();
+  };
+
+  const updatePaper = (id: string, updates: Partial<ManagedPaper>) => {
+    setPapers((rows) => rows.map((row) => (row.id === id ? { ...row, ...updates } : row)));
+  };
+
+  const addPaper = () => {
+    const sortOrder = papers.reduce((max, paper) => Math.max(max, paper.sortOrder), -1) + 1;
+    setPapers((rows) => [
+      ...rows,
+      {
+        id: `paper-${Date.now()}`,
+        label: "New paper",
+        printType: "fine_art" as PrintTypeCode,
+        ratePerSqInAud: PIXEL_PERFECT_SQ_IN_RATES_AUD.standard_inkjet,
+        isActive: true,
+        sortOrder,
+      },
+    ]);
+  };
+
+  const savePapers = async () => {
+    if (papers.some((paper) => !paper.label.trim())) {
+      setError("Every paper needs a label.");
+      return;
+    }
+
+    setSavingPapers(true);
+    setError(null);
+    setMessage(null);
+
+    const response = await fetch("/api/admin/print-pricing/papers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        papers: papers.map((paper, index) => ({
+          ...paper,
+          label: paper.label.trim(),
+          sortOrder: Number.isFinite(paper.sortOrder) ? paper.sortOrder : index,
+        })),
+      }),
+    });
+
+    setSavingPapers(false);
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(body?.error ?? "Failed to save papers.");
+      return;
+    }
+
+    const body = (await response.json()) as { papers: ManagedPaper[] };
+    setPapers(body.papers);
+    setMessage(`Saved ${body.papers.length} paper(s) / media types.`);
+    router.refresh();
+  };
+
+  const repriceAll = async () => {
+    const confirmed = window.confirm(
+      "Reprice all print variants in the catalogue using the current base, markup, paper rates, and rounding?\n\nThis overwrites stored retail and lab cost on every print variant that has size + a paper with a $/sq in rate. Variants without a rate (quote-only) are skipped.",
+    );
+    if (!confirmed) return;
+
+    setRepricing(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/print-pricing/reprice-all", { method: "POST" });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+        scanned?: number;
+        updated?: number;
+        unchanged?: number;
+        skipped?: number;
+        skippedSampleLabels?: string[];
+      } | null;
+
+      if (!response.ok) {
+        setError(body?.error ?? "Failed to reprice catalogue.");
+        return;
+      }
+
+      const skippedNote =
+        body?.skipped && body.skipped > 0
+          ? ` Skipped ${body.skipped} (missing size/paper or quote-only)${
+              body.skippedSampleLabels?.length
+                ? `: ${body.skippedSampleLabels.slice(0, 5).join("; ")}`
+                : ""
+            }.`
+          : "";
+      setMessage(
+        `Repriced catalogue: ${body?.updated ?? 0} updated, ${body?.unchanged ?? 0} already current, ${body?.scanned ?? 0} scanned.${skippedNote}`,
+      );
+      router.refresh();
+    } catch {
+      setError("Failed to reprice catalogue.");
+    } finally {
+      setRepricing(false);
+    }
   };
 
   const uploadProfile = async (event: FormEvent<HTMLFormElement>) => {
@@ -526,14 +654,24 @@ export function PrintProfilesClient({
       <section className={styles.panel}>
         <h2>Square-inch retail pricing</h2>
         <p className={styles.muted}>
-          Import Wizard and product editor use Pixel Perfect lab cost (area × rate) × this markup for suggested
-          retail. Existing catalogue prices are unchanged until you re-save a variant.
+          Formula: <code>roundUp(base + markup × area × rate/sq in)</code>. Round up to the nearest $5 under $120,
+          nearest $10 at $120+. Existing catalogue prices stay until you re-save a variant.
         </p>
         <p className={styles.muted}>
-          {PIXEL_PERFECT_PRICELIST_NOTE}: standard inkjet ${PIXEL_PERFECT_SQ_IN_RATES_AUD.standard_inkjet.toFixed(3)}
-          /sq in · premium inkjet ${PIXEL_PERFECT_SQ_IN_RATES_AUD.premium_inkjet.toFixed(3)}/sq in (read-only).
+          Seed reference ({PIXEL_PERFECT_PRICELIST_NOTE}): standard ${PIXEL_PERFECT_SQ_IN_RATES_AUD.standard_inkjet.toFixed(3)}
+          /sq in · premium ${PIXEL_PERFECT_SQ_IN_RATES_AUD.premium_inkjet.toFixed(3)}/sq in — edit per paper below.
         </p>
         <div className={styles.grid}>
+          <label>
+            Base price AUD
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={basePriceAud}
+              onChange={(event) => setBasePriceAud(event.target.value)}
+            />
+          </label>
           <label>
             Retail markup factor
             <input
@@ -546,12 +684,120 @@ export function PrintProfilesClient({
             />
           </label>
         </div>
-        <p className={styles.muted}>Default is {DEFAULT_PRINT_PRICE_MARKUP_FACTOR}×. Allowed range 1–20.</p>
+        <p className={styles.muted}>
+          Base default ${DEFAULT_PRINT_PRICE_BASE_AUD.toFixed(2)} (0 or more). Markup default{" "}
+          {DEFAULT_PRINT_PRICE_MARKUP_FACTOR}× (range 1–20).
+        </p>
+        <button className={styles.button} type="button" disabled={savingMarkup} onClick={() => void saveMarkupFactor()}>
+          {savingMarkup ? "Saving…" : "Save base & markup"}
+        </button>
+
+        <h3 className={styles.papersHeading}>Papers / media</h3>
+        <p className={styles.muted}>
+          Cost per square inch drives lab cost. Leave rate blank for quote-only media (no formula price). Inactive
+          papers are hidden from Import Wizard and new variants.
+        </p>
+        <div className={styles.papersTableWrap}>
+          <table className={styles.papersTable}>
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Print type</th>
+                <th>$ / sq in</th>
+                <th>Sort</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              {papers.map((paper) => (
+                <tr key={paper.id}>
+                  <td>
+                    <input
+                      value={paper.label}
+                      onChange={(event) => updatePaper(paper.id, { label: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={paper.printType}
+                      onChange={(event) =>
+                        updatePaper(paper.id, { printType: event.target.value as PrintTypeCode })
+                      }
+                    >
+                      {PRINT_TYPES.map((option) => (
+                        <option key={option.code} value={option.code}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      placeholder="quote"
+                      value={paper.ratePerSqInAud === null ? "" : String(paper.ratePerSqInAud)}
+                      onChange={(event) => {
+                        const raw = event.target.value.trim();
+                        updatePaper(paper.id, {
+                          ratePerSqInAud: raw === "" ? null : Number.parseFloat(raw),
+                        });
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="1"
+                      value={paper.sortOrder}
+                      onChange={(event) =>
+                        updatePaper(paper.id, {
+                          sortOrder: Number.parseInt(event.target.value || "0", 10) || 0,
+                        })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={paper.isActive}
+                      onChange={(event) => updatePaper(paper.id, { isActive: event.target.checked })}
+                      aria-label={`Active ${paper.label}`}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className={styles.papersActions}>
+          <button className={styles.buttonSecondary} type="button" onClick={addPaper}>
+            Add paper
+          </button>
+          <button className={styles.button} type="button" disabled={savingPapers} onClick={() => void savePapers()}>
+            {savingPapers ? "Saving…" : "Save papers"}
+          </button>
+        </div>
+
+        <div className={styles.repriceBlock}>
+          <h3 className={styles.papersHeading}>Catalogue reprice</h3>
+          <p className={styles.muted}>
+            After saving base, markup, and paper rates, reprice every print variant from those factors (including
+            rounding). Save unsaved edits first — this uses what is stored in the database, not draft form values.
+          </p>
+          <button
+            className={styles.button}
+            type="button"
+            disabled={repricing || savingMarkup || savingPapers}
+            onClick={() => void repriceAll()}
+          >
+            {repricing ? "Repricing…" : "Reprice all"}
+          </button>
+        </div>
+
         {message ? <p className={styles.success}>{message}</p> : null}
         {error ? <p className={styles.error}>{error}</p> : null}
-        <button className={styles.button} type="button" disabled={savingMarkup} onClick={() => void saveMarkupFactor()}>
-          {savingMarkup ? "Saving…" : "Save markup"}
-        </button>
       </section>
 
       <section className={styles.panel}>

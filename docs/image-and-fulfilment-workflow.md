@@ -75,7 +75,7 @@ Hard-gated steps from placing a master TIFF in `MASTER_FILES_DIR` (no browser TI
 - `fit_mode = custom_size`, `size_lock = long_edge`
 - `width_mm` / `height_mm` derived from the master aspect (`deriveAspectPreservingSizeMm`)
 - `lab_cost_aud` from Pixel Perfect sq-in rates × area
-- `price_aud` = lab × global markup (`site_content` key `print_price_markup_factor`, default `3`, editable on `/admin/print-profiles`)
+- `price_aud` = roundUp(base + lab × markup) — base and markup in `site_content`; per-paper `$/sq in` in `site_content.print_papers` (editable on `/admin/print-profiles`). Round up to nearest $5 under $120, nearest $10 at $120+.
 - Shop label like `Hahnemühle Photo Rag · A3 long edge (420×236 mm)`
 - Fulfilment note to order **custom paper** at those mm
 
@@ -128,7 +128,8 @@ Create or edit products and variants manually. Each variant can pick a **print t
 | Web JPEG | Shop and product pages | `public/images/...` (+ optional `media_files`) |
 | Variant row | Price, dimensions, paper, DPI, **`master_filename`**, framing (`fit_mode` / `size_lock`) | `exhibition.product_variants` |
 | Templates | Optional reusable presets (Register Photo / editor seeds) | `exhibition.variant_templates` |
-| Markup | Global retail = lab × factor (default 3) | `site_content.print_price_markup_factor` |
+| Markup / base / papers | Retail = roundUp(base + markup × area × rate/sq in); papers list with rates | `site_content.print_price_base_aud`, `print_price_markup_factor`, `print_papers` |
+| Reprice all | Admin button on Print Templates recalculates all print `product_variants` prices/lab costs from current factors | `POST /api/admin/print-pricing/reprice-all` |
 
 The public site **does not** serve master TIFFs to shoppers.
 

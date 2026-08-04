@@ -13,8 +13,18 @@ export type PaperOption = {
   id: string;
   label: string;
   printType: PrintTypeCode;
-  /** Cost-per-sq-in tier from Pixel Perfect pricelist; null when fixed/quote pricing. */
+  /** @deprecated Prefer ManagedPaper.ratePerSqInAud; kept for seed conversion. */
   rateTier: PixelPerfectRateTier;
+};
+
+/** Admin-managed paper / medium with an explicit sq-in rate (null = quote-only). */
+export type ManagedPaper = {
+  id: string;
+  label: string;
+  printType: PrintTypeCode;
+  ratePerSqInAud: number | null;
+  isActive: boolean;
+  sortOrder: number;
 };
 
 /**
@@ -201,20 +211,43 @@ export const suggestTierForLongEdge = (longEdgeMm: number, printType: PrintTypeC
 export const tierGuidance = (tierLabel: string): string | null =>
   TIER_OPTIONS.find((tier) => tier.label === tierLabel)?.summary ?? null;
 
-export const papersForPrintType = (printType: PrintTypeCode): PaperOption[] =>
-  PAPER_OPTIONS.filter((paper) => paper.printType === printType);
+/** Seed managed papers from the curated catalogue + Pixel Perfect tier rates. */
+export const seedManagedPapers = (): ManagedPaper[] =>
+  PAPER_OPTIONS.map((paper, index) => ({
+    id: paper.id,
+    label: paper.label,
+    printType: paper.printType,
+    ratePerSqInAud: paper.rateTier ? PIXEL_PERFECT_SQ_IN_RATES_AUD[paper.rateTier] : null,
+    isActive: true,
+    sortOrder: index,
+  }));
 
-export const findPaperByLabel = (label: string): PaperOption | undefined =>
-  PAPER_OPTIONS.find((paper) => paper.label === label);
+export const sortManagedPapers = (papers: ManagedPaper[]): ManagedPaper[] =>
+  [...papers].sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
 
-export const paperSelectValue = (paperLabel: string): string => {
-  const match = findPaperByLabel(paperLabel);
+export const papersForPrintType = (printType: PrintTypeCode, papers: ManagedPaper[] = seedManagedPapers()): ManagedPaper[] =>
+  sortManagedPapers(papers).filter((paper) => paper.printType === printType && paper.isActive);
+
+export const findPaperByLabel = (
+  label: string,
+  papers: ManagedPaper[] = seedManagedPapers(),
+): ManagedPaper | undefined => papers.find((paper) => paper.label === label);
+
+export const findPaperById = (id: string, papers: ManagedPaper[] = seedManagedPapers()): ManagedPaper | undefined =>
+  papers.find((paper) => paper.id === id);
+
+export const paperSelectValue = (paperLabel: string, papers: ManagedPaper[] = seedManagedPapers()): string => {
+  const match = findPaperByLabel(paperLabel, papers);
   return match?.id ?? (paperLabel.trim() ? OTHER_PAPER_ID : "");
 };
 
-export const paperLabelFromSelect = (selectValue: string, customPaper: string): string => {
+export const paperLabelFromSelect = (
+  selectValue: string,
+  customPaper: string,
+  papers: ManagedPaper[] = seedManagedPapers(),
+): string => {
   if (selectValue === OTHER_PAPER_ID) return customPaper.trim();
-  const match = PAPER_OPTIONS.find((paper) => paper.id === selectValue);
+  const match = findPaperById(selectValue, papers);
   return match?.label ?? customPaper.trim();
 };
 
@@ -236,13 +269,29 @@ export const formatCustomSizeVariantLabel = (args: {
   return `${paper} · ${sizeName} (${args.widthMm}×${args.heightMm} mm)`;
 };
 
-export const defaultPrintTypeForPaper = (paperLabel: string): PrintTypeCode => {
-  const match = findPaperByLabel(paperLabel);
+export const defaultPrintTypeForPaper = (
+  paperLabel: string,
+  papers: ManagedPaper[] = seedManagedPapers(),
+): PrintTypeCode => {
+  const match = findPaperByLabel(paperLabel, papers);
   return match?.printType ?? "fine_art";
 };
 
+export const ratePerSqInForPaper = (
+  paperLabel: string,
+  papers: ManagedPaper[] = seedManagedPapers(),
+): number | null => {
+  const match = findPaperByLabel(paperLabel, papers);
+  if (!match) {
+    // Unknown label: fall back to standard inkjet seed rate for backwards compatibility.
+    return PIXEL_PERFECT_SQ_IN_RATES_AUD.standard_inkjet;
+  }
+  return match.ratePerSqInAud;
+};
+
+/** @deprecated Prefer ratePerSqInForPaper. */
 export const rateTierForPaper = (paperLabel: string): PixelPerfectRateTier => {
-  const match = findPaperByLabel(paperLabel);
+  const match = PAPER_OPTIONS.find((paper) => paper.label === paperLabel);
   if (!match) return "standard_inkjet";
   return match.rateTier;
 };

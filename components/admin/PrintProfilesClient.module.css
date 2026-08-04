@@ -213,6 +213,71 @@
   color: #666;
 }
 
+.papersHeading {
+  font-size: 1rem;
+  margin: 1.25rem 0 0.4rem;
+}
+
+.papersTableWrap {
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+.papersTable {
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  width: 100%;
+}
+
+.papersTable th,
+.papersTable td {
+  border-bottom: 1px solid #ececec;
+  padding: 0.4rem 0.35rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.papersTable th {
+  color: #555;
+  font-weight: 500;
+}
+
+.papersTable input,
+.papersTable select {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  max-width: 100%;
+  padding: 0.35rem 0.45rem;
+  width: 100%;
+}
+
+.papersTable input[type="checkbox"] {
+  width: auto;
+}
+
+.papersActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.repriceBlock {
+  border-top: 1px solid #e8e8e8;
+  margin-top: 1.25rem;
+  padding-top: 0.25rem;
+}
+
+.buttonSecondary {
+  background: transparent;
+  border: 1px solid #111;
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+}
+
 .error {
   color: #a40000;
 }

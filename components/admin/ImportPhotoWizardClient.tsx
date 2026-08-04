@@ -5,15 +5,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import {
-  defaultPrintTypeForPaper,
   formatCustomSizeVariantLabel,
   LONG_EDGE_PRESETS,
-  PAPER_OPTIONS,
-  PIXEL_PERFECT_PRICELIST_NOTE,
-  type PaperOption,
+  PRINT_TYPES,
+  seedManagedPapers,
+  type ManagedPaper,
   type PrintTypeCode,
 } from "../../lib/print-catalogue";
-import { DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
+import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
 import { computeVariantPricing, deriveAspectPreservingSizeMm, formatDualSize } from "../../lib/print-size";
 import type { Theme } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
@@ -36,6 +35,8 @@ type ImportPhotoWizardClientProps = {
   themes: Theme[];
   masterFilesDirPath: string;
   initialMarkupFactor?: number;
+  initialBasePriceAud?: number;
+  initialPapers?: ManagedPaper[];
   loadErrors?: string[];
 };
 
@@ -43,7 +44,7 @@ type WebImageMode = "generate" | "upload";
 
 type VariantCombo = {
   key: string;
-  paper: PaperOption;
+  paper: ManagedPaper;
   longEdgeMm: number;
   widthMm: number;
   heightMm: number;
@@ -127,6 +128,8 @@ export function ImportPhotoWizardClient({
   themes,
   masterFilesDirPath,
   initialMarkupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
+  initialBasePriceAud = DEFAULT_PRINT_PRICE_BASE_AUD,
+  initialPapers = seedManagedPapers(),
   loadErrors = [],
 }: ImportPhotoWizardClientProps) {
   const [step, setStep] = useState(0);
@@ -144,12 +147,18 @@ export function ImportPhotoWizardClient({
   const [editionSize, setEditionSize] = useState("10");
   const [isFeatured, setIsFeatured] = useState(false);
   const [visibility, setVisibility] = useState<"public" | "vault">("public");
-  const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(DEFAULT_PAPER_IDS);
+  const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() => {
+    const active = initialPapers.filter((paper) => paper.isActive && paper.ratePerSqInAud !== null);
+    const preferred = active.find((paper) => paper.id === "hm-photo-rag") ?? active[0];
+    return preferred ? [preferred.id] : DEFAULT_PAPER_IDS;
+  });
   const [selectedLongEdges, setSelectedLongEdges] = useState<number[]>(DEFAULT_LONG_EDGE_MMS);
   const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
   const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
   const [themeOptions, setThemeOptions] = useState(themes);
   const [markupFactor, setMarkupFactor] = useState(initialMarkupFactor);
+  const [basePriceAud, setBasePriceAud] = useState(initialBasePriceAud);
+  const [papers, setPapers] = useState<ManagedPaper[]>(initialPapers);
   const [webImageMode, setWebImageMode] = useState<WebImageMode>("generate");
   const [webImage, setWebImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -170,8 +179,8 @@ export function ImportPhotoWizardClient({
   );
 
   const sellablePapers = useMemo(
-    () => PAPER_OPTIONS.filter((paper) => paper.rateTier !== null),
-    [],
+    () => papers.filter((paper) => paper.isActive && paper.ratePerSqInAud !== null),
+    [papers],
   );
 
   const variantCombos = useMemo((): VariantCombo[] => {
@@ -192,6 +201,8 @@ export function ImportPhotoWizardClient({
           heightMm: size.height_mm,
           paperLabel: paper.label,
           markupFactor,
+          basePriceAud,
+          papers,
         });
         combos.push({
           key: comboKey(paper.id, longEdgeMm),
@@ -207,7 +218,16 @@ export function ImportPhotoWizardClient({
       }
     }
     return combos;
-  }, [hasMasterPixels, markupFactor, selectedLongEdges, selectedMaster, selectedPaperIds, sellablePapers]);
+  }, [
+    basePriceAud,
+    hasMasterPixels,
+    markupFactor,
+    papers,
+    selectedLongEdges,
+    selectedMaster,
+    selectedPaperIds,
+    sellablePapers,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -215,9 +235,15 @@ export function ImportPhotoWizardClient({
       try {
         const response = await adminClientFetch("/api/admin/print-pricing/markup");
         if (!response.ok || cancelled) return;
-        const body = (await response.json()) as { markup_factor?: number };
-        if (typeof body.markup_factor === "number" && !cancelled) {
-          setMarkupFactor(body.markup_factor);
+        const body = (await response.json()) as {
+          markup_factor?: number;
+          base_price_aud?: number;
+          papers?: ManagedPaper[];
+        };
+        if (!cancelled) {
+          if (typeof body.markup_factor === "number") setMarkupFactor(body.markup_factor);
+          if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud);
+          if (Array.isArray(body.papers) && body.papers.length > 0) setPapers(body.papers);
         }
       } catch {
         // Keep server-provided default.
@@ -514,8 +540,8 @@ export function ImportPhotoWizardClient({
               </li>
               <li>
                 You add title, slug, edition size, then choose papers and long-edge sizes. Each combo becomes an
-                aspect-true custom-size variant priced from Pixel Perfect sq-in cost × markup (
-                {markupFactor}× — editable on{" "}
+                aspect-true custom-size variant priced as roundUp(base + markup × sq-in cost) — currently base $
+                {basePriceAud.toFixed(2)} and {markupFactor}× markup (editable on{" "}
                 <Link href="/admin/print-profiles">Print Templates</Link>).
               </li>
               <li>The app creates a public web JPEG (or uses your override), product, variants, and Stripe prices.</li>
@@ -541,7 +567,7 @@ export function ImportPhotoWizardClient({
               />
               <span>
                 I understand: masters go on the server share (not browser upload), print sizes are custom paper from
-                long edge + sq-in pricing, and registering publishes the product for ordering.
+                long edge with base + markup pricing, and registering publishes the product for ordering.
               </span>
             </label>
           </div>
@@ -697,10 +723,13 @@ export function ImportPhotoWizardClient({
           <h2>4. Print sizes</h2>
           <p className={styles.explain}>
             Pick papers and long-edge presets. Each combination becomes a shop variant at the master photo&apos;s
-            aspect ratio (<code>custom_size</code>), priced as lab cost × {markupFactor}× markup. Adjust retail per row
-            if needed. Markup and rates: <Link href="/admin/print-profiles">Print Templates</Link>.
+            aspect ratio (<code>custom_size</code>), priced as roundUp(base ${basePriceAud.toFixed(2)} +{" "}
+            {markupFactor}× lab). Adjust retail per row if needed. Settings:{" "}
+            <Link href="/admin/print-profiles">Print Templates</Link>.
           </p>
-          <p className={styles.muted}>{PIXEL_PERFECT_PRICELIST_NOTE}.</p>
+          <p className={styles.muted}>
+            Rates come from the managed paper list. Retail rounds up to $5 under $120, $10 at $120+.
+          </p>
 
           {!hasMasterPixels ? (
             <p className={styles.blocker}>
@@ -722,7 +751,11 @@ export function ImportPhotoWizardClient({
                     />
                     <span>
                       {paper.label}
-                      <span className={styles.muted}> · {defaultPrintTypeForPaper(paper.label)}</span>
+                      <span className={styles.muted}>
+                        {" "}
+                        · {PRINT_TYPES.find((item) => item.code === paper.printType)?.label ?? paper.printType}
+                        {paper.ratePerSqInAud !== null ? ` · $${paper.ratePerSqInAud}/sq in` : ""}
+                      </span>
                     </span>
                   </label>
                 ))}
@@ -775,7 +808,10 @@ export function ImportPhotoWizardClient({
                       <td>{combo.labCostAud !== null ? formatMoney(combo.labCostAud) : "—"}</td>
                       <td>
                         {combo.formulaRetailAud !== null ? formatMoney(combo.formulaRetailAud) : "—"}
-                        <span className={styles.muted}> ({markupFactor}×)</span>
+                        <span className={styles.muted}>
+                          {" "}
+                          (${basePriceAud.toFixed(2)} + {markupFactor}×)
+                        </span>
                       </td>
                       <td>
                         <input
