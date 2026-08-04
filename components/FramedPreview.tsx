@@ -13,6 +13,15 @@ export const FRAME_MOULDING_MM: Record<Exclude<FramedPreviewStyle, "none">, numb
 /** Default long edge used when size is unknown (Medium / A2). */
 export const FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM = 594;
 
+/**
+ * Approximate on-screen long edge of the preview (px). Used to convert fixed
+ * moulding mm into screen px so Small reads thicker and Large thinner, without
+ * container queries (which were blowing the gallery layout).
+ */
+const PREVIEW_LONG_EDGE_PX = 520;
+const RING_PX_MIN = 10;
+const RING_PX_MAX = 36;
+
 type FramedPreviewProps = {
   frame?: FramedPreviewStyle;
   /** Print long edge in mm — scales moulding so small prints look thicker-framed. */
@@ -36,13 +45,14 @@ export function mapCustomFrameToPreview(
   return "none";
 }
 
-export function mouldingRatioForPreview(
+export function ringPxForPreview(
   frame: FramedPreviewStyle,
   longEdgeMm: number = FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM,
 ): number {
   if (frame === "none") return 0;
   const edge = Math.max(120, longEdgeMm);
-  return FRAME_MOULDING_MM[frame] / edge;
+  const raw = (FRAME_MOULDING_MM[frame] / edge) * PREVIEW_LONG_EDGE_PX;
+  return Math.min(RING_PX_MAX, Math.max(RING_PX_MIN, Math.round(raw)));
 }
 
 export function FramedPreview({
@@ -55,12 +65,12 @@ export function FramedPreview({
   const framed = frame !== "none";
   const ringClass =
     frame === "standard" ? styles.ringStandard : frame === "deluxe" ? styles.ringDeluxe : "";
-  const ratio = mouldingRatioForPreview(frame, longEdgeMm);
+  const ringPx = ringPxForPreview(frame, longEdgeMm);
 
   const mergedStyle: CSSProperties | undefined = framed
     ? {
         ...style,
-        ["--moulding-ratio" as string]: String(ratio),
+        ["--ring" as string]: `${ringPx}px`,
       }
     : style;
 
