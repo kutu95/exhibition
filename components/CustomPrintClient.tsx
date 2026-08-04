@@ -239,6 +239,24 @@ export function CustomPrintClient({
           <p className={styles.subtitle}>Custom print</p>
           {editionSize ? <p className={styles.edition}>Edition of {editionSize}</p> : null}
 
+          <div className={styles.priceSticky}>
+            <p className={styles.price}>
+              {pricing ? formatAUD(pricing.retailCents) : "Price unavailable"}
+            </p>
+            {pricing ? (
+              <p className={styles.priceBreakdown}>
+                Media {formatAUD(Math.round(pricing.mediaRetailAud * 100))}
+                {pricing.frameRetailAud > 0
+                  ? ` · Frame ${formatAUD(Math.round(pricing.frameRetailAud * 100))}`
+                  : ""}
+              </p>
+            ) : (
+              <p className={styles.muted}>
+                This combination is outside online pricing (try a smaller size or Standard frame).
+              </p>
+            )}
+          </div>
+
           <label className={styles.field}>
             <span className={styles.legend}>Long edge</span>
             <input
@@ -302,22 +320,6 @@ export function CustomPrintClient({
               </div>
             )}
           </fieldset>
-
-          <p className={styles.price}>
-            {pricing ? formatAUD(pricing.retailCents) : "Price unavailable"}
-          </p>
-          {pricing ? (
-            <p className={styles.priceBreakdown}>
-              Media {formatAUD(Math.round(pricing.mediaRetailAud * 100))}
-              {pricing.frameRetailAud > 0
-                ? ` · Frame ${formatAUD(Math.round(pricing.frameRetailAud * 100))}`
-                : ""}
-            </p>
-          ) : (
-            <p className={styles.muted}>
-              This combination is outside online pricing (try a smaller size or Standard frame).
-            </p>
-          )}
 
           <div className={styles.actions}>
             {purchasesAllowed ? (
@@ -391,8 +393,6 @@ function MediaGroup({
               <span className={styles.optionTitle}>{option.label}</span>
               {option.id === CUSTOM_RTH_CANVAS_ID ? (
                 <span className={styles.optionMeta}>Print, stretch, and wire included</span>
-              ) : option.ratePerSqInAud !== null ? (
-                <span className={styles.optionMeta}>Lab from ${option.ratePerSqInAud}/sq in</span>
               ) : null}
             </span>
           </label>

@@ -13,8 +13,8 @@ export default async function AdminPrintProfilesPage() {
     <div>
       <h1>Print Templates</h1>
       <p>
-        Buyer offer pricing: media and frame markups, Pixel Perfect frame/canvas rate tables, reprice, and clean-break
-        rebuild of all print options. ICC uploads remain reference-only.
+        Buyer offer pricing: media and frame markups, papers for the custom print page, Pixel Perfect frame/canvas rate
+        tables, reprice, and rebuild. ICC uploads remain reference-only.
       </p>
       <PrintProfilesClient
         initialProfiles={profiles}
@@ -24,6 +24,7 @@ export default async function AdminPrintProfilesPage() {
         initialFrameBasePriceAud={pricing.frameBasePriceAud}
         initialFrameRates={pricing.frameRates}
         initialRthCanvasRates={pricing.rthCanvasRates}
+        initialPapers={pricing.papers}
       />
     </div>
   );

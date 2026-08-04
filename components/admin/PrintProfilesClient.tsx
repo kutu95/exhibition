@@ -13,6 +13,13 @@ import {
 } from "../../lib/print-frame-pricing";
 import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
 import { OFFER_COMBOS, OFFER_MATTE_PAPER_LABEL, OFFER_SIZES } from "../../lib/print-offer";
+import {
+  PIXEL_PERFECT_SQ_IN_RATES_AUD,
+  PRINT_TYPES,
+  seedManagedPapers,
+  type ManagedPaper,
+  type PrintTypeCode,
+} from "../../lib/print-catalogue";
 import type { PrintProfile } from "../../lib/supabase/types";
 import styles from "./PrintProfilesClient.module.css";
 
@@ -24,6 +31,7 @@ type PrintProfilesClientProps = {
   initialFrameBasePriceAud?: number;
   initialFrameRates?: FrameRateBand[];
   initialRthCanvasRates?: RthCanvasRateBand[];
+  initialPapers?: ManagedPaper[];
 };
 
 const printTypes = [
@@ -51,6 +59,7 @@ export function PrintProfilesClient({
   initialFrameBasePriceAud = DEFAULT_PRINT_FRAME_BASE_AUD,
   initialFrameRates = SEED_FRAME_RATES,
   initialRthCanvasRates = SEED_RTH_CANVAS_RATES,
+  initialPapers = seedManagedPapers(),
 }: PrintProfilesClientProps) {
   const router = useRouter();
   const [profiles, setProfiles] = useState(initialProfiles);
@@ -75,7 +84,9 @@ export function PrintProfilesClient({
   );
   const [frameRates, setFrameRates] = useState<FrameRateBand[]>(initialFrameRates);
   const [rthRates, setRthRates] = useState<RthCanvasRateBand[]>(initialRthCanvasRates);
+  const [papers, setPapers] = useState<ManagedPaper[]>(initialPapers);
   const [savingPricing, setSavingPricing] = useState(false);
+  const [savingPapers, setSavingPapers] = useState(false);
   const [repricing, setRepricing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
 
@@ -83,26 +94,36 @@ export function PrintProfilesClient({
     let cancelled = false;
     void (async () => {
       try {
-        const response = await fetch("/api/admin/print-pricing/offer");
-        if (!response.ok || cancelled) return;
-        const body = (await response.json()) as {
-          markup_factor?: number;
-          base_price_aud?: number;
-          frame_markup_factor?: number;
-          frame_base_price_aud?: number;
-          frame_rates?: FrameRateBand[];
-          rth_canvas_rates?: RthCanvasRateBand[];
-        };
+        const [offerResponse, papersResponse] = await Promise.all([
+          fetch("/api/admin/print-pricing/offer"),
+          fetch("/api/admin/print-pricing/papers"),
+        ]);
         if (cancelled) return;
-        if (typeof body.markup_factor === "number") setMarkupFactor(String(body.markup_factor));
-        if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud.toFixed(2));
-        if (typeof body.frame_markup_factor === "number") setFrameMarkupFactor(String(body.frame_markup_factor));
-        if (typeof body.frame_base_price_aud === "number") {
-          setFrameBasePriceAud(body.frame_base_price_aud.toFixed(2));
+
+        if (offerResponse.ok) {
+          const body = (await offerResponse.json()) as {
+            markup_factor?: number;
+            base_price_aud?: number;
+            frame_markup_factor?: number;
+            frame_base_price_aud?: number;
+            frame_rates?: FrameRateBand[];
+            rth_canvas_rates?: RthCanvasRateBand[];
+          };
+          if (typeof body.markup_factor === "number") setMarkupFactor(String(body.markup_factor));
+          if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud.toFixed(2));
+          if (typeof body.frame_markup_factor === "number") setFrameMarkupFactor(String(body.frame_markup_factor));
+          if (typeof body.frame_base_price_aud === "number") {
+            setFrameBasePriceAud(body.frame_base_price_aud.toFixed(2));
+          }
+          if (Array.isArray(body.frame_rates) && body.frame_rates.length) setFrameRates(body.frame_rates);
+          if (Array.isArray(body.rth_canvas_rates) && body.rth_canvas_rates.length) {
+            setRthRates(body.rth_canvas_rates);
+          }
         }
-        if (Array.isArray(body.frame_rates) && body.frame_rates.length) setFrameRates(body.frame_rates);
-        if (Array.isArray(body.rth_canvas_rates) && body.rth_canvas_rates.length) {
-          setRthRates(body.rth_canvas_rates);
+
+        if (papersResponse.ok) {
+          const body = (await papersResponse.json()) as { papers?: ManagedPaper[] };
+          if (Array.isArray(body.papers) && body.papers.length > 0) setPapers(body.papers);
         }
       } catch {
         // Keep SSR defaults.
@@ -167,6 +188,61 @@ export function PrintProfilesClient({
     setFrameRates(body.frame_rates);
     setRthRates(body.rth_canvas_rates);
     setMessage("Saved media and frame pricing.");
+    router.refresh();
+  };
+
+  const updatePaper = (id: string, updates: Partial<ManagedPaper>) => {
+    setPapers((rows) => rows.map((row) => (row.id === id ? { ...row, ...updates } : row)));
+  };
+
+  const addPaper = () => {
+    const sortOrder = papers.reduce((max, paper) => Math.max(max, paper.sortOrder), -1) + 1;
+    setPapers((rows) => [
+      ...rows,
+      {
+        id: `paper-${Date.now()}`,
+        label: "New paper",
+        printType: "fine_art" as PrintTypeCode,
+        ratePerSqInAud: PIXEL_PERFECT_SQ_IN_RATES_AUD.standard_inkjet,
+        isActive: true,
+        sortOrder,
+      },
+    ]);
+  };
+
+  const savePapers = async () => {
+    if (papers.some((paper) => !paper.label.trim())) {
+      setError("Every paper needs a label.");
+      return;
+    }
+
+    setSavingPapers(true);
+    setError(null);
+    setMessage(null);
+
+    const response = await fetch("/api/admin/print-pricing/papers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        papers: papers.map((paper, index) => ({
+          ...paper,
+          label: paper.label.trim(),
+          sortOrder: Number.isFinite(paper.sortOrder) ? paper.sortOrder : index,
+        })),
+      }),
+    });
+
+    setSavingPapers(false);
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(body?.error ?? "Failed to save papers.");
+      return;
+    }
+
+    const body = (await response.json()) as { papers: ManagedPaper[] };
+    setPapers(body.papers);
+    setMessage(`Saved ${body.papers.length} paper(s) / media types.`);
     router.refresh();
   };
 
@@ -322,6 +398,95 @@ export function PrintProfilesClient({
             Markup × lab
             <input type="number" min="1" max="20" step="0.01" value={markupFactor} onChange={(e) => setMarkupFactor(e.target.value)} />
           </label>
+        </div>
+
+        <h3 className={styles.papersHeading}>Papers / media</h3>
+        <p className={styles.muted}>
+          Active papers with a $/sq in rate appear on the custom print page. Uncheck Active to hide a paper from buyers.
+          Leave rate blank for quote-only media (no formula price). The standard shop offer still uses Hahnemühle Photo
+          Rag for archival matte.
+        </p>
+        <div className={styles.papersTableWrap}>
+          <table className={styles.papersTable}>
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Print type</th>
+                <th>$ / sq in</th>
+                <th>Sort</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              {papers.map((paper) => (
+                <tr key={paper.id}>
+                  <td>
+                    <input
+                      value={paper.label}
+                      onChange={(event) => updatePaper(paper.id, { label: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={paper.printType}
+                      onChange={(event) =>
+                        updatePaper(paper.id, { printType: event.target.value as PrintTypeCode })
+                      }
+                    >
+                      {PRINT_TYPES.map((option) => (
+                        <option key={option.code} value={option.code}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      placeholder="quote"
+                      value={paper.ratePerSqInAud === null ? "" : String(paper.ratePerSqInAud)}
+                      onChange={(event) => {
+                        const raw = event.target.value.trim();
+                        updatePaper(paper.id, {
+                          ratePerSqInAud: raw === "" ? null : Number.parseFloat(raw),
+                        });
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      step="1"
+                      value={paper.sortOrder}
+                      onChange={(event) =>
+                        updatePaper(paper.id, {
+                          sortOrder: Number.parseInt(event.target.value || "0", 10) || 0,
+                        })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={paper.isActive}
+                      onChange={(event) => updatePaper(paper.id, { isActive: event.target.checked })}
+                      aria-label={`Active ${paper.label}`}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className={styles.papersActions}>
+          <button className={styles.buttonSecondary} type="button" onClick={addPaper}>
+            Add paper
+          </button>
+          <button className={styles.button} type="button" disabled={savingPapers} onClick={() => void savePapers()}>
+            {savingPapers ? "Saving…" : "Save papers"}
+          </button>
         </div>
 
         <h3 className={styles.papersHeading}>Frame markup</h3>

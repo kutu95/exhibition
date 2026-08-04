@@ -52,8 +52,30 @@
 }
 
 .edition {
-  margin: 0 0 1.1rem;
+  margin: 0 0 0.75rem;
   color: #444;
+  font-size: 0.9rem;
+}
+
+.priceSticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 1.1rem;
+  padding: 0.75rem 0 0.85rem;
+  border-bottom: 1px solid rgba(10, 22, 40, 0.15);
+  background: color-mix(in srgb, var(--color-paper, #f7f4ef) 92%, white);
+}
+
+.price {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  margin: 0 0 0.2rem;
+}
+
+.priceBreakdown {
+  margin: 0;
+  color: #555;
   font-size: 0.9rem;
 }
 
@@ -145,18 +167,6 @@
   font-size: 0.82rem;
   line-height: 1.35;
   margin-top: 0.15rem;
-}
-
-.price {
-  font-family: var(--font-heading);
-  font-size: 2rem;
-  margin: 0.4rem 0 0.25rem;
-}
-
-.priceBreakdown {
-  margin: 0 0 1rem;
-  color: #555;
-  font-size: 0.9rem;
 }
 
 .actions {
