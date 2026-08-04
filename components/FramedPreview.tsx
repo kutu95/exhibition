@@ -2,18 +2,21 @@
 
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 
+import {
+  DELUXE_FRAME_FACE_MM,
+  STANDARD_FRAME_FACE_MM,
+} from "../lib/print-frame-styles";
 import styles from "./FramedPreview.module.css";
 
 export type FramedPreviewStyle = "none" | "standard" | "deluxe";
 
 /**
- * Pixel Perfect face widths (https://pixelperfect.com.au/framing/):
- * - Standard: 20 / 30 / 42mm face × 20mm deep — preview uses mid 30mm
- * - Deluxe: 10mm face × 25mm deep (slimmer face, not wider)
+ * Face widths for virtual preview — matches Pixel Perfect
+ * https://pixelperfect.com.au/framing/
  */
 export const FRAME_MOULDING_MM: Record<Exclude<FramedPreviewStyle, "none">, number> = {
-  standard: 30,
-  deluxe: 10,
+  standard: STANDARD_FRAME_FACE_MM,
+  deluxe: DELUXE_FRAME_FACE_MM,
 };
 
 /** Default long edge used when size is unknown (Medium / A2). */

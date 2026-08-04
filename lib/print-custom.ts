@@ -15,6 +15,12 @@ import {
   unitedInchesFromMm,
 } from "./print-frame-pricing";
 import {
+  OFFER_FRAMED_SAMPLE_IMAGE,
+  SHOP_FRAME_OPTIONS,
+  shopFrameByCustomStyle,
+  type ShopFrameOption,
+} from "./print-frame-styles";
+import {
   computeRetailFromLabCost,
   deriveAspectPreservingSizeMm,
   mmToInches,
@@ -39,36 +45,17 @@ export type CustomFrameOption = {
   sampleImage?: string;
 };
 
-export const CUSTOM_FRAME_OPTIONS: CustomFrameOption[] = [
-  {
-    id: "none",
-    label: "Unframed",
-    summary: "Print only — shipped flat or in a tube",
-  },
-  {
-    id: "standard_perspex",
-    label: "Standard frame",
-    // https://pixelperfect.com.au/framing/ — Standard: 20/30/42mm face, 20mm deep
-    summary: "PP Standard moulding (20–42mm face) with Perspex — shippable",
-    sampleImage: "/frames/standard-sample.jpg",
-  },
-  {
-    id: "deluxe_perspex",
-    label: "Deluxe frame",
-    // https://pixelperfect.com.au/framing/ — Deluxe: 10mm face, 25mm deep (slimmer)
-    summary: "PP Deluxe moulding (10mm face, 25mm deep) with Perspex — shippable",
-    sampleImage: "/frames/deluxe-sample.jpg",
-  },
-];
+const toCustomFrameOption = (option: ShopFrameOption): CustomFrameOption => ({
+  id: option.customFrameStyleId,
+  label: option.label,
+  summary: option.summary,
+  sampleImage: option.sampleImage,
+});
 
-/** Sample used for the shop “Framed” presentation (Standard moulding). */
-export const OFFER_FRAMED_SAMPLE_IMAGE = "/frames/standard-sample.jpg";
-/** Official moulding photos from https://pixelperfect.com.au/framing/ */
-export const FRAME_SAMPLE_SOURCES = {
-  standard: "https://pixelperfect.com.au/wp-content/uploads/2021/02/PIxel_Perfect_Frame_Standard.jpg",
-  deluxe: "https://pixelperfect.com.au/wp-content/uploads/2022/08/PIxel_Perfect_Deluxe_Frames_2022.jpg",
-  box: "https://pixelperfect.com.au/wp-content/uploads/2021/02/PIxel_Perfect_Frames_Box.jpg",
-} as const;
+export const CUSTOM_FRAME_OPTIONS: CustomFrameOption[] = SHOP_FRAME_OPTIONS.map(toCustomFrameOption);
+
+export { OFFER_FRAMED_SAMPLE_IMAGE, shopFrameByCustomStyle };
+
 /** Deluxe moulding lab AUD by united inches (Pixel Perfect April 2025). */
 export const SEED_DELUXE_FRAME_BY_UIN: Record<number, number> = {
   20: 102.73,

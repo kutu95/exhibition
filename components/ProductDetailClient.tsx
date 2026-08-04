@@ -25,7 +25,12 @@ import {
   type OfferPresentationId,
   type OfferSizeId,
 } from "../lib/print-offer";
-import { SHOW_CUSTOM_PRINT_PAGE, OFFER_FRAMED_SAMPLE_IMAGE } from "../lib/print-custom";
+import { SHOW_CUSTOM_PRINT_PAGE } from "../lib/print-custom";
+import {
+  FRAME_NOTE_PERSPEX,
+  OFFER_FRAMED_FRAME,
+  OFFER_FRAMED_SAMPLE_IMAGE,
+} from "../lib/print-frame-styles";
 import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
@@ -377,6 +382,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             {finishId === "archival_matte" ? (
               <fieldset className={styles.offerFieldset}>
                 <legend>Presentation</legend>
+                <p className={styles.frameNote}>{FRAME_NOTE_PERSPEX}</p>
                 <div className={styles.offerOptions}>
                   {PRESENTATION_OPTIONS.map((id) => {
                     const sample = priceForCombo({
@@ -384,10 +390,11 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                       finishId: "archival_matte",
                       presentationId: id,
                     });
+                    const isFramedOption = id === "framed";
                     return (
                       <label
                         key={id}
-                        className={`${styles.offerOption} ${id === "framed" ? styles.offerOptionWithSample : ""} ${
+                        className={`${styles.offerOption} ${isFramedOption ? styles.offerOptionWithSample : ""} ${
                           presentationId === id ? styles.offerOptionActive : ""
                         } ${!sample ? styles.offerOptionDisabled : ""}`}
                       >
@@ -398,11 +405,11 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                           disabled={!sample}
                           onChange={() => setPresentationId(id)}
                         />
-                        {id === "framed" ? (
+                        {isFramedOption ? (
                           <span className={styles.offerOptionSample}>
                             <img
                               src={OFFER_FRAMED_SAMPLE_IMAGE}
-                              alt="Standard frame moulding sample"
+                              alt={`${OFFER_FRAMED_FRAME.label} moulding sample`}
                               width={96}
                               height={96}
                               className={styles.offerOptionSampleImage}
@@ -411,7 +418,14 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                             />
                           </span>
                         ) : null}
-                        <span>{OFFER_PRESENTATION_LABEL[id]}</span>
+                        <span className={styles.offerOptionCopy}>
+                          <span className={styles.offerOptionTitle}>{OFFER_PRESENTATION_LABEL[id]}</span>
+                          {isFramedOption ? (
+                            <span className={styles.offerOptionMeta}>{OFFER_FRAMED_FRAME.summary}</span>
+                          ) : (
+                            <span className={styles.offerOptionMeta}>Print only — no moulding</span>
+                          )}
+                        </span>
                       </label>
                     );
                   })}

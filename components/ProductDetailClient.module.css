@@ -138,6 +138,13 @@
   padding: 0;
 }
 
+.frameNote {
+  margin: 0 0 0.65rem;
+  color: #555;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .offerOptions {
   display: grid;
   gap: 0.45rem;

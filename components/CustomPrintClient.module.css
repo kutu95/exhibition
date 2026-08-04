@@ -148,6 +148,13 @@
   font-weight: 600;
 }
 
+.frameNote {
+  margin: 0 0 0.65rem;
+  color: #555;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .options {
   display: grid;
   gap: 0.45rem;

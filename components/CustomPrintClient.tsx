@@ -21,6 +21,7 @@ import {
   type CustomFrameStyleId,
   type CustomMediaOption,
 } from "../lib/print-custom";
+import { FRAME_NOTE_PERSPEX } from "../lib/print-frame-styles";
 import type { FrameRateBand, RthCanvasRateBand } from "../lib/print-frame-pricing";
 import type { ManagedPaper } from "../lib/print-catalogue";
 import { mmToInches } from "../lib/print-size";
@@ -309,41 +310,43 @@ export function CustomPrintClient({
             {isRth ? (
               <p className={styles.muted}>Ready-to-hang canvas includes stretch and wire — framing is not offered.</p>
             ) : (
-              <div className={styles.options}>
-                {CUSTOM_FRAME_OPTIONS.map((option) => (
-                  <label
-                    key={option.id}
-                    className={`${styles.option} ${option.sampleImage ? styles.optionWithSample : ""} ${
-                      effectiveFrame === option.id ? styles.optionActive : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="frame"
-                      checked={effectiveFrame === option.id}
-                      onChange={() => setFrameStyle(option.id)}
-                    />
-                    {option.sampleImage ? (
-                      <span className={styles.optionSample}>
-                        {/* Native img: avoids /_next/image + CSP quirks for local samples */}
-                        <img
-                          src={option.sampleImage}
-                          alt={`${option.label} moulding sample`}
-                          width={112}
-                          height={112}
-                          className={styles.optionSampleImage}
-                          loading="lazy"
-                          decoding="async"
-                        />
+              <>
+                <p className={styles.frameNote}>{FRAME_NOTE_PERSPEX}</p>
+                <div className={styles.options}>
+                  {CUSTOM_FRAME_OPTIONS.map((option) => (
+                    <label
+                      key={option.id}
+                      className={`${styles.option} ${option.sampleImage ? styles.optionWithSample : ""} ${
+                        effectiveFrame === option.id ? styles.optionActive : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="frame"
+                        checked={effectiveFrame === option.id}
+                        onChange={() => setFrameStyle(option.id)}
+                      />
+                      {option.sampleImage ? (
+                        <span className={styles.optionSample}>
+                          <img
+                            src={option.sampleImage}
+                            alt={`${option.label} moulding sample`}
+                            width={112}
+                            height={112}
+                            className={styles.optionSampleImage}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </span>
+                      ) : null}
+                      <span>
+                        <span className={styles.optionTitle}>{option.label}</span>
+                        <span className={styles.optionMeta}>{option.summary}</span>
                       </span>
-                    ) : null}
-                    <span>
-                      <span className={styles.optionTitle}>{option.label}</span>
-                      <span className={styles.optionMeta}>{option.summary}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
+                    </label>
+                  ))}
+                </div>
+              </>
             )}
           </fieldset>
 

@@ -58,7 +58,7 @@ describe("print offer matrix", () => {
         finishId: "archival_matte",
         presentationId: "framed",
       }),
-    ).toBe("Large · Archival matte · Framed");
+    ).toBe("Large · Archival matte · Standard frame");
     expect(
       formatOfferVariantLabel({
         sizeId: "small",
@@ -73,13 +73,20 @@ describe("print offer matrix", () => {
       tier_label: "Medium",
       finish: "Archival matte",
       is_framed: true,
-      variant_label: "Medium · Archival matte · Framed",
+      variant_label: "Medium · Archival matte · Standard frame",
     });
     expect(axes).toEqual({
       sizeId: "medium",
       finishId: "archival_matte",
       presentationId: "framed",
     });
+    const legacy = parseOfferAxesFromVariant({
+      tier_label: "Medium",
+      finish: "Archival matte",
+      is_framed: true,
+      variant_label: "Medium · Archival matte · Framed",
+    });
+    expect(legacy?.presentationId).toBe("framed");
   });
 
   it("resolves a combo from a variant list", () => {

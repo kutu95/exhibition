@@ -631,7 +631,8 @@ export function ImportPhotoWizardClient({
           <h2>4. Print offer</h2>
           <p className={styles.explain}>
             Every print gets the same nine options: Small / Medium / Large × Archival matte (unframed or framed) ×
-            Ready-to-hang canvas. Framed uses Standard moulding + Perspex. Pricing uses current media and frame
+            Ready-to-hang canvas. Framed uses Pixel Perfect Standard moulding (20–42mm face) + Perspex for
+            shipping. Pricing uses current media and frame
             markups from <Link href="/admin/print-profiles">Print Templates</Link>.
           </p>
           <p className={styles.muted}>

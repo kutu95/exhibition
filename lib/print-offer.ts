@@ -35,7 +35,7 @@ export const OFFER_SIZE_LABEL: Record<OfferSizeId, string> = {
 
 export const OFFER_PRESENTATION_LABEL: Record<OfferPresentationId, string> = {
   unframed: "Unframed",
-  framed: "Framed",
+  framed: "Standard frame",
 };
 
 export type OfferSizeDef = {
@@ -289,7 +289,10 @@ export const parseOfferAxesFromVariant = (variant: {
     return { sizeId, finishId: "rth_canvas", presentationId: "unframed" };
   }
 
-  const framed = Boolean(variant.is_framed) || /\bframed\b/i.test(variant.variant_label ?? "");
+  const framed =
+    Boolean(variant.is_framed) ||
+    /\bframed\b/i.test(variant.variant_label ?? "") ||
+    /\bstandard frame\b/i.test(variant.variant_label ?? "");
   return {
     sizeId,
     finishId: "archival_matte",
