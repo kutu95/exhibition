@@ -10,6 +10,7 @@ type EmailSignupFormProps = {
   source: string;
   buttonLabel?: string;
   compact?: boolean;
+  successMessage?: string;
 };
 
 type FormStatus = "idle" | "loading" | "success";
@@ -20,6 +21,7 @@ export function EmailSignupForm({
   source,
   buttonLabel = "Notify Me",
   compact = false,
+  successMessage = "You're on the list.",
 }: EmailSignupFormProps) {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -66,7 +68,7 @@ export function EmailSignupForm({
   };
 
   if (status === "success") {
-    return <p className={styles.success}>You&apos;re on the list.</p>;
+    return <p className={styles.success}>{successMessage}</p>;
   }
 
   return (

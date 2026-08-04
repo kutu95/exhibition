@@ -98,3 +98,34 @@
   text-decoration: underline;
   text-underline-offset: 0.12em;
 }
+
+.interest {
+  margin: 3rem 0 0;
+  max-width: 68ch;
+  padding: 1.4rem 1.5rem;
+  border: 1px solid rgba(10, 22, 40, 0.22);
+  background: rgba(10, 22, 40, 0.03);
+}
+
+.interestEyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.interestTitle {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+  line-height: 1.15;
+  color: var(--color-navy);
+}
+
+.interestCopy {
+  margin: 0 0 1rem;
+  max-width: 54ch;
+  line-height: 1.7;
+  color: #333;
+}

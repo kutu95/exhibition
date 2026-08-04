@@ -4,6 +4,7 @@ import path from "node:path";
 import Image from "next/image";
 import Link from "next/link";
 
+import { EmailSignupForm } from "../../components/EmailSignupForm";
 import { FadeInSection } from "../../components/FadeInSection";
 import { JsonLd } from "../../components/JsonLd";
 import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
@@ -60,7 +61,7 @@ export default async function BookSamplerPage() {
 
       <article className={`section container-narrow ${styles.article}`}>
         <header className={styles.intro}>
-          <p className="eyebrow">Book sampler</p>
+          <p className="eyebrow">From the book</p>
           <h1 className="heading-section">Author&apos;s Preface</h1>
           <p className={styles.byline}>John Bowskill</p>
         </header>
@@ -232,6 +233,20 @@ export default async function BookSamplerPage() {
             <figcaption className={styles.figcaption}>{PROP_IMAGE_CAPTION}</figcaption>
           </figure>
         </FadeInSection>
+
+        <aside className={styles.interest} id="register-interest">
+          <p className={styles.interestEyebrow}>The book</p>
+          <h2 className={styles.interestTitle}>Register your interest</h2>
+          <p className={styles.interestCopy}>
+            The full book is in preparation. Leave your email and we&apos;ll let you know when it becomes available to
+            buy — no spam, just the publication notice.
+          </p>
+          <EmailSignupForm
+            source="book_interest"
+            buttonLabel="Register interest"
+            successMessage="Thanks — we'll be in touch when the book is available."
+          />
+        </aside>
 
         <nav className={styles.footerNav} aria-label="Related pages">
           <Link href="/about-the-photographer">About the photographer →</Link>

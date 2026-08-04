@@ -6,8 +6,12 @@ import { supabaseAdmin } from "../../../lib/supabase/admin";
 const subscribeSchema = z.object({
   email: z.string().email(),
   first_name: z.string().min(1).optional(),
-  source: z.enum(["holding_page", "shop", "visit_page", "footer", "other"]).optional(),
+  source: z
+    .enum(["holding_page", "shop", "visit_page", "footer", "other", "book_interest"])
+    .optional(),
 });
+
+type SubscribeSource = NonNullable<z.infer<typeof subscribeSchema>["source"]>;
 
 export async function POST(request: Request) {
   try {
@@ -38,13 +42,36 @@ export async function POST(request: Request) {
     }
 
     if (existing && existing.unsubscribed_at === null) {
+      // Record a later intent (e.g. book interest) without creating a duplicate row.
+      const updates: {
+        first_name?: string;
+        source?: SubscribeSource;
+      } = {};
+      if (first_name) updates.first_name = first_name;
+      if (source) updates.source = source;
+
+      if (Object.keys(updates).length > 0) {
+        const { error: updateError } = await supabaseAdmin
+          .from("email_subscribers")
+          .update(updates)
+          .eq("email", email);
+
+        if (updateError) {
+          console.error("Subscribe update failed", updateError);
+          return NextResponse.json(
+            { success: false, error: "Could not process subscription." },
+            { status: 500 },
+          );
+        }
+      }
+
       return NextResponse.json({ success: true });
     }
 
     if (existing) {
       const updates: {
         first_name?: string;
-        source?: "holding_page" | "shop" | "visit_page" | "footer" | "other";
+        source?: SubscribeSource;
         unsubscribed_at?: null;
       } = {};
 

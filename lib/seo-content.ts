@@ -39,9 +39,9 @@ export const SEO_FALLBACKS: Record<SeoContentKey, string> = {
   seo_about_title: "About Photographer John Bowskill | The Georgette 150th",
   seo_about_description:
     "Meet photographer John Bowskill — The Georgette 150th exhibition, coastal photography near Redgate Beach, and immersive installations in Margaret River.",
-  seo_book_title: "Author’s Preface — Book Sampler | The Georgette 150th",
+  seo_book_title: "Author’s Preface — Book | The Georgette 150th",
   seo_book_description:
-    "Read John Bowskill’s author’s preface — from a drone revelation at Calgardup Bay to Scotland, the Clyde, and who gets remembered.",
+    "Read John Bowskill’s author’s preface and register interest in the forthcoming Georgette book.",
   seo_visit_title: "Visit | The Georgette 150th",
   seo_visit_description:
     "The Georgette 150th at 20 Morris Rd, Forest Grove WA 6286 — open daily 10am–5pm, 12–27 September 2026. Margaret River Region Open Studios. Free admission.",

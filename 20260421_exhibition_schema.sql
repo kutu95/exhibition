@@ -103,7 +103,7 @@ create table exhibition.email_subscribers (
   first_name text,
   source text check (
     source is null
-    or source in ('holding_page', 'shop', 'visit_page', 'footer', 'other')
+    or source in ('holding_page', 'shop', 'visit_page', 'footer', 'other', 'book_interest')
   ),
   is_confirmed boolean not null default false,
   subscribed_at timestamptz not null default now(),
