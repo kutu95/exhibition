@@ -8,7 +8,8 @@
   gap: 1rem;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  /* Keep visible so framed drop shadows are not clipped */
+  overflow: visible;
 }
 
 .mainImageWrap {
@@ -34,6 +35,9 @@
   aspect-ratio: auto;
   max-height: none;
   background: #f4f1ec;
+  overflow: visible;
+  /* Room for the on-wall drop shadow */
+  margin-bottom: 1.25rem;
 }
 
 .mainImage {

@@ -12,8 +12,9 @@
   background: #111;
   /* Light from above-right → shadow falls below-left (on-wall cue). */
   box-shadow:
-    -0.45rem 0.55rem 1.15rem rgba(10, 22, 40, 0.22),
-    -0.12rem 0.18rem 0.35rem rgba(10, 22, 40, 0.14);
+    -0.75rem 1rem 1.75rem rgba(10, 22, 40, 0.38),
+    -0.25rem 0.35rem 0.55rem rgba(10, 22, 40, 0.28),
+    -0.08rem 0.12rem 0.2rem rgba(10, 22, 40, 0.2);
   /* Moulding zone — filled by inset ring shadows */
   padding: var(--ring, 18px);
 }

@@ -17,6 +17,7 @@
 .visual {
   display: grid;
   gap: 0.75rem;
+  overflow: visible;
 }
 
 .imageWrap {
@@ -37,6 +38,8 @@
   aspect-ratio: auto;
   max-height: none;
   background: #f4f1ec;
+  overflow: visible;
+  margin-bottom: 1.25rem;
 }
 
 .image {
