@@ -220,6 +220,7 @@ export function CustomPrintClient({
         <div className={styles.visual}>
           <FramedPreview
             frame={mapCustomFrameToPreview(effectiveFrame)}
+            longEdgeMm={longEdgeMm}
             className={styles.imageWrap}
             style={
               pixelWidth > 0 && pixelHeight > 0

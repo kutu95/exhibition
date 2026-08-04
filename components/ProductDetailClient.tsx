@@ -228,6 +228,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
               ? mapOfferPresentationToFrame(presentationId)
               : "none"
           }
+          longEdgeMm={OFFER_SIZES.find((size) => size.id === sizeId)?.longEdgeMm ?? 594}
           className={styles.mainImageWrap}
           style={
             imageRatio

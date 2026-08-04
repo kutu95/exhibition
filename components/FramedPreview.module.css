@@ -9,10 +9,15 @@
 }
 
 .framed {
+  /* Size container so moulding thickness tracks the on-screen print long edge. */
+  container-type: size;
+  --ring: calc(var(--moulding-ratio, 0.034) * 100cqmax);
   background: #f4f1ec;
   box-shadow:
     0 0.35rem 1.1rem rgba(10, 22, 40, 0.18),
     0 0.08rem 0.25rem rgba(10, 22, 40, 0.12);
+  /* Mat + moulding inset — scales with print size (fixed mm moulding). */
+  padding: var(--ring);
 }
 
 /* Frame chrome on its own overlay so host `border:` shorthand cannot
@@ -27,24 +32,24 @@
 
 .ringStandard {
   box-shadow:
-    inset 0 0 0 2px #5a5a5a,
-    inset 0 0 0 4px #1c1c1c,
-    inset 0 0 0 14px #111,
-    inset 0 0 0 16px #2e2e2e,
-    inset 0 0 0 18px #0a0a0a,
-    inset 0 0 0 20px #3a3a3a;
+    inset 0 0 0 calc(var(--ring) * 0.1) #5a5a5a,
+    inset 0 0 0 calc(var(--ring) * 0.22) #1c1c1c,
+    inset 0 0 0 calc(var(--ring) * 0.7) #111,
+    inset 0 0 0 calc(var(--ring) * 0.82) #2e2e2e,
+    inset 0 0 0 calc(var(--ring) * 0.92) #0a0a0a,
+    inset 0 0 0 var(--ring) #3a3a3a;
 }
 
 .ringDeluxe {
   box-shadow:
-    inset 0 0 0 2px #2a1810,
-    inset 0 0 0 5px #a67c52,
-    inset 0 0 0 8px #6b4423,
-    inset 0 0 0 18px #8b5e3c,
-    inset 0 0 0 22px #5a3820,
-    inset 0 0 0 26px #c9a882,
-    inset 0 0 0 28px #4a3018,
-    inset 0 0 0 32px #7a5438;
+    inset 0 0 0 calc(var(--ring) * 0.06) #2a1810,
+    inset 0 0 0 calc(var(--ring) * 0.16) #a67c52,
+    inset 0 0 0 calc(var(--ring) * 0.28) #6b4423,
+    inset 0 0 0 calc(var(--ring) * 0.55) #8b5e3c,
+    inset 0 0 0 calc(var(--ring) * 0.7) #5a3820,
+    inset 0 0 0 calc(var(--ring) * 0.82) #c9a882,
+    inset 0 0 0 calc(var(--ring) * 0.92) #4a3018,
+    inset 0 0 0 var(--ring) #7a5438;
 }
 
 .media {
@@ -55,46 +60,4 @@
   min-width: 0;
   width: 100%;
   height: 100%;
-}
-
-/* Padding (not margin) keeps the photo inside the aspect-ratio box so it
-   cannot overflow the gallery column into the sidebar. */
-.framed[data-frame="standard"] {
-  padding: 20px;
-}
-
-.framed[data-frame="deluxe"] {
-  padding: 32px;
-}
-
-@media (min-width: 700px) {
-  .ringStandard {
-    box-shadow:
-      inset 0 0 0 2px #5a5a5a,
-      inset 0 0 0 5px #1c1c1c,
-      inset 0 0 0 18px #111,
-      inset 0 0 0 20px #2e2e2e,
-      inset 0 0 0 23px #0a0a0a,
-      inset 0 0 0 26px #3a3a3a;
-  }
-
-  .ringDeluxe {
-    box-shadow:
-      inset 0 0 0 2px #2a1810,
-      inset 0 0 0 6px #a67c52,
-      inset 0 0 0 10px #6b4423,
-      inset 0 0 0 22px #8b5e3c,
-      inset 0 0 0 28px #5a3820,
-      inset 0 0 0 32px #c9a882,
-      inset 0 0 0 36px #4a3018,
-      inset 0 0 0 40px #7a5438;
-  }
-
-  .framed[data-frame="standard"] {
-    padding: 26px;
-  }
-
-  .framed[data-frame="deluxe"] {
-    padding: 40px;
-  }
 }
