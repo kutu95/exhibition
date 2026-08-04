@@ -153,6 +153,26 @@
   cursor: pointer;
 }
 
+.offerOptionWithSample {
+  grid-template-columns: auto 4.5rem 1fr;
+}
+
+.offerOptionSample {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 1px solid rgba(10, 22, 40, 0.15);
+  background: #fff;
+  overflow: hidden;
+}
+
+.offerOptionSampleImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .offerOptionCopy {
   display: grid;
   gap: 0.15rem;

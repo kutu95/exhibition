@@ -313,7 +313,9 @@ export function CustomPrintClient({
                 {CUSTOM_FRAME_OPTIONS.map((option) => (
                   <label
                     key={option.id}
-                    className={`${styles.option} ${effectiveFrame === option.id ? styles.optionActive : ""}`}
+                    className={`${styles.option} ${option.sampleImage ? styles.optionWithSample : ""} ${
+                      effectiveFrame === option.id ? styles.optionActive : ""
+                    }`}
                   >
                     <input
                       type="radio"
@@ -321,6 +323,17 @@ export function CustomPrintClient({
                       checked={effectiveFrame === option.id}
                       onChange={() => setFrameStyle(option.id)}
                     />
+                    {option.sampleImage ? (
+                      <span className={styles.optionSample}>
+                        <Image
+                          src={option.sampleImage}
+                          alt=""
+                          width={88}
+                          height={88}
+                          className={styles.optionSampleImage}
+                        />
+                      </span>
+                    ) : null}
                     <span>
                       <span className={styles.optionTitle}>{option.label}</span>
                       <span className={styles.optionMeta}>{option.summary}</span>

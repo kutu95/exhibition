@@ -35,6 +35,8 @@ export type CustomFrameOption = {
   id: CustomFrameStyleId;
   label: string;
   summary: string;
+  /** Corner / moulding sample shown beside the option. */
+  sampleImage?: string;
 };
 
 export const CUSTOM_FRAME_OPTIONS: CustomFrameOption[] = [
@@ -47,13 +49,20 @@ export const CUSTOM_FRAME_OPTIONS: CustomFrameOption[] = [
     id: "standard_perspex",
     label: "Standard frame",
     summary: "20mm Standard moulding with Perspex (shippable)",
+    sampleImage: "/frames/standard-sample.jpg",
   },
   {
     id: "deluxe_perspex",
     label: "Deluxe frame",
     summary: "Slim 10mm Deluxe moulding with Perspex (shippable)",
+    sampleImage: "/frames/deluxe-sample.jpg",
   },
 ];
+
+/** Sample used for the shop “Framed” presentation (Standard moulding). */
+export const OFFER_FRAMED_SAMPLE_IMAGE = "/frames/standard-sample.jpg";
+/** PDF framing-section moulding corners (Pixel Perfect pricelist). */
+export const FRAME_MOULDING_CORNERS_IMAGE = "/frames/moulding-corners.jpg";
 
 /** Deluxe moulding lab AUD by united inches (Pixel Perfect April 2025). */
 export const SEED_DELUXE_FRAME_BY_UIN: Record<number, number> = {

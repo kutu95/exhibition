@@ -25,7 +25,7 @@ import {
   type OfferPresentationId,
   type OfferSizeId,
 } from "../lib/print-offer";
-import { SHOW_CUSTOM_PRINT_PAGE } from "../lib/print-custom";
+import { SHOW_CUSTOM_PRINT_PAGE, OFFER_FRAMED_SAMPLE_IMAGE } from "../lib/print-custom";
 import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
@@ -387,9 +387,9 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                     return (
                       <label
                         key={id}
-                        className={`${styles.offerOption} ${presentationId === id ? styles.offerOptionActive : ""} ${
-                          !sample ? styles.offerOptionDisabled : ""
-                        }`}
+                        className={`${styles.offerOption} ${id === "framed" ? styles.offerOptionWithSample : ""} ${
+                          presentationId === id ? styles.offerOptionActive : ""
+                        } ${!sample ? styles.offerOptionDisabled : ""}`}
                       >
                         <input
                           type="radio"
@@ -398,6 +398,17 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                           disabled={!sample}
                           onChange={() => setPresentationId(id)}
                         />
+                        {id === "framed" ? (
+                          <span className={styles.offerOptionSample}>
+                            <Image
+                              src={OFFER_FRAMED_SAMPLE_IMAGE}
+                              alt=""
+                              width={72}
+                              height={72}
+                              className={styles.offerOptionSampleImage}
+                            />
+                          </span>
+                        ) : null}
                         <span>{OFFER_PRESENTATION_LABEL[id]}</span>
                       </label>
                     );
