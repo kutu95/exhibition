@@ -50,11 +50,25 @@ export const verifyAdminSession = async (request: Request): Promise<boolean> => 
   return verifyAdminSessionToken(token);
 };
 
-export const getAdminCookieConfig = () => ({
+export const getAdminCookieConfig = (options?: { secure?: boolean }) => ({
   name: ADMIN_SESSION_COOKIE,
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  // Prefer the request’s real scheme (Cloudflare sets x-forwarded-proto). Falling
+  // back to NODE_ENV alone breaks LAN http://192.168.x.x admin logins in production.
+  secure: options?.secure ?? process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
   path: "/",
   maxAge: ADMIN_SESSION_MAX_AGE_SECONDS,
 });
+
+export const isSecureAdminRequest = (request: Request): boolean => {
+  const forwarded = request.headers.get("x-forwarded-proto");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim().toLowerCase() === "https";
+  }
+  try {
+    return new URL(request.url).protocol === "https:";
+  } catch {
+    return process.env.NODE_ENV === "production";
+  }
+};

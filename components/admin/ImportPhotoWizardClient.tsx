@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
+import { adminClientFetch, adminClientFetchError, ADMIN_CLIENT_FETCH_LONG_TIMEOUT_MS } from "../../lib/admin-client-fetch";
 import {
   buildOfferVariantsForProduct,
   OFFER_COMBOS,
@@ -380,7 +380,14 @@ export function ImportPhotoWizardClient({
       const response = await adminClientFetch("/api/admin/register-photo", {
         method: "POST",
         body: formData,
+        timeoutMs: ADMIN_CLIENT_FETCH_LONG_TIMEOUT_MS,
       });
+
+      if (response.status === 401) {
+        throw new Error(
+          "Your admin session expired. Sign in again at /admin/login, then return here and publish.",
+        );
+      }
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;

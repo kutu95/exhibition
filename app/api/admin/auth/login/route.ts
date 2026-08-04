@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createAdminSessionToken, getAdminCookieConfig } from "../../../../../lib/admin-auth";
+import { createAdminSessionToken, getAdminCookieConfig, isSecureAdminRequest } from "../../../../../lib/admin-auth";
 
 export const runtime = "nodejs";
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     const token = await createAdminSessionToken();
     const response = NextResponse.json({ success: true });
-    const cookieConfig = getAdminCookieConfig();
+    const cookieConfig = getAdminCookieConfig({ secure: isSecureAdminRequest(request) });
     response.cookies.set(cookieConfig.name, token, cookieConfig);
 
     return response;

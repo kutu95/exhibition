@@ -17,6 +17,7 @@ import { supabaseAdmin } from "../../../../lib/supabase/admin";
 import { generateWebImageFromMaster } from "../../../../lib/web-image-generation";
 
 export const runtime = "nodejs";
+export const maxDuration = 180;
 
 const photoTypeOptions = ["Still camera", "Drone", "Underwater"] as const;
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
