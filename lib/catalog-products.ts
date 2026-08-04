@@ -24,9 +24,7 @@ export const mapProductRow = (
   return {
     ...product,
     visibility: product.visibility ?? "public",
-    product_variants: (product.product_variants ?? []).filter((variant) =>
-      options.primaryImagesOnly ? variant.is_active : true,
-    ),
+    product_variants: (product.product_variants ?? []).filter((variant) => variant.is_active),
     product_images: sortedImages,
     product_themes: product.product_themes ?? [],
   };

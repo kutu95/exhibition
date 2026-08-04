@@ -4,8 +4,11 @@ import {
   DEFAULT_PRINT_PRICE_BASE_AUD,
   DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
 } from "../../../lib/print-markup";
-import { getPrintPricingBundle } from "../../../lib/print-papers";
-import { seedManagedPapers } from "../../../lib/print-catalogue";
+import {
+  DEFAULT_PRINT_FRAME_BASE_AUD,
+  DEFAULT_PRINT_FRAME_MARKUP_FACTOR,
+} from "../../../lib/print-frame-pricing";
+import { getOfferPricingBundle } from "../../../lib/print-offer-bundle";
 import type { Theme } from "../../../lib/supabase/types";
 import { fetchAdminJson } from "../_lib/fetch-admin";
 
@@ -25,7 +28,7 @@ export default async function ImportWizardPage() {
   const results = await Promise.allSettled([
     fetchAdminJson<{ files: MasterFileCandidate[] }>("/api/admin/master-files"),
     fetchAdminJson<Theme[]>("/api/admin/themes"),
-    getPrintPricingBundle(),
+    getOfferPricingBundle(),
   ]);
 
   const loadErrors: string[] = [];
@@ -33,7 +36,8 @@ export default async function ImportWizardPage() {
   let themes: Theme[] = [];
   let markupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR;
   let basePriceAud = DEFAULT_PRINT_PRICE_BASE_AUD;
-  let papers = seedManagedPapers();
+  let frameMarkupFactor = DEFAULT_PRINT_FRAME_MARKUP_FACTOR;
+  let frameBasePriceAud = DEFAULT_PRINT_FRAME_BASE_AUD;
 
   if (results[0].status === "fulfilled") {
     masterFiles = results[0].value.files;
@@ -54,15 +58,16 @@ export default async function ImportWizardPage() {
   if (results[2].status === "fulfilled") {
     markupFactor = results[2].value.markupFactor;
     basePriceAud = results[2].value.basePriceAud;
-    papers = results[2].value.papers;
+    frameMarkupFactor = results[2].value.frameMarkupFactor;
+    frameBasePriceAud = results[2].value.frameBasePriceAud;
   }
 
   return (
     <div>
       <h1>Import Photo Wizard</h1>
       <p style={{ maxWidth: "48rem", color: "#555", marginTop: 0 }}>
-        Guided steps from master TIFF on the server share to a shop product ready for ordering. Print sizes are built
-        as aspect-true custom paper (paper × long edge) with square-inch retail pricing.
+        Guided steps from master TIFF on the server share to a shop product. Each print gets the fixed Size × Finish ×
+        Framed offer (nine variants).
       </p>
       <ImportPhotoWizardClient
         initialMasterFiles={masterFiles}
@@ -70,7 +75,8 @@ export default async function ImportWizardPage() {
         masterFilesDirPath={resolveMasterFilesDirDisplay()}
         initialMarkupFactor={markupFactor}
         initialBasePriceAud={basePriceAud}
-        initialPapers={papers}
+        initialFrameMarkupFactor={frameMarkupFactor}
+        initialFrameBasePriceAud={frameBasePriceAud}
         loadErrors={loadErrors}
       />
     </div>

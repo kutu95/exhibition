@@ -10,8 +10,19 @@ import { FavouriteButton } from "./FavouriteButton";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { readCart } from "../lib/cart";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
+import {
+  findVariantForOfferCombo,
+  OFFER_FINISH_LABEL,
+  OFFER_PRESENTATION_LABEL,
+  OFFER_SIZE_LABEL,
+  OFFER_SIZES,
+  parseOfferAxesFromVariant,
+  type OfferFinishId,
+  type OfferPresentationId,
+  type OfferSizeId,
+} from "../lib/print-offer";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
-import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
+import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { formatAUD } from "../lib/utils/currency";
 import styles from "./ProductDetailClient.module.css";
 
@@ -20,41 +31,106 @@ type ProductDetailClientProps = {
   shareButtons?: ReactNode;
 };
 
+const FINISH_OPTIONS: OfferFinishId[] = ["archival_matte", "rth_canvas"];
+const PRESENTATION_OPTIONS: OfferPresentationId[] = ["unframed", "framed"];
+
 export function ProductDetailClient({ product, shareButtons }: ProductDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const primaryImage = product.product_images[0]?.image_url ?? "";
-  const preselectVariantId = searchParams.get("variant");
-  const initialVariantId =
-    product.product_variants.find((variant) => variant.id === preselectVariantId)?.id ??
-    product.product_variants[0]?.id ??
-    "";
+  const variants = product.product_variants;
 
+  const offerVariants = useMemo(() => {
+    return variants.filter((variant) => parseOfferAxesFromVariant(variant) !== null);
+  }, [variants]);
+
+  const useOfferChooser = offerVariants.length > 0;
+
+  const preselectVariantId = searchParams.get("variant");
+  const preselectedAxes = useMemo(() => {
+    const match = variants.find((variant) => variant.id === preselectVariantId);
+    return match ? parseOfferAxesFromVariant(match) : null;
+  }, [preselectVariantId, variants]);
+
+  const defaultAxes = useMemo(() => {
+    if (preselectedAxes) return preselectedAxes;
+    const mediumUnframed = findVariantForOfferCombo(offerVariants, {
+      sizeId: "medium",
+      finishId: "archival_matte",
+      presentationId: "unframed",
+    });
+    if (mediumUnframed) {
+      return parseOfferAxesFromVariant(mediumUnframed)!;
+    }
+    const first = offerVariants[0] ? parseOfferAxesFromVariant(offerVariants[0]) : null;
+    return first ?? { sizeId: "medium" as OfferSizeId, finishId: "archival_matte" as OfferFinishId, presentationId: "unframed" as OfferPresentationId };
+  }, [offerVariants, preselectedAxes]);
+
+  const [sizeId, setSizeId] = useState<OfferSizeId>(defaultAxes.sizeId);
+  const [finishId, setFinishId] = useState<OfferFinishId>(defaultAxes.finishId);
+  const [presentationId, setPresentationId] = useState<OfferPresentationId>(
+    defaultAxes.finishId === "rth_canvas" ? "unframed" : defaultAxes.presentationId,
+  );
+
+  const initialVariantId =
+    variants.find((variant) => variant.id === preselectVariantId)?.id ?? variants[0]?.id ?? "";
+  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
   const [activeImage, setActiveImage] = useState(primaryImage);
   const [imageRatio, setImageRatio] = useState<number | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addItem, itemCount } = useCart();
   const purchasesAllowed = usePurchasesAllowed();
 
-  const selectedVariant = useMemo(
-    () => product.product_variants.find((variant) => variant.id === selectedVariantId),
-    [product.product_variants, selectedVariantId],
-  );
-
-  const maxEditionSize = useMemo(() => {
-    const sizes = product.product_variants
-      .map((variant) => variant.edition_size)
-      .filter((size): size is number => typeof size === "number");
-    return sizes.length > 0 ? Math.max(...sizes) : null;
-  }, [product.product_variants]);
+  useEffect(() => {
+    if (!useOfferChooser) return;
+    const resolved = findVariantForOfferCombo(offerVariants, {
+      sizeId,
+      finishId,
+      presentationId: finishId === "rth_canvas" ? "unframed" : presentationId,
+    });
+    if (resolved) setSelectedVariantId(resolved.id);
+  }, [finishId, offerVariants, presentationId, sizeId, useOfferChooser]);
 
   useEffect(() => {
     if (!preselectVariantId) return;
-    const match = product.product_variants.find((variant) => variant.id === preselectVariantId);
-    if (match) setSelectedVariantId(match.id);
-  }, [preselectVariantId, product.product_variants]);
+    const match = variants.find((variant) => variant.id === preselectVariantId);
+    if (!match) return;
+    setSelectedVariantId(match.id);
+    const axes = parseOfferAxesFromVariant(match);
+    if (axes) {
+      setSizeId(axes.sizeId);
+      setFinishId(axes.finishId);
+      setPresentationId(axes.presentationId);
+    }
+  }, [preselectVariantId, variants]);
+
+  const selectedVariant = useMemo(
+    () => variants.find((variant) => variant.id === selectedVariantId),
+    [variants, selectedVariantId],
+  );
+
+  const maxEditionSize = useMemo(() => {
+    const sizes = variants
+      .map((variant) => variant.edition_size)
+      .filter((size): size is number => typeof size === "number");
+    return sizes.length > 0 ? Math.max(...sizes) : null;
+  }, [variants]);
+
+  const availableSizeIds = useMemo(() => {
+    const ids = new Set<OfferSizeId>();
+    for (const variant of offerVariants) {
+      const axes = parseOfferAxesFromVariant(variant);
+      if (axes) ids.add(axes.sizeId);
+    }
+    return OFFER_SIZES.map((s) => s.id).filter((id) => ids.has(id));
+  }, [offerVariants]);
+
+  const priceForCombo = (combo: {
+    sizeId: OfferSizeId;
+    finishId: OfferFinishId;
+    presentationId: OfferPresentationId;
+  }): ProductVariant | null => findVariantForOfferCombo(offerVariants, combo);
 
   if (!primaryImage) {
     throw new Error(`Missing product image for product: ${product.slug}`);
@@ -96,8 +172,6 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       setIsCheckingOut(true);
       setError(null);
 
-      // Always include the current item, then checkout the full cart so
-      // existing cart lines are never skipped by a single-item Buy now.
       addItem(item);
       const checkoutItems = readCart().map((row) => ({
         variant_id: row.variant_id,
@@ -196,27 +270,129 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
         <h1 className={styles.title}>{product.title}</h1>
         {maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
 
-        <div className={styles.variants}>
-          {product.product_variants.map((variant) => (
-            <label
-              key={variant.id}
-              className={`${styles.variantRow} ${selectedVariantId === variant.id ? styles.variantActive : ""}`}
-            >
-              <input
-                type="radio"
-                name="variant"
-                checked={selectedVariantId === variant.id}
-                onChange={() => setSelectedVariantId(variant.id)}
-              />
-              <span>{variant.variant_label}</span>
-              <span>{formatAUD(variant.price_aud)}</span>
-            </label>
-          ))}
-        </div>
+        {useOfferChooser ? (
+          <div className={styles.offerChooser}>
+            <fieldset className={styles.offerFieldset}>
+              <legend>Size</legend>
+              <div className={styles.offerOptions}>
+                {availableSizeIds.map((id) => {
+                  const sample = priceForCombo({
+                    sizeId: id,
+                    finishId,
+                    presentationId: finishId === "rth_canvas" ? "unframed" : presentationId,
+                  });
+                  return (
+                    <label
+                      key={id}
+                      className={`${styles.offerOption} ${sizeId === id ? styles.offerOptionActive : ""} ${
+                        !sample ? styles.offerOptionDisabled : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="offer-size"
+                        checked={sizeId === id}
+                        disabled={!sample}
+                        onChange={() => setSizeId(id)}
+                      />
+                      <span>{OFFER_SIZE_LABEL[id]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset className={styles.offerFieldset}>
+              <legend>Finish</legend>
+              <div className={styles.offerOptions}>
+                {FINISH_OPTIONS.map((id) => {
+                  const sample = priceForCombo({
+                    sizeId,
+                    finishId: id,
+                    presentationId: id === "rth_canvas" ? "unframed" : presentationId,
+                  });
+                  return (
+                    <label
+                      key={id}
+                      className={`${styles.offerOption} ${finishId === id ? styles.offerOptionActive : ""} ${
+                        !sample ? styles.offerOptionDisabled : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="offer-finish"
+                        checked={finishId === id}
+                        disabled={!sample}
+                        onChange={() => {
+                          setFinishId(id);
+                          if (id === "rth_canvas") setPresentationId("unframed");
+                        }}
+                      />
+                      <span>{OFFER_FINISH_LABEL[id]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            {finishId === "archival_matte" ? (
+              <fieldset className={styles.offerFieldset}>
+                <legend>Presentation</legend>
+                <div className={styles.offerOptions}>
+                  {PRESENTATION_OPTIONS.map((id) => {
+                    const sample = priceForCombo({
+                      sizeId,
+                      finishId: "archival_matte",
+                      presentationId: id,
+                    });
+                    return (
+                      <label
+                        key={id}
+                        className={`${styles.offerOption} ${presentationId === id ? styles.offerOptionActive : ""} ${
+                          !sample ? styles.offerOptionDisabled : ""
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="offer-presentation"
+                          checked={presentationId === id}
+                          disabled={!sample}
+                          onChange={() => setPresentationId(id)}
+                        />
+                        <span>{OFFER_PRESENTATION_LABEL[id]}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : null}
+          </div>
+        ) : (
+          <div className={styles.variants}>
+            {variants.map((variant) => (
+              <label
+                key={variant.id}
+                className={`${styles.variantRow} ${selectedVariantId === variant.id ? styles.variantActive : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="variant"
+                  checked={selectedVariantId === variant.id}
+                  onChange={() => setSelectedVariantId(variant.id)}
+                />
+                <span>{variant.variant_label}</span>
+                <span>{formatAUD(variant.price_aud)}</span>
+              </label>
+            ))}
+          </div>
+        )}
 
         <p className={styles.price}>
           {selectedVariant ? formatAUD(selectedVariant.price_aud) : "Price unavailable"}
         </p>
+        {useOfferChooser && selectedVariant ? (
+          <p className={styles.offerSummary}>{selectedVariant.variant_label}</p>
+        ) : null}
 
         <div className={styles.buyActions}>
           <FavouriteButton

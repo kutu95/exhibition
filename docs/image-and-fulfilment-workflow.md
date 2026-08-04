@@ -68,43 +68,26 @@ See `lib/master-files.ts` for listing and validation used by Register Photo.
 | API | `POST /api/admin/register-photo` (same as Register Photo) |
 | Client | `components/admin/ImportPhotoWizardClient.tsx` |
 
-Hard-gated steps from placing a master TIFF in `MASTER_FILES_DIR` (no browser TIFF upload) through details, **print sizes** (paper × long-edge matrix), web image, and publish. Ends with a product online and ready for ordering.
+Hard-gated steps from placing a master TIFF in `MASTER_FILES_DIR` (no browser TIFF upload) through details, **print offer** (fixed Size × Finish × Framed matrix), web image, and publish. Ends with a product online and ready for ordering.
 
-**Happy path for sellable prints:** each selected paper × long-edge combo becomes a `product_variants` row with:
+**Happy path for sellable prints:** each product gets nine `product_variants` rows:
 
+- Sizes: Small (420 mm) / Medium (594 mm) / Large (841 mm) long edge, aspect-true from the master
+- Finishes: Archival matte (Hahnemühle Photo Rag) or Ready-to-hang canvas
+- Presentation: Unframed or Framed (matte only; Standard moulding + Perspex)
 - `fit_mode = custom_size`, `size_lock = long_edge`
-- `width_mm` / `height_mm` derived from the master aspect (`deriveAspectPreservingSizeMm`)
-- `lab_cost_aud` from Pixel Perfect sq-in rates × area
-- `price_aud` = roundUp(base + lab × markup) — base and markup in `site_content`; per-paper `$/sq in` in `site_content.print_papers` (editable on `/admin/print-profiles`). Round up to nearest $5 under $120, nearest $10 at $120+.
-- Shop label like `Hahnemühle Photo Rag · A3 long edge (420×236 mm)`
-- Fulfilment note to order **custom paper** at those mm
+- Matte retail = roundUp(mediaBase + mediaMarkup × area × $0.181); framed adds roundUp(frameBase + frameMarkup × (Standard+Perspex))
+- Canvas retail = roundUp(mediaBase + mediaMarkup × RTH package by united inches) — package already includes print
+- Shop labels like `Medium · Archival matte · Framed`
+- Round up to nearest $5 under $120, nearest $10 at $120+
 
-ISO `variant_templates` are optional seeds / legacy (still used by Register Photo). The Import Wizard does not require them.
+ISO `variant_templates` are dormant. `/admin/register-photo` redirects to Import Wizard.
 
 Admin help for preparing masters: `/admin/help/master-tiff`.
 
-### Path A2: Register Photo (single-screen form)
+### Path A2: Register Photo (retired)
 
-| Step | Detail |
-|------|--------|
-| UI | `/admin/register-photo` |
-| API | `POST /api/admin/register-photo` |
-| Client | `components/admin/RegisterPhotoClient.tsx` |
-
-Workflow:
-
-1. Choose a master TIFF from the scanned `MASTER_FILES_DIR` list.
-2. Enter title, slug, edition size, metadata, and select **variant templates** (print sizes/prices) — or use Import Wizard for paper × long-edge custom sizes.
-3. **Web image** — one of:
-   - **Generate from master:** `lib/web-image-generation.ts` runs `worker/generate_web_image.py` (sRGB, EXIF-aware, max edge 2400px, JPEG quality 90).
-   - **Upload:** JPEG/PNG/WebP up to 8MB.
-4. File is written under **`public/images/{slug}-{uuid}.jpg`** (or uploaded extension) and recorded in **`media_files`**.
-5. **`registerPrintProduct()`** (`lib/product-registration.ts`):
-   - Inserts `products` (`product_type: print`, `is_available: true`)
-   - Inserts `product_variants` either from **`custom_size_variants`** (explicit paper × long edge + formula/override price) or by **copying active `variant_templates`**
-   - Sets **`master_filename`** on each variant
-   - Inserts primary `product_images`
-   - Checkout uses **inline Stripe pricing** from `product_variants.price_aud` (no Stripe catalog sync)
+Redirects to Import Wizard. Use Path A for all new registrations.
 
 ### Path B: PhotoLab / API registration
 
@@ -126,10 +109,10 @@ Create or edit products and variants manually. Each variant can pick a **print t
 |-------|------|----------|
 | Master TIFF | Source for web gen + print worker | `MASTER_FILES_DIR` on disk |
 | Web JPEG | Shop and product pages | `public/images/...` (+ optional `media_files`) |
-| Variant row | Price, dimensions, paper, DPI, **`master_filename`**, framing (`fit_mode` / `size_lock`) | `exhibition.product_variants` |
-| Templates | Optional reusable presets (Register Photo / editor seeds) | `exhibition.variant_templates` |
-| Markup / base / papers | Retail = roundUp(base + markup × area × rate/sq in); papers list with rates | `site_content.print_price_base_aud`, `print_price_markup_factor`, `print_papers` |
-| Reprice all | Admin button on Print Templates recalculates all print `product_variants` prices/lab costs from current factors | `POST /api/admin/print-pricing/reprice-all` |
+| Variant row | Price, dimensions, paper, DPI, **`master_filename`**, offer axes (`tier_label` / `finish` / `is_framed`), framing (`fit_mode` / `size_lock`) | `exhibition.product_variants` |
+| Offer pricing | Media + frame markups; frame & RTH canvas united-inch tables | `site_content` keys `print_price_*`, `print_frame_*`, `print_rth_canvas_rates` |
+| Reprice all | Recalculates active offer variant prices from current factors | `POST /api/admin/print-pricing/reprice-all` |
+| Rebuild all | Soft-deactivates old variants; inserts 9-SKU offer per print product | `POST /api/admin/print-pricing/rebuild-all` |
 
 The public site **does not** serve master TIFFs to shoppers.
 
@@ -138,7 +121,7 @@ The public site **does not** serve master TIFFs to shoppers.
 ## 2. Website display
 
 - Shop listing: `/shop` — products where `is_available` is true.
-- Product detail: `/shop/[slug]` — `components/ProductDetailClient.tsx` uses `product_images[0]` and variant selector.
+- Product detail: `/shop/[slug]` — Size → Finish → Presentation chooser resolves one active offer variant (`ProductDetailClient.tsx`).
 - Images are served as static files from `/images/...` (and similar paths under `public/`).
 
 Supabase clients use schema **`exhibition`** for product data.

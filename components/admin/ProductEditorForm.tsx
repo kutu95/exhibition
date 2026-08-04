@@ -194,6 +194,7 @@ export function ProductEditorForm({
   const [deleting, setDeleting] = useState(false);
   const [creatingTestOrderVariantId, setCreatingTestOrderVariantId] = useState<string | null>(null);
   const [testOrderMessage, setTestOrderMessage] = useState<string | null>(null);
+  const [rebuildingOffer, setRebuildingOffer] = useState(false);
   const activeVariantTemplates = useMemo(
     () => variantTemplates.filter((template) => template.is_active),
     [variantTemplates],
@@ -575,17 +576,53 @@ export function ProductEditorForm({
         <section className={styles.panel}>
           <div className={styles.rowTop}>
             <h2>Variants</h2>
-            <button
-              className={styles.btnSecondary}
-              type="button"
-              onClick={() => {
-                const nextIndex = variants.length;
-                setVariants((current) => [...current, createBlankVariant()]);
-                setExpandedVariantIndexes((expanded) => new Set(expanded).add(nextIndex));
-              }}
-            >
-              Add Variant
-            </button>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              {mode === "edit" && productType === "print" && initialData?.id ? (
+                <button
+                  className={styles.btnSecondary}
+                  type="button"
+                  disabled={rebuildingOffer}
+                  onClick={() => {
+                    void (async () => {
+                      const confirmed = window.confirm(
+                        "Rebuild this product’s print options to the standard Size × Finish × Framed offer? Existing active variants will be deactivated.",
+                      );
+                      if (!confirmed) return;
+                      setRebuildingOffer(true);
+                      setError(null);
+                      try {
+                        const response = await fetch(`/api/admin/products/${initialData.id}/rebuild-offer`, {
+                          method: "POST",
+                        });
+                        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+                        if (!response.ok) {
+                          setError(body?.error ?? "Failed to rebuild offer.");
+                          return;
+                        }
+                        router.refresh();
+                      } catch {
+                        setError("Failed to rebuild offer.");
+                      } finally {
+                        setRebuildingOffer(false);
+                      }
+                    })();
+                  }}
+                >
+                  {rebuildingOffer ? "Rebuilding…" : "Rebuild offer options"}
+                </button>
+              ) : null}
+              <button
+                className={styles.btnSecondary}
+                type="button"
+                onClick={() => {
+                  const nextIndex = variants.length;
+                  setVariants((current) => [...current, createBlankVariant()]);
+                  setExpandedVariantIndexes((expanded) => new Set(expanded).add(nextIndex));
+                }}
+              >
+                Add Variant
+              </button>
+            </div>
           </div>
 
           {variants.map((variant, index) => {

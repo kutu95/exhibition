@@ -1,24 +1,15 @@
 import { withTransaction } from "./postgres";
-import {
-  defaultPrintTypeForPaper,
-  formatCustomSizeVariantLabel,
-  suggestTierForLongEdge,
-  type PrintTypeCode,
-} from "./print-catalogue";
-import {
-  describeFramingNote,
-  resolvePrintSize,
-  type VariantFramingInput,
-} from "./print-framing";
-import { getPrintPricingBundle } from "./print-papers";
-import { computeVariantPricing, deriveAspectPreservingSizeMm } from "./print-size";
+import { getOfferPricingBundle } from "./print-offer-bundle";
+import { buildOfferVariantsForProduct } from "./print-offer";
+import { insertOfferDrafts } from "./print-rebuild";
+import type { VariantFramingInput } from "./print-framing";
+import type { PrintTypeCode } from "./print-catalogue";
 
-/** Explicit paper × long-edge variant (Import Wizard path). Prices in cents. */
+/** @deprecated Legacy paper × long-edge specs — Import Wizard now uses the fixed offer matrix. */
 export type CustomSizeVariantSpec = {
   paper_type: string;
   print_type?: PrintTypeCode | null;
   long_edge_mm: number;
-  /** Override retail in cents; omit or null to use lab × markup. */
   price_aud?: number | null;
   border_mm?: number;
   print_dpi?: number;
@@ -40,12 +31,13 @@ export type RegisterPrintProductPayload = {
   web_image_url: string;
   visibility?: "public" | "vault";
   theme_ids?: string[];
-  /** Legacy / Register Photo: copy from variant_templates. */
+  /** @deprecated Ignored — offer matrix is always used. */
   variant_template_ids?: string[];
+  /** @deprecated Ignored. */
   variant_template_prices?: Record<string, number>;
-  /** Per-template framing overrides keyed by template UUID. */
+  /** @deprecated Ignored. */
   variant_framing?: Record<string, VariantFramingInput>;
-  /** Preferred Import Wizard path: aspect-true custom sizes without ISO templates. */
+  /** @deprecated Ignored — offer matrix is always used when pixels are present. */
   custom_size_variants?: CustomSizeVariantSpec[];
   master_pixel_width?: number | null;
   master_pixel_height?: number | null;
@@ -93,88 +85,10 @@ type ImageRow = {
   is_primary: boolean;
 };
 
-type TemplateRow = {
-  id: string;
-  variant_label: string;
-  width_mm: number;
-  height_mm: number;
-  border_mm: number;
-  paper_type: string | null;
-  print_type: string | null;
-  base_price_aud: number;
-  edition_size: number | null;
-  tier_label: string | null;
-  finish: string | null;
-  is_framed: boolean;
-  frame_type: string | null;
-  print_dpi: number;
-  lab_cost_aud: number | null;
-  suggested_retail_min_aud: number | null;
-  suggested_retail_max_aud: number | null;
-  turnaround_days_min: number | null;
-  turnaround_days_max: number | null;
-  shipping_class: string | null;
-  fulfilment_notes: string | null;
-  aspect_ratio: string | null;
-  canvas_wrap_mm: number | null;
-  wrap_style: string | null;
-  front_face_width_mm: number | null;
-  front_face_height_mm: number | null;
-};
-
-const VARIANT_INSERT_SQL = `
-  insert into exhibition.product_variants (
-    product_id,
-    variant_label,
-    width_mm,
-    height_mm,
-    border_mm,
-    paper_type,
-    print_type,
-    price_aud,
-    edition_size,
-    master_filename,
-    source_print_profile_id,
-    destination_print_profile_id,
-    stripe_price_id,
-    stock_quantity,
-    is_active,
-    tier_label,
-    finish,
-    is_framed,
-    frame_type,
-    print_dpi,
-    lab_cost_aud,
-    suggested_retail_min_aud,
-    suggested_retail_max_aud,
-    turnaround_days_min,
-    turnaround_days_max,
-    shipping_class,
-    fulfilment_notes,
-    aspect_ratio,
-    canvas_wrap_mm,
-    wrap_style,
-    front_face_width_mm,
-    front_face_height_mm,
-    fit_mode,
-    crop_offset,
-    size_lock
-  )
-  values (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    null, null, null, null, true,
-    $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
-    $28, $29, $30
-  )
-  returning *
-`;
-
 export const isStripeConfigurationError = (error: unknown): boolean =>
   error instanceof Error &&
-  (
-    error.message === "Missing STRIPE_SECRET_KEY" ||
-    "type" in error && error.type === "StripeAuthenticationError"
-  );
+  (error.message === "Missing STRIPE_SECRET_KEY" ||
+    ("type" in error && error.type === "StripeAuthenticationError"));
 
 export const isDuplicateProductSlugError = (error: unknown): boolean =>
   typeof error === "object" &&
@@ -203,14 +117,25 @@ export const normalizeManagedImageUrl = (value: string): string => {
 
 export const registerPrintProduct = async (payload: RegisterPrintProductPayload) => {
   const webImageUrl = normalizeManagedImageUrl(payload.web_image_url);
-  const customSpecs = payload.custom_size_variants?.filter((spec) => spec.long_edge_mm > 0 && spec.paper_type.trim()) ?? [];
-  const useCustomSpecs = customSpecs.length > 0;
-  const selectedTemplateIds = !useCustomSpecs && payload.variant_template_ids?.length ? payload.variant_template_ids : null;
-  const priceOverrides = payload.variant_template_prices ?? {};
-  const framingByTemplate = payload.variant_framing ?? {};
   const masterPixelWidth = payload.master_pixel_width ?? null;
   const masterPixelHeight = payload.master_pixel_height ?? null;
-  const pricingSettings = useCustomSpecs ? await getPrintPricingBundle() : null;
+
+  if (!masterPixelWidth || !masterPixelHeight || masterPixelWidth <= 0 || masterPixelHeight <= 0) {
+    throw new Error("MASTER_PIXELS_REQUIRED_FOR_CUSTOM_SIZE");
+  }
+
+  const pricing = await getOfferPricingBundle();
+  const drafts = buildOfferVariantsForProduct({
+    pixelWidth: masterPixelWidth,
+    pixelHeight: masterPixelHeight,
+    editionSize: payload.edition_size,
+    mediaMarkupFactor: pricing.markupFactor,
+    mediaBasePriceAud: pricing.basePriceAud,
+    frameMarkupFactor: pricing.frameMarkupFactor,
+    frameBasePriceAud: pricing.frameBasePriceAud,
+    frameRates: pricing.frameRates,
+    rthCanvasRates: pricing.rthCanvasRates,
+  });
 
   return withTransaction(async (client) => {
     const { rows: productRows } = await client.query<ProductRow>(
@@ -254,159 +179,17 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
       );
     }
 
-    const variantRows: VariantRow[] = [];
+    await insertOfferDrafts(client, product.id, payload.master_filename, drafts);
 
-    if (useCustomSpecs) {
-      if (!masterPixelWidth || !masterPixelHeight || masterPixelWidth <= 0 || masterPixelHeight <= 0) {
-        throw new Error("MASTER_PIXELS_REQUIRED_FOR_CUSTOM_SIZE");
-      }
-
-      for (const spec of customSpecs) {
-        const paper = spec.paper_type.trim();
-        const printType = (spec.print_type ?? defaultPrintTypeForPaper(paper)) as PrintTypeCode;
-        const size = deriveAspectPreservingSizeMm(spec.long_edge_mm, masterPixelWidth, masterPixelHeight);
-        const pricing = computeVariantPricing({
-          widthMm: size.width_mm,
-          heightMm: size.height_mm,
-          paperLabel: paper,
-          markupFactor: pricingSettings?.markupFactor ?? 3,
-          basePriceAud: pricingSettings?.basePriceAud ?? 0,
-          papers: pricingSettings?.papers,
-        });
-
-        if (!pricing && (spec.price_aud === null || spec.price_aud === undefined)) {
-          throw new Error(`NO_SQ_IN_RATE_FOR_PAPER:${paper}`);
-        }
-
-        const priceAud =
-          typeof spec.price_aud === "number" && Number.isFinite(spec.price_aud)
-            ? Math.round(spec.price_aud)
-            : (pricing?.retailCents ?? 0);
-        const labCostAud = pricing?.labCostCents ?? null;
-        const tierLabel =
-          spec.tier_label?.trim() ||
-          suggestTierForLongEdge(Math.max(size.width_mm, size.height_mm), printType) ||
-          null;
-        const label = formatCustomSizeVariantLabel({
-          paperLabel: paper,
-          widthMm: size.width_mm,
-          heightMm: size.height_mm,
-          longEdgeMm: spec.long_edge_mm,
-        });
-        const fulfilmentNotes = [
-          `Custom size ${size.width_mm}x${size.height_mm}mm (lock long_edge ${spec.long_edge_mm}mm).`,
-          "Order as custom paper at Pixel Perfect.",
-        ].join(" ");
-
-        const { rows: inserted } = await client.query<VariantRow>(VARIANT_INSERT_SQL, [
-          product.id,
-          label,
-          size.width_mm,
-          size.height_mm,
-          spec.border_mm ?? 0,
-          paper,
-          printType,
-          priceAud,
-          spec.edition_size ?? payload.edition_size,
-          payload.master_filename,
-          tierLabel,
-          spec.finish ?? null,
-          false,
-          null,
-          spec.print_dpi ?? 300,
-          labCostAud,
-          null,
-          null,
-          null,
-          null,
-          null,
-          fulfilmentNotes,
-          size.aspect_ratio,
-          null,
-          null,
-          null,
-          null,
-          "custom_size",
-          0,
-          "long_edge",
-        ]);
-
-        if (inserted[0]) variantRows.push(inserted[0]);
-      }
-    } else {
-      const { rows: templates } = await client.query<TemplateRow>(
-        `
-          select *
-          from exhibition.variant_templates vt
-          where vt.is_active = true
-            and ($1::uuid[] is null or vt.id = any($1::uuid[]))
-          order by vt.sort_order asc, vt.created_at asc
-        `,
-        [selectedTemplateIds],
-      );
-
-      if (templates.length === 0) {
-        throw new Error("NO_ACTIVE_VARIANT_TEMPLATES");
-      }
-
-      for (const template of templates) {
-        const framing = framingByTemplate[template.id] ?? null;
-        const resolved = resolvePrintSize({
-          templateWidthMm: template.width_mm,
-          templateHeightMm: template.height_mm,
-          pixelWidth: masterPixelWidth,
-          pixelHeight: masterPixelHeight,
-          framing,
-        });
-
-        const framingNote = describeFramingNote(template.variant_label, resolved);
-        const fulfilmentNotes = [template.fulfilment_notes, framingNote].filter(Boolean).join(" ");
-        const label =
-          resolved.fit_mode === "custom_size"
-            ? formatCustomSizeVariantLabel({
-                paperLabel: template.paper_type ?? template.variant_label,
-                widthMm: resolved.width_mm,
-                heightMm: resolved.height_mm,
-                longEdgeMm: Math.max(resolved.width_mm, resolved.height_mm),
-              })
-            : template.variant_label;
-
-        const { rows: inserted } = await client.query<VariantRow>(VARIANT_INSERT_SQL, [
-          product.id,
-          label,
-          resolved.width_mm,
-          resolved.height_mm,
-          template.border_mm,
-          template.paper_type,
-          template.print_type,
-          priceOverrides[template.id] ?? template.base_price_aud,
-          template.edition_size ?? payload.edition_size,
-          payload.master_filename,
-          template.tier_label,
-          template.finish,
-          template.is_framed,
-          template.frame_type,
-          template.print_dpi,
-          template.lab_cost_aud,
-          template.suggested_retail_min_aud,
-          template.suggested_retail_max_aud,
-          template.turnaround_days_min,
-          template.turnaround_days_max,
-          template.shipping_class,
-          fulfilmentNotes || null,
-          resolved.aspect_ratio ?? template.aspect_ratio,
-          template.canvas_wrap_mm,
-          template.wrap_style,
-          template.front_face_width_mm,
-          template.front_face_height_mm,
-          resolved.fit_mode,
-          resolved.crop_offset,
-          resolved.size_lock,
-        ]);
-
-        if (inserted[0]) variantRows.push(inserted[0]);
-      }
-    }
+    const { rows: variantRows } = await client.query<VariantRow>(
+      `
+        select *
+        from exhibition.product_variants
+        where product_id = $1 and is_active = true
+        order by created_at asc
+      `,
+      [product.id],
+    );
 
     if (variantRows.length === 0) {
       throw new Error("NO_VARIANTS_CREATED");

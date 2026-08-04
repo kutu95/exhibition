@@ -1,28 +1,29 @@
 import { PrintProfilesClient } from "../../../components/admin/PrintProfilesClient";
-import { getPrintPricingBundle } from "../../../lib/print-papers";
-import type { PrintProfile, VariantTemplate } from "../../../lib/supabase/types";
+import { getOfferPricingBundle } from "../../../lib/print-offer-bundle";
+import type { PrintProfile } from "../../../lib/supabase/types";
 import { fetchAdminJson } from "../_lib/fetch-admin";
 
 export default async function AdminPrintProfilesPage() {
-  const [profiles, variantTemplates, pricing] = await Promise.all([
+  const [profiles, pricing] = await Promise.all([
     fetchAdminJson<PrintProfile[]>("/api/admin/print-profiles"),
-    fetchAdminJson<VariantTemplate[]>("/api/admin/variant-templates"),
-    getPrintPricingBundle(),
+    getOfferPricingBundle(),
   ]);
 
   return (
     <div>
       <h1>Print Templates</h1>
       <p>
-        Set base price, markup, and paper rates; manage optional ISO sale templates; keep ICC uploads as reference
-        metadata. Suggested retail is roundUp(base + markup × area × rate/sq in).
+        Buyer offer pricing: media and frame markups, Pixel Perfect frame/canvas rate tables, reprice, and clean-break
+        rebuild of all print options. ICC uploads remain reference-only.
       </p>
       <PrintProfilesClient
         initialProfiles={profiles}
-        initialVariantTemplates={variantTemplates}
         initialMarkupFactor={pricing.markupFactor}
         initialBasePriceAud={pricing.basePriceAud}
-        initialPapers={pricing.papers}
+        initialFrameMarkupFactor={pricing.frameMarkupFactor}
+        initialFrameBasePriceAud={pricing.frameBasePriceAud}
+        initialFrameRates={pricing.frameRates}
+        initialRthCanvasRates={pricing.rthCanvasRates}
       />
     </div>
   );

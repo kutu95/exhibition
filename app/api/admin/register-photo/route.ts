@@ -27,52 +27,20 @@ const extensionByMimeType: Record<string, string> = {
 };
 const maxImageBytes = 8 * 1024 * 1024;
 
-const formSchema = z
-  .object({
-    title: z.string().min(1),
-    slug: z.string().min(1),
-    description: z.string().nullable(),
-    location_tag: z.string().nullable(),
-    photo_type_tag: z.enum(photoTypeOptions).nullable(),
-    is_featured: z.boolean(),
-    visibility: z.enum(["public", "vault"]).default("public"),
-    edition_size: z.number().int().positive(),
-    master_filename: z.string().min(1),
-    master_pixel_width: z.number().int().positive().nullable(),
-    master_pixel_height: z.number().int().positive().nullable(),
-    variant_template_ids: z.array(z.string().uuid()).default([]),
-    variant_template_prices: z.record(z.string().uuid(), z.number().int().nonnegative()).default({}),
-    variant_framing: z
-      .record(
-        z.string().uuid(),
-        z.object({
-          fit_mode: z.enum(["cover_crop", "custom_size"]),
-          crop_offset: z.number().min(-1).max(1),
-          size_lock: z.enum(["long_edge", "width", "height"]).nullable(),
-        }),
-      )
-      .default({}),
-    custom_size_variants: z
-      .array(
-        z.object({
-          paper_type: z.string().min(1),
-          print_type: z.enum(["fine_art", "photo", "canvas", "metal"]).nullable().optional(),
-          long_edge_mm: z.number().int().positive(),
-          price_aud: z.number().int().nonnegative().nullable().optional(),
-          border_mm: z.number().int().nonnegative().optional(),
-          print_dpi: z.number().int().positive().optional(),
-          finish: z.string().nullable().optional(),
-          edition_size: z.number().int().positive().nullable().optional(),
-          tier_label: z.string().nullable().optional(),
-        }),
-      )
-      .default([]),
-    theme_ids: z.array(z.string().uuid()),
-  })
-  .refine(
-    (data) => data.custom_size_variants.length > 0 || data.variant_template_ids.length > 0,
-    { message: "Select at least one print size (custom variants or templates)." },
-  );
+const formSchema = z.object({
+  title: z.string().min(1),
+  slug: z.string().min(1),
+  description: z.string().nullable(),
+  location_tag: z.string().nullable(),
+  photo_type_tag: z.enum(photoTypeOptions).nullable(),
+  is_featured: z.boolean(),
+  visibility: z.enum(["public", "vault"]).default("public"),
+  edition_size: z.number().int().positive(),
+  master_filename: z.string().min(1),
+  master_pixel_width: z.number().int().positive(),
+  master_pixel_height: z.number().int().positive(),
+  theme_ids: z.array(z.string().uuid()),
+});
 
 const stringField = (formData: FormData, key: string): string | null => {
   const value = formData.get(key);
@@ -338,17 +306,19 @@ export async function POST(request: Request) {
     visibility: stringField(formData, "visibility") === "vault" ? "vault" : "public",
     edition_size: Number.parseInt(stringField(formData, "edition_size") ?? "", 10),
     master_filename: stringField(formData, "master_filename"),
-    master_pixel_width: Number.parseInt(stringField(formData, "master_pixel_width") ?? "", 10) || null,
-    master_pixel_height: Number.parseInt(stringField(formData, "master_pixel_height") ?? "", 10) || null,
-    variant_template_ids: variantTemplateIdsField(formData),
-    variant_template_prices: variantTemplatePricesField(formData),
-    variant_framing: variantFramingField(formData),
-    custom_size_variants: customSizeVariantsField(formData),
+    master_pixel_width: Number.parseInt(stringField(formData, "master_pixel_width") ?? "", 10),
+    master_pixel_height: Number.parseInt(stringField(formData, "master_pixel_height") ?? "", 10),
     theme_ids: themeIdsField(formData),
   });
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid photo registration payload." }, { status: 400 });
+    return NextResponse.json(
+      {
+        error:
+          "Invalid photo registration payload. Title, slug, edition size, master file, and pixel dimensions are required.",
+      },
+      { status: 400 },
+    );
   }
 
   try {

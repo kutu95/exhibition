@@ -5,15 +5,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import {
-  formatCustomSizeVariantLabel,
-  LONG_EDGE_PRESETS,
-  PRINT_TYPES,
-  seedManagedPapers,
-  type ManagedPaper,
-  type PrintTypeCode,
-} from "../../lib/print-catalogue";
+  buildOfferVariantsForProduct,
+  OFFER_COMBOS,
+  type OfferVariantDraft,
+} from "../../lib/print-offer";
 import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
-import { computeVariantPricing, deriveAspectPreservingSizeMm, formatDualSize } from "../../lib/print-size";
+import { DEFAULT_PRINT_FRAME_BASE_AUD, DEFAULT_PRINT_FRAME_MARKUP_FACTOR } from "../../lib/print-frame-pricing";
+import { formatDualSize } from "../../lib/print-size";
 import type { Theme } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ImportPhotoWizardClient.module.css";
@@ -36,38 +34,24 @@ type ImportPhotoWizardClientProps = {
   masterFilesDirPath: string;
   initialMarkupFactor?: number;
   initialBasePriceAud?: number;
-  initialPapers?: ManagedPaper[];
+  initialFrameMarkupFactor?: number;
+  initialFrameBasePriceAud?: number;
   loadErrors?: string[];
 };
 
 type WebImageMode = "generate" | "upload";
 
-type VariantCombo = {
-  key: string;
-  paper: ManagedPaper;
-  longEdgeMm: number;
-  widthMm: number;
-  heightMm: number;
-  labCostAud: number | null;
-  formulaRetailAud: number | null;
-  formulaRetailCents: number | null;
-  note: string | null;
-};
-
 const STEP_LABELS = [
   "Before you start",
   "Master TIFF",
   "Product details",
-  "Print sizes",
+  "Print offer",
   "Web image",
   "Review & publish",
   "Ready for order",
 ] as const;
 
 const photoTypeOptions = ["", "Still camera", "Drone", "Underwater"];
-
-const DEFAULT_PAPER_IDS = ["hm-photo-rag"];
-const DEFAULT_LONG_EDGE_MMS = [420, 594];
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -78,15 +62,13 @@ const formatBytes = (bytes: number): string => {
 const formatMoney = (value: number): string =>
   value.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
 
+const masterThumbnailUrl = (filename: string): string =>
+  `/api/admin/master-files/thumbnail?filename=${encodeURIComponent(filename)}`;
+
 const formatResolution = (file: MasterFileCandidate): string =>
   file.pixel_width && file.pixel_height
     ? `${file.pixel_width} x ${file.pixel_height} px`
     : "Resolution unavailable";
-
-const masterThumbnailUrl = (filename: string): string =>
-  `/api/admin/master-files/thumbnail?filename=${encodeURIComponent(filename)}`;
-
-const comboKey = (paperId: string, longEdgeMm: number): string => `${paperId}|${longEdgeMm}`;
 
 function MasterThumbnail({
   filename,
@@ -129,7 +111,8 @@ export function ImportPhotoWizardClient({
   masterFilesDirPath,
   initialMarkupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
   initialBasePriceAud = DEFAULT_PRINT_PRICE_BASE_AUD,
-  initialPapers = seedManagedPapers(),
+  initialFrameMarkupFactor = DEFAULT_PRINT_FRAME_MARKUP_FACTOR,
+  initialFrameBasePriceAud = DEFAULT_PRINT_FRAME_BASE_AUD,
   loadErrors = [],
 }: ImportPhotoWizardClientProps) {
   const [step, setStep] = useState(0);
@@ -147,18 +130,12 @@ export function ImportPhotoWizardClient({
   const [editionSize, setEditionSize] = useState("10");
   const [isFeatured, setIsFeatured] = useState(false);
   const [visibility, setVisibility] = useState<"public" | "vault">("public");
-  const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() => {
-    const active = initialPapers.filter((paper) => paper.isActive && paper.ratePerSqInAud !== null);
-    const preferred = active.find((paper) => paper.id === "hm-photo-rag") ?? active[0];
-    return preferred ? [preferred.id] : DEFAULT_PAPER_IDS;
-  });
-  const [selectedLongEdges, setSelectedLongEdges] = useState<number[]>(DEFAULT_LONG_EDGE_MMS);
-  const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
   const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
   const [themeOptions, setThemeOptions] = useState(themes);
   const [markupFactor, setMarkupFactor] = useState(initialMarkupFactor);
   const [basePriceAud, setBasePriceAud] = useState(initialBasePriceAud);
-  const [papers, setPapers] = useState<ManagedPaper[]>(initialPapers);
+  const [frameMarkupFactor, setFrameMarkupFactor] = useState(initialFrameMarkupFactor);
+  const [frameBasePriceAud, setFrameBasePriceAud] = useState(initialFrameBasePriceAud);
   const [webImageMode, setWebImageMode] = useState<WebImageMode>("generate");
   const [webImage, setWebImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -178,72 +155,48 @@ export function ImportPhotoWizardClient({
       selectedMaster.pixel_height > 0,
   );
 
-  const sellablePapers = useMemo(
-    () => papers.filter((paper) => paper.isActive && paper.ratePerSqInAud !== null),
-    [papers],
-  );
-
-  const variantCombos = useMemo((): VariantCombo[] => {
+  const offerDrafts = useMemo((): OfferVariantDraft[] => {
     if (!hasMasterPixels || !selectedMaster) return [];
-
-    const combos: VariantCombo[] = [];
-    for (const paperId of selectedPaperIds) {
-      const paper = sellablePapers.find((item) => item.id === paperId);
-      if (!paper) continue;
-      for (const longEdgeMm of selectedLongEdges) {
-        const size = deriveAspectPreservingSizeMm(
-          longEdgeMm,
-          selectedMaster.pixel_width!,
-          selectedMaster.pixel_height!,
-        );
-        const pricing = computeVariantPricing({
-          widthMm: size.width_mm,
-          heightMm: size.height_mm,
-          paperLabel: paper.label,
-          markupFactor,
-          basePriceAud,
-          papers,
-        });
-        combos.push({
-          key: comboKey(paper.id, longEdgeMm),
-          paper,
-          longEdgeMm,
-          widthMm: size.width_mm,
-          heightMm: size.height_mm,
-          labCostAud: pricing?.labCostAud ?? null,
-          formulaRetailAud: pricing?.retailAud ?? null,
-          formulaRetailCents: pricing?.retailCents ?? null,
-          note: pricing?.note ?? null,
-        });
-      }
+    try {
+      return buildOfferVariantsForProduct({
+        pixelWidth: selectedMaster.pixel_width!,
+        pixelHeight: selectedMaster.pixel_height!,
+        editionSize: Number.parseInt(editionSize, 10) || 10,
+        mediaMarkupFactor: markupFactor,
+        mediaBasePriceAud: basePriceAud,
+        frameMarkupFactor,
+        frameBasePriceAud,
+      });
+    } catch {
+      return [];
     }
-    return combos;
   }, [
     basePriceAud,
+    editionSize,
+    frameBasePriceAud,
+    frameMarkupFactor,
     hasMasterPixels,
     markupFactor,
-    papers,
-    selectedLongEdges,
     selectedMaster,
-    selectedPaperIds,
-    sellablePapers,
   ]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const response = await adminClientFetch("/api/admin/print-pricing/markup");
+        const response = await adminClientFetch("/api/admin/print-pricing/offer");
         if (!response.ok || cancelled) return;
         const body = (await response.json()) as {
           markup_factor?: number;
           base_price_aud?: number;
-          papers?: ManagedPaper[];
+          frame_markup_factor?: number;
+          frame_base_price_aud?: number;
         };
         if (!cancelled) {
           if (typeof body.markup_factor === "number") setMarkupFactor(body.markup_factor);
           if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud);
-          if (Array.isArray(body.papers) && body.papers.length > 0) setPapers(body.papers);
+          if (typeof body.frame_markup_factor === "number") setFrameMarkupFactor(body.frame_markup_factor);
+          if (typeof body.frame_base_price_aud === "number") setFrameBasePriceAud(body.frame_base_price_aud);
         }
       } catch {
         // Keep server-provided default.
@@ -301,7 +254,6 @@ export function ImportPhotoWizardClient({
       setSlugTouched(false);
     }
     if (masterChanged) {
-      setPriceOverrides({});
       setWebImageMode("generate");
       setWebImage(null);
       setCreatedProductId(null);
@@ -310,32 +262,9 @@ export function ImportPhotoWizardClient({
     }
   };
 
-  const togglePaper = (paperId: string) => {
-    setSelectedPaperIds((current) =>
-      current.includes(paperId) ? current.filter((id) => id !== paperId) : [...current, paperId],
-    );
-  };
-
-  const toggleLongEdge = (mm: number) => {
-    setSelectedLongEdges((current) =>
-      current.includes(mm) ? current.filter((value) => value !== mm) : [...current, mm].sort((a, b) => a - b),
-    );
-  };
-
-  const retailDollarsForCombo = (combo: VariantCombo): string => {
-    if (priceOverrides[combo.key] !== undefined) return priceOverrides[combo.key];
-    return combo.formulaRetailAud !== null ? combo.formulaRetailAud.toFixed(2) : "";
-  };
-
   const editionNumber = Number.parseInt(editionSize, 10);
   const detailsValid = Boolean(title.trim() && slug.trim() && Number.isInteger(editionNumber) && editionNumber >= 1);
-  const sizesValid =
-    hasMasterPixels &&
-    variantCombos.length > 0 &&
-    variantCombos.every((combo) => {
-      const value = Number.parseFloat(retailDollarsForCombo(combo) || "");
-      return Number.isFinite(value) && value >= 0;
-    });
+  const sizesValid = hasMasterPixels && offerDrafts.length === OFFER_COMBOS.length;
   const webImageValid = webImageMode === "generate" || webImage instanceof File;
 
   const stepComplete = (index: number): boolean => {
@@ -371,10 +300,10 @@ export function ImportPhotoWizardClient({
       return "Title, slug, and edition size (1 or more) are required.";
     }
     if (step === 3 && !hasMasterPixels) {
-      return "Master TIFF pixel dimensions are required to compute custom sizes.";
+      return "Master TIFF pixel dimensions are required to build the print offer.";
     }
     if (step === 3 && !sizesValid) {
-      return "Select at least one paper and long-edge size with a valid retail price.";
+      return "Could not price the standard Size × Finish × Framed offer. Check Print Templates pricing.";
     }
     if (step === 4 && !webImageValid) {
       return "Choose auto-generate, or upload a JPEG/PNG/WebP override.";
@@ -406,9 +335,6 @@ export function ImportPhotoWizardClient({
     setEditionSize("10");
     setIsFeatured(false);
     setVisibility("public");
-    setSelectedPaperIds(DEFAULT_PAPER_IDS);
-    setSelectedLongEdges(DEFAULT_LONG_EDGE_MMS);
-    setPriceOverrides({});
     setSelectedThemeIds([]);
     setThemeOptions(themes);
     setWebImageMode("generate");
@@ -446,24 +372,6 @@ export function ImportPhotoWizardClient({
     formData.set("is_featured", String(isFeatured));
     formData.set("visibility", visibility);
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
-    formData.set(
-      "custom_size_variants",
-      JSON.stringify(
-        variantCombos.map((combo) => {
-          const dollars = Number.parseFloat(retailDollarsForCombo(combo) || "0") || 0;
-          const formulaCents = combo.formulaRetailCents;
-          const overrideCents = Math.round(dollars * 100);
-          const priceAud =
-            formulaCents !== null && overrideCents === formulaCents ? null : overrideCents;
-          return {
-            paper_type: combo.paper.label,
-            print_type: combo.paper.printType as PrintTypeCode,
-            long_edge_mm: combo.longEdgeMm,
-            price_aud: priceAud,
-          };
-        }),
-      ),
-    );
     if (webImageMode === "upload" && webImage) {
       formData.set("web_image", webImage);
     }
@@ -720,118 +628,47 @@ export function ImportPhotoWizardClient({
 
       {step === 3 ? (
         <section className={styles.panel}>
-          <h2>4. Print sizes</h2>
+          <h2>4. Print offer</h2>
           <p className={styles.explain}>
-            Pick papers and long-edge presets. Each combination becomes a shop variant at the master photo&apos;s
-            aspect ratio (<code>custom_size</code>), priced as roundUp(base ${basePriceAud.toFixed(2)} +{" "}
-            {markupFactor}× lab). Adjust retail per row if needed. Settings:{" "}
-            <Link href="/admin/print-profiles">Print Templates</Link>.
+            Every print gets the same nine options: Small / Medium / Large × Archival matte (unframed or framed) ×
+            Ready-to-hang canvas. Framed uses Standard moulding + Perspex. Pricing uses current media and frame
+            markups from <Link href="/admin/print-profiles">Print Templates</Link>.
           </p>
           <p className={styles.muted}>
-            Rates come from the managed paper list. Retail rounds up to $5 under $120, $10 at $120+.
+            Media: base ${basePriceAud.toFixed(2)} + {markupFactor}× lab · Frame: base $
+            {frameBasePriceAud.toFixed(2)} + {frameMarkupFactor}× lab · Retail rounds up to $5 / $10 bands.
           </p>
 
           {!hasMasterPixels ? (
             <p className={styles.blocker}>
-              This master has no readable pixel dimensions. Re-scan masters or pick another file — custom sizes cannot
-              be computed without them.
+              This master has no readable pixel dimensions. Re-scan masters or pick another file.
             </p>
           ) : null}
 
-          <div className={styles.matrixPickers}>
-            <div>
-              <h3>Papers</h3>
-              <div className={styles.chipList}>
-                {sellablePapers.map((paper) => (
-                  <label key={paper.id} className={styles.chip}>
-                    <input
-                      type="checkbox"
-                      checked={selectedPaperIds.includes(paper.id)}
-                      onChange={() => togglePaper(paper.id)}
-                    />
-                    <span>
-                      {paper.label}
-                      <span className={styles.muted}>
-                        {" "}
-                        · {PRINT_TYPES.find((item) => item.code === paper.printType)?.label ?? paper.printType}
-                        {paper.ratePerSqInAud !== null ? ` · $${paper.ratePerSqInAud}/sq in` : ""}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h3>Long-edge sizes</h3>
-              <div className={styles.chipList}>
-                {LONG_EDGE_PRESETS.map((preset) => (
-                  <label key={preset.mm} className={styles.chip}>
-                    <input
-                      type="checkbox"
-                      checked={selectedLongEdges.includes(preset.mm)}
-                      onChange={() => toggleLongEdge(preset.mm)}
-                    />
-                    <span>{preset.labelMm}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {variantCombos.length > 0 ? (
+          {offerDrafts.length > 0 ? (
             <div className={styles.variantMatrix}>
-              <h3>
-                Variants to create ({variantCombos.length})
-              </h3>
+              <h3>Variants to create ({offerDrafts.length})</h3>
               <table className={styles.matrixTable}>
                 <thead>
                   <tr>
-                    <th>Label</th>
+                    <th>Option</th>
                     <th>Size</th>
                     <th>Lab cost</th>
-                    <th>Formula retail</th>
-                    <th>Retail AUD</th>
+                    <th>Retail</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {variantCombos.map((combo) => (
-                    <tr key={combo.key}>
-                      <td>
-                        {formatCustomSizeVariantLabel({
-                          paperLabel: combo.paper.label,
-                          widthMm: combo.widthMm,
-                          heightMm: combo.heightMm,
-                          longEdgeMm: combo.longEdgeMm,
-                        })}
-                      </td>
-                      <td>{formatDualSize(combo.widthMm, combo.heightMm)}</td>
-                      <td>{combo.labCostAud !== null ? formatMoney(combo.labCostAud) : "—"}</td>
-                      <td>
-                        {combo.formulaRetailAud !== null ? formatMoney(combo.formulaRetailAud) : "—"}
-                        <span className={styles.muted}>
-                          {" "}
-                          (${basePriceAud.toFixed(2)} + {markupFactor}×)
-                        </span>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className={styles.priceInput}
-                          value={retailDollarsForCombo(combo)}
-                          onChange={(event) =>
-                            setPriceOverrides((current) => ({ ...current, [combo.key]: event.target.value }))
-                          }
-                        />
-                      </td>
+                  {offerDrafts.map((draft) => (
+                    <tr key={draft.variant_label}>
+                      <td>{draft.variant_label}</td>
+                      <td>{formatDualSize(draft.width_mm, draft.height_mm)}</td>
+                      <td>{formatMoney(draft.lab_cost_aud / 100)}</td>
+                      <td>{formatMoney(draft.price_aud / 100)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : hasMasterPixels ? (
-            <p className={styles.blocker}>Select at least one paper and one long-edge size.</p>
           ) : null}
         </section>
       ) : null}
@@ -953,15 +790,9 @@ export function ImportPhotoWizardClient({
                 <th>Variants</th>
                 <td>
                   <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
-                    {variantCombos.map((combo) => (
-                      <li key={combo.key}>
-                        {formatCustomSizeVariantLabel({
-                          paperLabel: combo.paper.label,
-                          widthMm: combo.widthMm,
-                          heightMm: combo.heightMm,
-                          longEdgeMm: combo.longEdgeMm,
-                        })}{" "}
-                        — ${retailDollarsForCombo(combo) || "0.00"} AUD
+                    {offerDrafts.map((draft) => (
+                      <li key={draft.variant_label}>
+                        {draft.variant_label} — {formatMoney(draft.price_aud / 100)}
                       </li>
                     ))}
                   </ul>
