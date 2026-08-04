@@ -34,11 +34,18 @@
 
 .imageWrap[data-frame="standard"],
 .imageWrap[data-frame="deluxe"] {
+  aspect-ratio: auto;
+  max-height: none;
   background: #f4f1ec;
 }
 
 .image {
   object-fit: contain;
+}
+
+.imageWrap[data-frame="standard"] .image,
+.imageWrap[data-frame="deluxe"] .image {
+  object-fit: cover;
 }
 
 .panel {

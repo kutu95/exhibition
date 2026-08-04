@@ -67,21 +67,30 @@ export function FramedPreview({
     frame === "standard" ? styles.ringStandard : frame === "deluxe" ? styles.ringDeluxe : "";
   const ringPx = ringPxForPreview(frame, longEdgeMm);
 
-  const mergedStyle: CSSProperties | undefined = framed
+  // Equal padding on an aspect-ratio box changes the inner ratio and causes
+  // side-only letterboxing. Keep the photo ratio on `.media` when framed.
+  const { aspectRatio, ...restStyle } = style ?? {};
+  const wrapStyle: CSSProperties | undefined = framed
     ? {
-        ...style,
+        ...restStyle,
+        aspectRatio: "auto",
         ["--ring" as string]: `${ringPx}px`,
       }
     : style;
+  const mediaStyle: CSSProperties | undefined = framed
+    ? { aspectRatio: aspectRatio ?? "3 / 2" }
+    : undefined;
 
   return (
     <div
       className={[styles.wrap, framed ? styles.framed : "", className].filter(Boolean).join(" ")}
-      style={mergedStyle}
+      style={wrapStyle}
       data-frame={frame}
     >
       {framed ? <div className={`${styles.ring} ${ringClass}`} aria-hidden /> : null}
-      <div className={styles.media}>{children}</div>
+      <div className={framed ? styles.mediaFramed : styles.media} style={mediaStyle}>
+        {children}
+      </div>
     </div>
   );
 }

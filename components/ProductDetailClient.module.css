@@ -31,11 +31,18 @@
 
 .mainImageWrap[data-frame="standard"],
 .mainImageWrap[data-frame="deluxe"] {
+  aspect-ratio: auto;
+  max-height: none;
   background: #f4f1ec;
 }
 
 .mainImage {
   object-fit: contain;
+}
+
+.mainImageWrap[data-frame="standard"] .mainImage,
+.mainImageWrap[data-frame="deluxe"] .mainImage {
+  object-fit: cover;
 }
 
 .thumbs {
