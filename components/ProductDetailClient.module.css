@@ -9,8 +9,6 @@
 }
 
 .mainImageWrap {
-  position: relative;
-  width: 100%;
   /* Until the image loads and reports its ratio, hold a neutral 3:2 frame.
      Once loaded, inline aspect-ratio + max-width shrink the frame to the
      photograph itself, so there is no dead space above or below. */
@@ -19,6 +17,12 @@
   margin: 0 auto;
   border: 1px solid rgba(10, 22, 40, 0.2);
   background: rgba(10, 22, 40, 0.04);
+}
+
+.mainImageWrap[data-frame="standard"],
+.mainImageWrap[data-frame="deluxe"] {
+  border-color: transparent;
+  background: #f4f1ec;
 }
 
 .mainImage {
@@ -62,9 +66,31 @@
 }
 
 .edition {
-  margin: 0 0 1.3rem;
+  margin: 0 0 0.75rem;
   color: #444;
   font-size: 0.9rem;
+}
+
+.priceSticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0 0.85rem;
+  border-bottom: 1px solid rgba(10, 22, 40, 0.15);
+  background: color-mix(in srgb, var(--color-paper, #f7f4ef) 92%, white);
+}
+
+.price {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  margin: 0 0 0.2rem;
+}
+
+.offerSummary {
+  margin: 0;
+  color: #555;
+  font-size: 0.92rem;
 }
 
 .variants {
@@ -137,14 +163,8 @@
   accent-color: var(--color-rust);
 }
 
-.offerSummary {
-  margin: -0.35rem 0 1rem;
-  color: #555;
-  font-size: 0.92rem;
-}
-
 .customLink {
-  margin: 0 0 1rem;
+  margin: 1rem 0;
   font-size: 0.92rem;
 }
 
@@ -169,12 +189,6 @@
 
 .variantRow input {
   accent-color: var(--color-rust);
-}
-
-.price {
-  font-family: var(--font-heading);
-  font-size: 2rem;
-  margin: 1.2rem 0 1rem;
 }
 
 .buyButton {

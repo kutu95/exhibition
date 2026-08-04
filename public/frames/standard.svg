@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="bevelH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="35%" stop-color="#1a1a1a"/>
+      <stop offset="70%" stop-color="#0d0d0d"/>
+      <stop offset="100%" stop-color="#2a2a2a"/>
+    </linearGradient>
+    <linearGradient id="bevelV" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="35%" stop-color="#1a1a1a"/>
+      <stop offset="70%" stop-color="#0d0d0d"/>
+      <stop offset="100%" stop-color="#2a2a2a"/>
+    </linearGradient>
+    <linearGradient id="innerLip" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4a4a4a"/>
+      <stop offset="100%" stop-color="#222"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#bevelH)" fill-rule="evenodd" d="M0 0h120v120H0zM36 36h48v48H36z"/>
+  <path fill="url(#bevelV)" fill-rule="evenodd" opacity="0.55" d="M0 0h36v120H0zM84 0h36v120H84zM36 36h48v48H36z"/>
+  <rect x="30" y="30" width="60" height="60" fill="none" stroke="url(#innerLip)" stroke-width="6"/>
+  <rect x="1.5" y="1.5" width="117" height="117" fill="none" stroke="#555" stroke-width="1" opacity="0.5"/>
+  <rect x="5" y="5" width="110" height="110" fill="none" stroke="#111" stroke-width="2" opacity="0.8"/>
+</svg>

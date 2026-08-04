@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="woodH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a67c52"/>
+      <stop offset="22%" stop-color="#8b5e3c"/>
+      <stop offset="55%" stop-color="#6b4423"/>
+      <stop offset="78%" stop-color="#5a3820"/>
+      <stop offset="100%" stop-color="#7a5438"/>
+    </linearGradient>
+    <linearGradient id="woodV" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#b08968"/>
+      <stop offset="30%" stop-color="#8b5e3c"/>
+      <stop offset="70%" stop-color="#5c3a21"/>
+      <stop offset="100%" stop-color="#9a7350"/>
+    </linearGradient>
+    <pattern id="grain" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M0 4h8" stroke="#4a3018" stroke-width="0.4" opacity="0.25"/>
+      <path d="M0 1.5h8" stroke="#c4a07a" stroke-width="0.3" opacity="0.2"/>
+    </pattern>
+    <linearGradient id="goldLip" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d4b896"/>
+      <stop offset="50%" stop-color="#a08060"/>
+      <stop offset="100%" stop-color="#6a4a30"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#woodH)" fill-rule="evenodd" d="M0 0h120v120H0zM36 36h48v48H36z"/>
+  <path fill="url(#woodV)" fill-rule="evenodd" opacity="0.45" d="M0 0h36v120H0zM84 0h36v120H84zM36 36h48v48H36z"/>
+  <path fill="url(#grain)" fill-rule="evenodd" d="M0 0h120v120H0zM36 36h48v48H36z"/>
+  <rect x="8" y="8" width="104" height="104" fill="none" stroke="#3d2814" stroke-width="3" opacity="0.55"/>
+  <rect x="14" y="14" width="92" height="92" fill="none" stroke="#c9a882" stroke-width="2" opacity="0.45"/>
+  <rect x="22" y="22" width="76" height="76" fill="none" stroke="#4a3018" stroke-width="2" opacity="0.5"/>
+  <rect x="29" y="29" width="62" height="62" fill="none" stroke="url(#goldLip)" stroke-width="5"/>
+  <rect x="1" y="1" width="118" height="118" fill="none" stroke="#2a1810" stroke-width="2"/>
+</svg>

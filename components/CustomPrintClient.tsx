@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
+import { FramedPreview, mapCustomFrameToPreview } from "./FramedPreview";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { readCart } from "../lib/cart";
 import {
@@ -217,7 +218,15 @@ export function CustomPrintClient({
 
       <div className={styles.layout}>
         <div className={styles.visual}>
-          <div className={styles.imageWrap}>
+          <FramedPreview
+            frame={mapCustomFrameToPreview(effectiveFrame)}
+            className={styles.imageWrap}
+            style={
+              pixelWidth > 0 && pixelHeight > 0
+                ? { aspectRatio: `${pixelWidth} / ${pixelHeight}` }
+                : undefined
+            }
+          >
             <Image
               src={product.image_url}
               alt={product.title}
@@ -226,7 +235,7 @@ export function CustomPrintClient({
               sizes="(max-width: 900px) 100vw, 48vw"
               priority
             />
-          </div>
+          </FramedPreview>
           <p className={styles.muted}>
             Size keeps this photograph&apos;s aspect ratio. Long edge from {CUSTOM_LONG_EDGE_MIN_MM}–
             {CUSTOM_LONG_EDGE_MAX_MM} mm.

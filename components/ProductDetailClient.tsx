@@ -7,6 +7,10 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
 import { FavouriteButton } from "./FavouriteButton";
+import {
+  FramedPreview,
+  mapOfferPresentationToFrame,
+} from "./FramedPreview";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { readCart } from "../lib/cart";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
@@ -218,7 +222,12 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   return (
     <section className={`section container ${styles.wrap}`}>
       <div className={styles.gallery}>
-        <div
+        <FramedPreview
+          frame={
+            useOfferChooser && finishId === "archival_matte"
+              ? mapOfferPresentationToFrame(presentationId)
+              : "none"
+          }
           className={styles.mainImageWrap}
           style={
             imageRatio
@@ -243,7 +252,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
               }
             }}
           />
-        </div>
+        </FramedPreview>
 
         {product.product_images.length > 1 ? (
           <div className={styles.thumbs}>
@@ -277,6 +286,15 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
         {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
         <h1 className={styles.title}>{product.title}</h1>
         {maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
+
+        <div className={styles.priceSticky}>
+          <p className={styles.price}>
+            {selectedVariant ? formatAUD(selectedVariant.price_aud) : "Price unavailable"}
+          </p>
+          {useOfferChooser && selectedVariant ? (
+            <p className={styles.offerSummary}>{selectedVariant.variant_label}</p>
+          ) : null}
+        </div>
 
         {useOfferChooser ? (
           <div className={styles.offerChooser}>
@@ -406,13 +424,6 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             ))}
           </div>
         )}
-
-        <p className={styles.price}>
-          {selectedVariant ? formatAUD(selectedVariant.price_aud) : "Price unavailable"}
-        </p>
-        {useOfferChooser && selectedVariant ? (
-          <p className={styles.offerSummary}>{selectedVariant.variant_label}</p>
-        ) : null}
 
         {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" ? (
           <p className={styles.customLink}>
