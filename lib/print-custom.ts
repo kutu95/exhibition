@@ -46,12 +46,12 @@ export const CUSTOM_FRAME_OPTIONS: CustomFrameOption[] = [
   {
     id: "standard_perspex",
     label: "Standard frame",
-    summary: "Standard moulding with Perspex (shippable)",
+    summary: "20mm Standard moulding with Perspex (shippable)",
   },
   {
     id: "deluxe_perspex",
     label: "Deluxe frame",
-    summary: "Deluxe moulding with Perspex (shippable)",
+    summary: "Slim 10mm Deluxe moulding with Perspex (shippable)",
   },
 ];
 

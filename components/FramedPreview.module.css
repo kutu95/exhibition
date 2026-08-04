@@ -38,15 +38,12 @@
 }
 
 .ringDeluxe {
+  /* Slim 10mm Deluxe face — clean dark profile, not a wide timber moulding. */
   box-shadow:
-    inset 0 0 0 calc(var(--ring, 18px) * 0.06) #2a1810,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.16) #a67c52,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.28) #6b4423,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.55) #8b5e3c,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.7) #5a3820,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.82) #c9a882,
-    inset 0 0 0 calc(var(--ring, 18px) * 0.92) #4a3018,
-    inset 0 0 0 var(--ring, 18px) #7a5438;
+    inset 0 0 0 calc(var(--ring, 10px) * 0.15) #c9a882,
+    inset 0 0 0 calc(var(--ring, 10px) * 0.4) #5a3820,
+    inset 0 0 0 calc(var(--ring, 10px) * 0.75) #2a1810,
+    inset 0 0 0 var(--ring, 10px) #1a1008;
 }
 
 .media {

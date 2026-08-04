@@ -1,23 +1,29 @@
-import type { CSSProperties, ReactNode } from "react";
+"use client";
+
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 import styles from "./FramedPreview.module.css";
 
 export type FramedPreviewStyle = "none" | "standard" | "deluxe";
 
-/** Approximate moulding face width (mm) — fixed in the real world. */
+/**
+ * Pixel Perfect face widths (https://pixelperfect.com.au/framing/):
+ * - Standard: 20 / 30 / 42mm face (we preview the 20mm option)
+ * - Deluxe: 10mm face (slimmer / cleaner — not wider)
+ */
 export const FRAME_MOULDING_MM: Record<Exclude<FramedPreviewStyle, "none">, number> = {
   standard: 20,
-  deluxe: 38,
+  deluxe: 10,
 };
 
 /** Default long edge used when size is unknown (Medium / A2). */
 export const FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM = 594;
-
-/**
- * Approximate on-screen long edge of the preview (px). Used to convert fixed
- * moulding mm into screen px so Small reads thicker and Large thinner.
- */
-const PREVIEW_LONG_EDGE_PX = 520;
 
 type FramedPreviewProps = {
   frame?: FramedPreviewStyle;
@@ -42,15 +48,42 @@ export function mapCustomFrameToPreview(
   return "none";
 }
 
-export function ringPxForPreview(
+const parseAspectRatio = (value: CSSProperties["aspectRatio"]): number => {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.includes("/")) {
+      const [a, b] = trimmed.split("/").map((part) => Number.parseFloat(part.trim()));
+      if (Number.isFinite(a) && Number.isFinite(b) && b !== 0) return a / b;
+    }
+    const n = Number.parseFloat(trimmed);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 1.5;
+};
+
+/**
+ * True-to-scale moulding width in CSS px from the preview's border-box width.
+ *
+ * The preview is width-constrained (`width: 100%`, border-box). Moulding face M
+ * and print long-edge L (mm) map to screen as:
+ *   landscape (aspect ≥ 1): ring = W × M / (L + 2M)
+ *   portrait  (aspect < 1): ring = W × M / (aspect×L + 2M)
+ * so ring / printLongEdgePx = M / L.
+ */
+export function ringPxForPreviewWidth(
   frame: FramedPreviewStyle,
-  longEdgeMm: number = FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM,
+  printLongEdgeMm: number,
+  previewWidthPx: number,
+  photoAspect: number,
 ): number {
-  if (frame === "none") return 0;
-  const edge = Math.max(1, longEdgeMm);
-  // No px cap — a fixed mm moulding must keep thickening as the print shrinks
-  // (the old 36px max flattened Deluxe below ~550mm).
-  return Math.max(1, Math.round((FRAME_MOULDING_MM[frame] / edge) * PREVIEW_LONG_EDGE_PX));
+  if (frame === "none" || previewWidthPx <= 0) return 0;
+  const mouldingMm = FRAME_MOULDING_MM[frame];
+  const printMm = Math.max(1, printLongEdgeMm);
+  const aspect = photoAspect > 0 ? photoAspect : 1.5;
+  const denominator =
+    aspect >= 1 ? printMm + 2 * mouldingMm : aspect * printMm + 2 * mouldingMm;
+  return Math.max(1, Math.round((previewWidthPx * mouldingMm) / denominator));
 }
 
 export function FramedPreview({
@@ -61,13 +94,33 @@ export function FramedPreview({
   children,
 }: FramedPreviewProps) {
   const framed = frame !== "none";
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [ringPx, setRingPx] = useState(0);
+
+  const { aspectRatio, ...restStyle } = style ?? {};
+  const photoAspect = parseAspectRatio(aspectRatio);
+
+  useLayoutEffect(() => {
+    if (!framed || frame === "none") {
+      setRingPx(0);
+      return;
+    }
+    const node = wrapRef.current;
+    if (!node) return;
+
+    const update = () => {
+      setRingPx(ringPxForPreviewWidth(frame, longEdgeMm, node.clientWidth, photoAspect));
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [frame, framed, longEdgeMm, photoAspect]);
+
   const ringClass =
     frame === "standard" ? styles.ringStandard : frame === "deluxe" ? styles.ringDeluxe : "";
-  const ringPx = ringPxForPreview(frame, longEdgeMm);
 
-  // Equal padding on an aspect-ratio box changes the inner ratio and causes
-  // side-only letterboxing. Keep the photo ratio on `.media` when framed.
-  const { aspectRatio, ...restStyle } = style ?? {};
   const wrapStyle: CSSProperties | undefined = framed
     ? {
         ...restStyle,
@@ -81,6 +134,7 @@ export function FramedPreview({
 
   return (
     <div
+      ref={wrapRef}
       className={[styles.wrap, framed ? styles.framed : "", className].filter(Boolean).join(" ")}
       style={wrapStyle}
       data-frame={frame}
