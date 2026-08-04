@@ -16,10 +16,12 @@ describe("ringPxForPrintLongEdge", () => {
     );
   });
 
-  it("renders Deluxe half as thick as Standard (10mm vs 20mm)", () => {
+  it("renders Deluxe one-third as thick as Standard preview (10mm vs 30mm face)", () => {
     const standard = ringPxForPrintLongEdge("standard", 594);
     const deluxe = ringPxForPrintLongEdge("deluxe", 594);
-    expect(deluxe / standard).toBeCloseTo(0.5, 5);
+    expect(FRAME_MOULDING_MM.deluxe).toBe(10);
+    expect(FRAME_MOULDING_MM.standard).toBe(30);
+    expect(deluxe / standard).toBeCloseTo(10 / 30, 1);
   });
 
   it("keeps thickening below 550mm with no plateau", () => {
@@ -30,7 +32,7 @@ describe("ringPxForPrintLongEdge", () => {
     expect(at420).toBeGreaterThan(at550);
     expect(at300).toBeGreaterThan(at420);
     expect(at200).toBeGreaterThan(at300);
-    expect(at200).toBe(Math.round((20 / 200) * FRAME_PREVIEW_PHOTO_LONG_EDGE_PX));
+    expect(at200).toBe(Math.round((30 / 200) * FRAME_PREVIEW_PHOTO_LONG_EDGE_PX));
   });
 
   it("thickens the frame as the print long-edge shrinks", () => {

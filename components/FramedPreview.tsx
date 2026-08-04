@@ -8,11 +8,11 @@ export type FramedPreviewStyle = "none" | "standard" | "deluxe";
 
 /**
  * Pixel Perfect face widths (https://pixelperfect.com.au/framing/):
- * - Standard: 20 / 30 / 42mm face (we preview the 20mm option)
- * - Deluxe: 10mm face (slimmer / cleaner — not wider)
+ * - Standard: 20 / 30 / 42mm face × 20mm deep — preview uses mid 30mm
+ * - Deluxe: 10mm face × 25mm deep (slimmer face, not wider)
  */
 export const FRAME_MOULDING_MM: Record<Exclude<FramedPreviewStyle, "none">, number> = {
-  standard: 20,
+  standard: 30,
   deluxe: 10,
 };
 

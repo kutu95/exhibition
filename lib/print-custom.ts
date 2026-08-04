@@ -48,22 +48,27 @@ export const CUSTOM_FRAME_OPTIONS: CustomFrameOption[] = [
   {
     id: "standard_perspex",
     label: "Standard frame",
-    summary: "20mm Standard moulding with Perspex (shippable)",
+    // https://pixelperfect.com.au/framing/ — Standard: 20/30/42mm face, 20mm deep
+    summary: "PP Standard moulding (20–42mm face) with Perspex — shippable",
     sampleImage: "/frames/standard-sample.jpg",
   },
   {
     id: "deluxe_perspex",
     label: "Deluxe frame",
-    summary: "Slim 10mm Deluxe moulding with Perspex (shippable)",
+    // https://pixelperfect.com.au/framing/ — Deluxe: 10mm face, 25mm deep (slimmer)
+    summary: "PP Deluxe moulding (10mm face, 25mm deep) with Perspex — shippable",
     sampleImage: "/frames/deluxe-sample.jpg",
   },
 ];
 
 /** Sample used for the shop “Framed” presentation (Standard moulding). */
 export const OFFER_FRAMED_SAMPLE_IMAGE = "/frames/standard-sample.jpg";
-/** PDF framing-section moulding corners (Pixel Perfect pricelist). */
-export const FRAME_MOULDING_CORNERS_IMAGE = "/frames/moulding-corners.jpg";
-
+/** Official moulding photos from https://pixelperfect.com.au/framing/ */
+export const FRAME_SAMPLE_SOURCES = {
+  standard: "https://pixelperfect.com.au/wp-content/uploads/2021/02/PIxel_Perfect_Frame_Standard.jpg",
+  deluxe: "https://pixelperfect.com.au/wp-content/uploads/2022/08/PIxel_Perfect_Deluxe_Frames_2022.jpg",
+  box: "https://pixelperfect.com.au/wp-content/uploads/2021/02/PIxel_Perfect_Frames_Box.jpg",
+} as const;
 /** Deluxe moulding lab AUD by united inches (Pixel Perfect April 2025). */
 export const SEED_DELUXE_FRAME_BY_UIN: Record<number, number> = {
   20: 102.73,
