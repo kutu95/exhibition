@@ -15,12 +15,9 @@ export const FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM = 594;
 
 /**
  * Approximate on-screen long edge of the preview (px). Used to convert fixed
- * moulding mm into screen px so Small reads thicker and Large thinner, without
- * container queries (which were blowing the gallery layout).
+ * moulding mm into screen px so Small reads thicker and Large thinner.
  */
 const PREVIEW_LONG_EDGE_PX = 520;
-const RING_PX_MIN = 10;
-const RING_PX_MAX = 36;
 
 type FramedPreviewProps = {
   frame?: FramedPreviewStyle;
@@ -50,9 +47,10 @@ export function ringPxForPreview(
   longEdgeMm: number = FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM,
 ): number {
   if (frame === "none") return 0;
-  const edge = Math.max(120, longEdgeMm);
-  const raw = (FRAME_MOULDING_MM[frame] / edge) * PREVIEW_LONG_EDGE_PX;
-  return Math.min(RING_PX_MAX, Math.max(RING_PX_MIN, Math.round(raw)));
+  const edge = Math.max(1, longEdgeMm);
+  // No px cap — a fixed mm moulding must keep thickening as the print shrinks
+  // (the old 36px max flattened Deluxe below ~550mm).
+  return Math.max(1, Math.round((FRAME_MOULDING_MM[frame] / edge) * PREVIEW_LONG_EDGE_PX));
 }
 
 export function FramedPreview({
