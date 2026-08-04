@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 
 import styles from "./FramedPreview.module.css";
 
@@ -24,6 +18,13 @@ export const FRAME_MOULDING_MM: Record<Exclude<FramedPreviewStyle, "none">, numb
 
 /** Default long edge used when size is unknown (Medium / A2). */
 export const FRAME_PREVIEW_DEFAULT_LONG_EDGE_MM = 594;
+
+/**
+ * On-screen length we treat as the print’s long edge. The preview photo is
+ * roughly this size; moulding px = faceMm / printLongMm × this value.
+ * (No ResizeObserver — measuring outer width created a soft plateau near ~550mm.)
+ */
+export const FRAME_PREVIEW_PHOTO_LONG_EDGE_PX = 520;
 
 type FramedPreviewProps = {
   frame?: FramedPreviewStyle;
@@ -48,42 +49,28 @@ export function mapCustomFrameToPreview(
   return "none";
 }
 
-const parseAspectRatio = (value: CSSProperties["aspectRatio"]): number => {
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed.includes("/")) {
-      const [a, b] = trimmed.split("/").map((part) => Number.parseFloat(part.trim()));
-      if (Number.isFinite(a) && Number.isFinite(b) && b !== 0) return a / b;
-    }
-    const n = Number.parseFloat(trimmed);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  return 1.5;
-};
-
 /**
- * True-to-scale moulding width in CSS px from the preview's border-box width.
- *
- * The preview is width-constrained (`width: 100%`, border-box). Moulding face M
- * and print long-edge L (mm) map to screen as:
- *   landscape (aspect ≥ 1): ring = W × M / (L + 2M)
- *   portrait  (aspect < 1): ring = W × M / (aspect×L + 2M)
- * so ring / printLongEdgePx = M / L.
+ * True-to-scale moulding width in CSS px.
+ * ring / photoLongPx = mouldingMm / printLongMm (no px cap).
  */
+export function ringPxForPrintLongEdge(
+  frame: FramedPreviewStyle,
+  printLongEdgeMm: number,
+  photoLongEdgePx: number = FRAME_PREVIEW_PHOTO_LONG_EDGE_PX,
+): number {
+  if (frame === "none" || photoLongEdgePx <= 0) return 0;
+  const printMm = Math.max(1, printLongEdgeMm);
+  return Math.max(1, Math.round((FRAME_MOULDING_MM[frame] / printMm) * photoLongEdgePx));
+}
+
+/** @deprecated Use ringPxForPrintLongEdge */
 export function ringPxForPreviewWidth(
   frame: FramedPreviewStyle,
   printLongEdgeMm: number,
-  previewWidthPx: number,
-  photoAspect: number,
+  _previewWidthPx: number,
+  _photoAspect: number,
 ): number {
-  if (frame === "none" || previewWidthPx <= 0) return 0;
-  const mouldingMm = FRAME_MOULDING_MM[frame];
-  const printMm = Math.max(1, printLongEdgeMm);
-  const aspect = photoAspect > 0 ? photoAspect : 1.5;
-  const denominator =
-    aspect >= 1 ? printMm + 2 * mouldingMm : aspect * printMm + 2 * mouldingMm;
-  return Math.max(1, Math.round((previewWidthPx * mouldingMm) / denominator));
+  return ringPxForPrintLongEdge(frame, printLongEdgeMm);
 }
 
 export function FramedPreview({
@@ -94,29 +81,12 @@ export function FramedPreview({
   children,
 }: FramedPreviewProps) {
   const framed = frame !== "none";
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [ringPx, setRingPx] = useState(0);
+  const ringPx = useMemo(
+    () => (framed ? ringPxForPrintLongEdge(frame, longEdgeMm) : 0),
+    [frame, framed, longEdgeMm],
+  );
 
   const { aspectRatio, ...restStyle } = style ?? {};
-  const photoAspect = parseAspectRatio(aspectRatio);
-
-  useLayoutEffect(() => {
-    if (!framed) {
-      setRingPx(0);
-      return;
-    }
-    const node = wrapRef.current;
-    if (!node) return;
-
-    const update = () => {
-      setRingPx(ringPxForPreviewWidth(frame, longEdgeMm, node.clientWidth, photoAspect));
-    };
-
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [frame, framed, longEdgeMm, photoAspect]);
 
   const ringClass =
     frame === "standard" ? styles.ringStandard : frame === "deluxe" ? styles.ringDeluxe : "";
@@ -134,10 +104,11 @@ export function FramedPreview({
 
   return (
     <div
-      ref={wrapRef}
       className={[styles.wrap, framed ? styles.framed : "", className].filter(Boolean).join(" ")}
       style={wrapStyle}
       data-frame={frame}
+      data-ring-px={framed ? ringPx : undefined}
+      data-long-edge-mm={framed ? longEdgeMm : undefined}
     >
       {framed ? <div className={`${styles.ring} ${ringClass}`} aria-hidden /> : null}
       <div className={framed ? styles.mediaFramed : styles.media} style={mediaStyle}>

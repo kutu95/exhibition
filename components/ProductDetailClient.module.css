@@ -154,15 +154,16 @@
 }
 
 .offerOptionWithSample {
-  grid-template-columns: auto 4.5rem 1fr;
+  grid-template-columns: auto 6rem 1fr;
 }
 
 .offerOptionSample {
   display: block;
-  width: 4.5rem;
-  height: 4.5rem;
-  border: 1px solid rgba(10, 22, 40, 0.15);
-  background: #fff;
+  width: 6rem;
+  height: 6rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  background: #f3f1ec;
   overflow: hidden;
 }
 
@@ -170,6 +171,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 

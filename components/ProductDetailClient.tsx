@@ -400,12 +400,14 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                         />
                         {id === "framed" ? (
                           <span className={styles.offerOptionSample}>
-                            <Image
+                            <img
                               src={OFFER_FRAMED_SAMPLE_IMAGE}
-                              alt=""
-                              width={72}
-                              height={72}
+                              alt="Standard frame moulding sample"
+                              width={96}
+                              height={96}
                               className={styles.offerOptionSampleImage}
+                              loading="lazy"
+                              decoding="async"
                             />
                           </span>
                         ) : null}

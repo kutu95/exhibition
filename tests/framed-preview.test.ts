@@ -1,41 +1,41 @@
 import { describe, expect, it } from "vitest";
 
-import { FRAME_MOULDING_MM, ringPxForPreviewWidth } from "../components/FramedPreview";
+import {
+  FRAME_MOULDING_MM,
+  FRAME_PREVIEW_PHOTO_LONG_EDGE_PX,
+  ringPxForPrintLongEdge,
+} from "../components/FramedPreview";
 
-describe("ringPxForPreviewWidth", () => {
-  it("keeps moulding / print long-edge ratio on landscape previews", () => {
-    const width = 600;
+describe("ringPxForPrintLongEdge", () => {
+  it("matches moulding / print long-edge ratio", () => {
     const printLong = 594;
-    const aspect = 1.5;
-    const ring = ringPxForPreviewWidth("standard", printLong, width, aspect);
-    const mediaLong = width - 2 * ring;
-    expect(ring / mediaLong).toBeCloseTo(FRAME_MOULDING_MM.standard / printLong, 2);
-  });
-
-  it("keeps moulding / print long-edge ratio on portrait previews", () => {
-    const width = 400;
-    const printLong = 594;
-    const aspect = 2 / 3;
-    const ring = ringPxForPreviewWidth("standard", printLong, width, aspect);
-    const mediaShort = width - 2 * ring;
-    const mediaLong = mediaShort / aspect;
-    expect(ring / mediaLong).toBeCloseTo(FRAME_MOULDING_MM.standard / printLong, 2);
+    const ring = ringPxForPrintLongEdge("standard", printLong);
+    expect(ring / FRAME_PREVIEW_PHOTO_LONG_EDGE_PX).toBeCloseTo(
+      FRAME_MOULDING_MM.standard / printLong,
+      2,
+    );
   });
 
   it("renders Deluxe half as thick as Standard (10mm vs 20mm)", () => {
-    const width = 600;
-    const standard = ringPxForPreviewWidth("standard", 594, width, 1.5);
-    const deluxe = ringPxForPreviewWidth("deluxe", 594, width, 1.5);
-    expect(FRAME_MOULDING_MM.deluxe).toBe(10);
-    expect(FRAME_MOULDING_MM.standard).toBe(20);
-    expect(deluxe).toBeLessThan(standard);
-    expect(deluxe / standard).toBeCloseTo(0.5, 1);
+    const standard = ringPxForPrintLongEdge("standard", 594);
+    const deluxe = ringPxForPrintLongEdge("deluxe", 594);
+    expect(deluxe / standard).toBeCloseTo(0.5, 5);
+  });
+
+  it("keeps thickening below 550mm with no plateau", () => {
+    const at550 = ringPxForPrintLongEdge("standard", 550);
+    const at420 = ringPxForPrintLongEdge("standard", 420);
+    const at300 = ringPxForPrintLongEdge("standard", 300);
+    const at200 = ringPxForPrintLongEdge("standard", 200);
+    expect(at420).toBeGreaterThan(at550);
+    expect(at300).toBeGreaterThan(at420);
+    expect(at200).toBeGreaterThan(at300);
+    expect(at200).toBe(Math.round((20 / 200) * FRAME_PREVIEW_PHOTO_LONG_EDGE_PX));
   });
 
   it("thickens the frame as the print long-edge shrinks", () => {
-    const width = 600;
-    const large = ringPxForPreviewWidth("standard", 841, width, 1.5);
-    const small = ringPxForPreviewWidth("standard", 420, width, 1.5);
+    const large = ringPxForPrintLongEdge("standard", 841);
+    const small = ringPxForPrintLongEdge("standard", 420);
     expect(small).toBeGreaterThan(large);
   });
 });

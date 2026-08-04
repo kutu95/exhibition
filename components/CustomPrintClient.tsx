@@ -325,12 +325,15 @@ export function CustomPrintClient({
                     />
                     {option.sampleImage ? (
                       <span className={styles.optionSample}>
-                        <Image
+                        {/* Native img: avoids /_next/image + CSP quirks for local samples */}
+                        <img
                           src={option.sampleImage}
-                          alt=""
-                          width={88}
-                          height={88}
+                          alt={`${option.label} moulding sample`}
+                          width={112}
+                          height={112}
                           className={styles.optionSampleImage}
+                          loading="lazy"
+                          decoding="async"
                         />
                       </span>
                     ) : null}
