@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
@@ -58,6 +58,9 @@ export type FulfilmentDashboardItem = {
   fulfilment_status: string;
   cloud_file_url: string | null;
   cloud_folder_path: string | null;
+  /** Absolute path under LOCAL_OUTPUT_DIR when the worker has prepared a lab TIFF. */
+  local_print_file_path?: string | null;
+  local_print_file_name?: string | null;
   pixel_perfect_order_ref: string | null;
   tracking_number: string | null;
   fulfilment_notes: string | null;
@@ -109,6 +112,7 @@ const driveFolderUrl = (item: FulfilmentDashboardItem): string | null => {
 };
 
 const localFilePath = (item: FulfilmentDashboardItem): string => {
+  if (item.local_print_file_path?.trim()) return item.local_print_file_path.trim();
   const url = item.cloud_file_url?.trim() ?? "";
   if (url.startsWith("file://")) {
     try {
@@ -124,6 +128,22 @@ const driveFileUrl = (item: FulfilmentDashboardItem): string | null => {
   const url = item.cloud_file_url?.trim();
   return url?.startsWith("https://drive.google.com/") ? url : null;
 };
+
+const hasPreparedPrintFile = (item: FulfilmentDashboardItem): boolean =>
+  Boolean(item.local_print_file_path?.trim()) || Boolean(item.cloud_file_url?.trim().startsWith("file:"));
+
+const localPrintFileName = (item: FulfilmentDashboardItem): string => {
+  if (item.local_print_file_name?.trim()) return item.local_print_file_name.trim();
+  const filePath = localFilePath(item);
+  const parts = filePath.split(/[/\\]/);
+  return parts[parts.length - 1] || filePath;
+};
+
+const printFilePreviewUrl = (orderItemId: string): string =>
+  `/api/admin/fulfilment/items/${orderItemId}/print-file?mode=preview`;
+
+const printFileDownloadUrl = (orderItemId: string): string =>
+  `/api/admin/fulfilment/items/${orderItemId}/print-file?mode=download`;
 
 const orderDate = (item: FulfilmentDashboardItem): string | null =>
   item.date_ordered ?? item.created_at ?? null;
@@ -151,7 +171,11 @@ const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
     `ORDER REF: ${item.order_number}`,
     `Customer: ${item.customer_name ?? ""}`,
     `Deliver to: ${formatAddress(item)}`,
-    `${driveFileUrl(item) ? "Drive file" : "Local file"}: ${localFilePath(item)}`,
+    driveFileUrl(item) ? `Drive file: ${driveFileUrl(item)}` : null,
+    hasPreparedPrintFile(item) ? `Prepared print file: ${localFilePath(item)}` : null,
+    !driveFileUrl(item) && !hasPreparedPrintFile(item) && item.cloud_file_url
+      ? `File: ${item.cloud_file_url}`
+      : null,
     driveFolderUrl(item) ? `Drive folder: ${driveFolderUrl(item)}` : null,
     item.tier_label ? `Range: ${item.tier_label}` : null,
     `Paper: ${item.paper_type ?? ""}`,
@@ -180,12 +204,27 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<FulfilmentDashboardItem | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const [refs, setRefs] = useState<Record<string, string>>(
     Object.fromEntries(items.map((item) => [item.order_item_id, item.pixel_perfect_order_ref ?? ""])),
   );
   const [trackingNumbers, setTrackingNumbers] = useState<Record<string, string>>(
     Object.fromEntries(items.map((item) => [item.order_item_id, item.tracking_number ?? ""])),
   );
+
+  useEffect(() => {
+    if (!previewItem) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewItem(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewItem]);
+
+  useEffect(() => {
+    setPreviewFailed(false);
+  }, [previewItem?.order_item_id]);
 
   const copyToClipboard = async (value: string, label: string) => {
     try {
@@ -413,27 +452,58 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                 </div>
 
                 <div className={styles.actions}>
-                  {item.cloud_file_url ? (
+                  {hasPreparedPrintFile(item) || driveFileUrl(item) || item.cloud_file_url ? (
                     <>
-                      <p>
-                        <strong>{driveFileUrl(item) ? "Drive file:" : "Local file:"}</strong>{" "}
-                        {driveFileUrl(item) ? (
-                          <>
-                            <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
-                              Open public TIFF in Google Drive
-                            </a>
-                            <button
-                              className={styles.button}
-                              type="button"
-                              onClick={() => copyToClipboard(driveFileUrl(item)!, "Pixel Perfect file link")}
-                            >
-                              Copy Pixel Perfect Link
-                            </button>
-                          </>
-                        ) : (
-                          <code>{localFilePath(item)}</code>
-                        )}
-                      </p>
+                      {hasPreparedPrintFile(item) ? (
+                        <div className={styles.printFileBlock}>
+                          <p>
+                            <strong>Prepared print file:</strong>{" "}
+                            <span className={styles.localFileRow}>
+                              <button
+                                className={styles.fileLink}
+                                type="button"
+                                onClick={() => setPreviewItem(item)}
+                              >
+                                {localPrintFileName(item)}
+                              </button>
+                              <button
+                                className={styles.buttonSecondary}
+                                type="button"
+                                onClick={() => setPreviewItem(item)}
+                              >
+                                View
+                              </button>
+                              <a
+                                className={styles.buttonSecondary}
+                                href={printFileDownloadUrl(item.order_item_id)}
+                              >
+                                Download
+                              </a>
+                            </span>
+                          </p>
+                          <code className={styles.mutedPath}>{localFilePath(item)}</code>
+                          <p className={styles.muted}>
+                            Lab TIFF from print-output (sized for this order). Not the master TIFF.
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {driveFileUrl(item) ? (
+                        <p>
+                          <strong>Drive file:</strong>{" "}
+                          <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
+                            Open public TIFF in Google Drive
+                          </a>
+                          <button
+                            className={styles.button}
+                            type="button"
+                            onClick={() => copyToClipboard(driveFileUrl(item)!, "Pixel Perfect file link")}
+                          >
+                            Copy Pixel Perfect Link
+                          </button>
+                        </p>
+                      ) : null}
+
                       {driveFolderUrl(item) ? (
                         <p>
                           <strong>Drive folder:</strong>{" "}
@@ -443,21 +513,30 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                           <span className={styles.muted}>
                             {driveFileUrl(item)
                               ? " — TIFF uploaded automatically"
-                              : " — automatic upload was unavailable; upload the local TIFF manually"}
+                              : " — automatic upload was unavailable; upload the prepared print file manually"}
                           </span>
                         </p>
                       ) : null}
+
+                      {!hasPreparedPrintFile(item) && !driveFileUrl(item) && item.cloud_file_url ? (
+                        <p>
+                          <strong>File URL:</strong> <code>{item.cloud_file_url}</code>
+                        </p>
+                      ) : null}
+
                       <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />
                     </>
                   ) : (
-                    <p className={styles.muted}>Print file has not been prepared yet.</p>
+                    <p className={styles.muted}>
+                      Prepared print file has not been written to print-output yet (fulfilment worker).
+                    </p>
                   )}
 
                   <div className={styles.actionRow}>
                     <button
                       className={styles.button}
                       type="button"
-                      disabled={!item.cloud_file_url}
+                      disabled={!hasPreparedPrintFile(item) && !item.cloud_file_url}
                       onClick={() => copyToClipboard(pixelPerfectText(item), "Pixel Perfect order text")}
                     >
                       Copy Pixel Perfect Text
@@ -508,6 +587,58 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
           );
         })}
       </div>
+
+      {previewItem ? (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onClick={() => setPreviewItem(null)}
+        >
+          <div
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="print-file-preview-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <h2 id="print-file-preview-title">{localPrintFileName(previewItem)}</h2>
+                <p className={styles.muted}>{localFilePath(previewItem)}</p>
+              </div>
+              <button className={styles.buttonSecondary} type="button" onClick={() => setPreviewItem(null)}>
+                Close
+              </button>
+            </div>
+            <div className={styles.modalPreview}>
+              {previewFailed ? (
+                <p className={styles.muted}>
+                  Preview unavailable. You can still download the TIFF for Pixel Perfect.
+                </p>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={printFilePreviewUrl(previewItem.order_item_id)}
+                  alt={`Preview of ${localPrintFileName(previewItem)}`}
+                  onError={() => setPreviewFailed(true)}
+                />
+              )}
+            </div>
+            <div className={styles.modalActions}>
+              <a className={styles.button} href={printFileDownloadUrl(previewItem.order_item_id)}>
+                Download prepared TIFF
+              </a>
+              <button
+                className={styles.buttonSecondary}
+                type="button"
+                onClick={() => copyToClipboard(localFilePath(previewItem), "Prepared print file path")}
+              >
+                Copy path
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
