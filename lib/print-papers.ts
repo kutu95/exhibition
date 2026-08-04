@@ -62,6 +62,12 @@ const parsePapersJson = (raw: string | null): ManagedPaper[] | null => {
   }
 };
 
+const isUniqueViolation = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error as { code?: string }).code === "23505";
+
 const upsertPapersContent = async (papers: ManagedPaper[]): Promise<void> => {
   const value = JSON.stringify(sortManagedPapers(papers));
   const { data: existing, error: existingError } = await supabaseAdmin
@@ -86,7 +92,7 @@ const upsertPapersContent = async (papers: ManagedPaper[]): Promise<void> => {
     content_value: value,
     content_type: "json",
   });
-  if (error) throw error;
+  if (error && !isUniqueViolation(error)) throw error;
 };
 
 /** Load managed papers; seed site_content from catalogue defaults on first read. */

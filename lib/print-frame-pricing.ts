@@ -111,6 +111,12 @@ const parseBasePriceAud = (raw: string | null | undefined): number | null => {
   return Math.round(parsed * 100) / 100;
 };
 
+const isUniqueViolation = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error as { code?: string }).code === "23505";
+
 const upsertSiteContent = async (contentKey: string, value: string, contentType = "text"): Promise<void> => {
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("site_content")
@@ -134,7 +140,31 @@ const upsertSiteContent = async (contentKey: string, value: string, contentType 
     content_value: value,
     content_type: contentType,
   });
-  if (error) throw error;
+  // Parallel SSG/admin workers can race on first seed — treat duplicate as success.
+  if (error && !isUniqueViolation(error)) throw error;
+};
+
+/** Insert seed only when missing; never overwrite admin-edited values. Race-safe. */
+const ensureSiteContentSeed = async (
+  contentKey: string,
+  value: string,
+  contentType = "json",
+): Promise<void> => {
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from("site_content")
+    .select("id")
+    .eq("content_key", contentKey)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (existing) return;
+
+  const { error } = await supabaseAdmin.from("site_content").insert({
+    content_key: contentKey,
+    content_value: value,
+    content_type: contentType,
+  });
+  if (error && !isUniqueViolation(error)) throw error;
 };
 
 const readSiteContent = async (contentKey: string): Promise<string | null> => {
@@ -238,11 +268,13 @@ export const getFrameRates = async (): Promise<FrameRateBand[]> => {
   if (fromDb) return fromDb;
 
   try {
-    await upsertSiteContent(PRINT_FRAME_RATES_CONTENT_KEY, JSON.stringify(SEED_FRAME_RATES), "json");
+    await ensureSiteContentSeed(PRINT_FRAME_RATES_CONTENT_KEY, JSON.stringify(SEED_FRAME_RATES), "json");
   } catch (error) {
     console.error("Failed to seed frame rates", error);
   }
-  return SEED_FRAME_RATES;
+
+  const retry = parseFrameRates(await readSiteContent(PRINT_FRAME_RATES_CONTENT_KEY));
+  return retry ?? SEED_FRAME_RATES;
 };
 
 export const setFrameRates = async (input: FrameRateBand[]): Promise<FrameRateBand[]> => {
@@ -261,11 +293,17 @@ export const getRthCanvasRates = async (): Promise<RthCanvasRateBand[]> => {
   if (fromDb) return fromDb;
 
   try {
-    await upsertSiteContent(PRINT_RTH_CANVAS_RATES_CONTENT_KEY, JSON.stringify(SEED_RTH_CANVAS_RATES), "json");
+    await ensureSiteContentSeed(
+      PRINT_RTH_CANVAS_RATES_CONTENT_KEY,
+      JSON.stringify(SEED_RTH_CANVAS_RATES),
+      "json",
+    );
   } catch (error) {
     console.error("Failed to seed RTH canvas rates", error);
   }
-  return SEED_RTH_CANVAS_RATES;
+
+  const retry = parseRthRates(await readSiteContent(PRINT_RTH_CANVAS_RATES_CONTENT_KEY));
+  return retry ?? SEED_RTH_CANVAS_RATES;
 };
 
 export const setRthCanvasRates = async (input: RthCanvasRateBand[]): Promise<RthCanvasRateBand[]> => {

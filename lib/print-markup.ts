@@ -25,6 +25,12 @@ const parseBasePriceAud = (raw: string | null | undefined): number | null => {
   return Math.round(parsed * 100) / 100;
 };
 
+const isUniqueViolation = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error as { code?: string }).code === "23505";
+
 const upsertSiteContent = async (contentKey: string, value: string): Promise<void> => {
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("site_content")
@@ -48,7 +54,7 @@ const upsertSiteContent = async (contentKey: string, value: string): Promise<voi
     content_value: value,
     content_type: "text",
   });
-  if (error) throw error;
+  if (error && !isUniqueViolation(error)) throw error;
 };
 
 const readSiteContent = async (contentKey: string): Promise<string | null> => {
