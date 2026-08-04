@@ -11,46 +11,85 @@
   box-shadow:
     0 0.35rem 1.1rem rgba(10, 22, 40, 0.18),
     0 0.08rem 0.25rem rgba(10, 22, 40, 0.12);
-  border-style: solid;
-  border-color: transparent;
 }
 
-.standard {
-  border-width: 18px;
-  border-image-source: url("/frames/standard.svg");
-  border-image-slice: 36;
-  border-image-width: 18px;
-  border-image-repeat: stretch;
-  padding: 10px;
+/* Frame chrome on its own overlay so host `border:` shorthand cannot
+   clobber it. Inset shadows form the moulding ring (no border-image). */
+.ring {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
-.deluxe {
-  border-width: 28px;
-  border-image-source: url("/frames/deluxe.svg");
-  border-image-slice: 36;
-  border-image-width: 28px;
-  border-image-repeat: stretch;
-  padding: 14px;
+.ringStandard {
+  box-shadow:
+    inset 0 0 0 2px #5a5a5a,
+    inset 0 0 0 4px #1c1c1c,
+    inset 0 0 0 14px #111,
+    inset 0 0 0 16px #2e2e2e,
+    inset 0 0 0 18px #0a0a0a,
+    inset 0 0 0 20px #3a3a3a;
+}
+
+.ringDeluxe {
+  box-shadow:
+    inset 0 0 0 2px #2a1810,
+    inset 0 0 0 5px #a67c52,
+    inset 0 0 0 8px #6b4423,
+    inset 0 0 0 18px #8b5e3c,
+    inset 0 0 0 22px #5a3820,
+    inset 0 0 0 26px #c9a882,
+    inset 0 0 0 28px #4a3018,
+    inset 0 0 0 32px #7a5438;
 }
 
 .media {
   position: relative;
+  z-index: 1;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
   height: 100%;
 }
 
+.framed[data-frame="standard"] .media {
+  margin: 28px;
+}
+
+.framed[data-frame="deluxe"] .media {
+  margin: 40px;
+}
+
 @media (min-width: 700px) {
-  .standard {
-    border-width: 22px;
-    border-image-width: 22px;
-    padding: 12px;
+  .ringStandard {
+    box-shadow:
+      inset 0 0 0 2px #5a5a5a,
+      inset 0 0 0 5px #1c1c1c,
+      inset 0 0 0 18px #111,
+      inset 0 0 0 20px #2e2e2e,
+      inset 0 0 0 23px #0a0a0a,
+      inset 0 0 0 26px #3a3a3a;
   }
 
-  .deluxe {
-    border-width: 34px;
-    border-image-width: 34px;
-    padding: 16px;
+  .ringDeluxe {
+    box-shadow:
+      inset 0 0 0 2px #2a1810,
+      inset 0 0 0 6px #a67c52,
+      inset 0 0 0 10px #6b4423,
+      inset 0 0 0 22px #8b5e3c,
+      inset 0 0 0 28px #5a3820,
+      inset 0 0 0 32px #c9a882,
+      inset 0 0 0 36px #4a3018,
+      inset 0 0 0 40px #7a5438;
+  }
+
+  .framed[data-frame="standard"] .media {
+    margin: 34px;
+  }
+
+  .framed[data-frame="deluxe"] .media {
+    margin: 48px;
   }
 }

@@ -32,17 +32,16 @@ export function FramedPreview({
   children,
 }: FramedPreviewProps) {
   const framed = frame !== "none";
-  const frameClass =
-    frame === "standard" ? styles.standard : frame === "deluxe" ? styles.deluxe : "";
+  const ringClass =
+    frame === "standard" ? styles.ringStandard : frame === "deluxe" ? styles.ringDeluxe : "";
 
   return (
     <div
-      className={[styles.wrap, framed ? styles.framed : "", frameClass, className]
-        .filter(Boolean)
-        .join(" ")}
+      className={[styles.wrap, framed ? styles.framed : "", className].filter(Boolean).join(" ")}
       style={style}
       data-frame={frame}
     >
+      {framed ? <div className={`${styles.ring} ${ringClass}`} aria-hidden /> : null}
       <div className={styles.media}>{children}</div>
     </div>
   );

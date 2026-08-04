@@ -23,13 +23,15 @@
   aspect-ratio: 3 / 2;
   max-height: min(70vh, 40rem);
   margin: 0 auto;
-  border: 1px solid rgba(10, 22, 40, 0.2);
   background: rgba(10, 22, 40, 0.04);
+}
+
+.imageWrap[data-frame="none"] {
+  border: 1px solid rgba(10, 22, 40, 0.2);
 }
 
 .imageWrap[data-frame="standard"],
 .imageWrap[data-frame="deluxe"] {
-  border-color: transparent;
   background: #f4f1ec;
 }
 
