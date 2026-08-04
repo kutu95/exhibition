@@ -21,6 +21,8 @@ import {
   type OfferPresentationId,
   type OfferSizeId,
 } from "../lib/print-offer";
+import { SHOW_CUSTOM_PRINT_PAGE } from "../lib/print-custom";
+import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { formatAUD } from "../lib/utils/currency";
@@ -33,6 +35,12 @@ type ProductDetailClientProps = {
 
 const FINISH_OPTIONS: OfferFinishId[] = ["archival_matte", "rth_canvas"];
 const PRESENTATION_OPTIONS: OfferPresentationId[] = ["unframed", "framed"];
+
+const formatShopDimensions = (widthMm: number, heightMm: number): string => {
+  const wIn = Math.round(mmToInches(widthMm) * 10) / 10;
+  const hIn = Math.round(mmToInches(heightMm) * 10) / 10;
+  return `${Math.round(widthMm)} × ${Math.round(heightMm)} mm · ${wIn} × ${hIn} in`;
+};
 
 export function ProductDetailClient({ product, shareButtons }: ProductDetailClientProps) {
   const router = useRouter();
@@ -281,6 +289,15 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                     finishId,
                     presentationId: finishId === "rth_canvas" ? "unframed" : presentationId,
                   });
+                  const sizeDef = OFFER_SIZES.find((size) => size.id === id);
+                  const widthMm = sample?.width_mm ?? null;
+                  const heightMm = sample?.height_mm ?? null;
+                  const dimensionLine =
+                    widthMm && heightMm && widthMm > 0 && heightMm > 0
+                      ? formatShopDimensions(widthMm, heightMm)
+                      : sizeDef
+                        ? `Long edge ${sizeDef.longEdgeMm} mm`
+                        : null;
                   return (
                     <label
                       key={id}
@@ -295,7 +312,10 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
                         disabled={!sample}
                         onChange={() => setSizeId(id)}
                       />
-                      <span>{OFFER_SIZE_LABEL[id]}</span>
+                      <span className={styles.offerOptionCopy}>
+                        <span className={styles.offerOptionTitle}>{OFFER_SIZE_LABEL[id]}</span>
+                        {dimensionLine ? <span className={styles.offerOptionMeta}>{dimensionLine}</span> : null}
+                      </span>
                     </label>
                   );
                 })}
@@ -392,6 +412,14 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
         </p>
         {useOfferChooser && selectedVariant ? (
           <p className={styles.offerSummary}>{selectedVariant.variant_label}</p>
+        ) : null}
+
+        {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" ? (
+          <p className={styles.customLink}>
+            <a href={`/shop/${product.slug}/custom`} target="_blank" rel="noreferrer">
+              Custom size, media &amp; framing
+            </a>
+          </p>
         ) : null}
 
         <div className={styles.buyActions}>

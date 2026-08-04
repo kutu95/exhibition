@@ -108,6 +108,22 @@
   cursor: pointer;
 }
 
+.offerOptionCopy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.offerOptionTitle {
+  font-weight: 500;
+}
+
+.offerOptionMeta {
+  color: #555;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .offerOptionActive {
   border-color: var(--color-rust);
 }
@@ -125,6 +141,17 @@
   margin: -0.35rem 0 1rem;
   color: #555;
   font-size: 0.92rem;
+}
+
+.customLink {
+  margin: 0 0 1rem;
+  font-size: 0.92rem;
+}
+
+.customLink a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .variantRow {

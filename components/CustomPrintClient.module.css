@@ -1,0 +1,193 @@
+.wrap {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.back a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.layout {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.visual {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.imageWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  max-height: min(70vh, 40rem);
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  background: rgba(10, 22, 40, 0.04);
+}
+
+.image {
+  object-fit: contain;
+}
+
+.panel {
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  padding: 1.3rem;
+  align-self: start;
+}
+
+.title {
+  margin: 0.15rem 0 0.2rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  line-height: 1.05;
+}
+
+.subtitle {
+  margin: 0 0 0.5rem;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.edition {
+  margin: 0 0 1.1rem;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1.1rem;
+}
+
+.legend {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.longEdgeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.longEdgeRow input[type="number"] {
+  width: 6rem;
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+}
+
+.field input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-rust);
+}
+
+.dimension {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.fieldset {
+  border: 0;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.mediaGroup {
+  margin-top: 0.75rem;
+}
+
+.mediaGroupTitle {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.options {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.option {
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.65rem;
+  cursor: pointer;
+}
+
+.optionActive {
+  border-color: var(--color-rust);
+}
+
+.option input {
+  accent-color: var(--color-rust);
+  margin-top: 0.15rem;
+}
+
+.optionTitle {
+  display: block;
+  font-weight: 500;
+}
+
+.optionMeta {
+  display: block;
+  color: #555;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
+
+.price {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  margin: 0.4rem 0 0.25rem;
+}
+
+.priceBreakdown {
+  margin: 0 0 1rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.button {
+  width: 100%;
+}
+
+.meta {
+  margin: 1rem 0 0;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.muted {
+  margin: 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.error {
+  margin: 0.75rem 0 0;
+  color: #8b1e1e;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+    align-items: start;
+  }
+}
