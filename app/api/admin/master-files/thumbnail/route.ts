@@ -58,7 +58,8 @@ export async function GET(request: Request) {
       await generateWebImageFromMaster(masterPath, cachePath, {
         maxEdge: THUMB_MAX_EDGE,
         quality: THUMB_QUALITY,
-        timeoutMs: 90_000,
+        // Large masters (1–2GB) still need headroom over NAS even with reduce().
+        timeoutMs: 180_000,
       });
     }
 

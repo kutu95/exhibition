@@ -5,7 +5,7 @@ import { PlausibleEvents, trackEvent } from "@/lib/plausible";
 import styles from "./ShopFilters.module.css";
 
 export type ProductTypeFilter = "all" | "print" | "merchandise";
-export type LocationFilter = "all" | string;
+export type LocationFilter = string;
 export type ThemeFilter = "all" | string;
 
 type FilterOption = { value: string; label: string };
@@ -55,6 +55,8 @@ export function ShopFilters({
     onClick();
   };
 
+  const locationDisabled = typeFilter === "merchandise";
+
   return (
     <div className={styles.wrap}>
       <div className={styles.group}>
@@ -85,20 +87,13 @@ export function ShopFilters({
         <div>
           <p className={styles.groupLabel}>Location</p>
           <div className={styles.group}>
-            <button
-              type="button"
-              className={`${styles.filterBtn} ${locationFilter === "all" ? styles.active : ""}`}
-              onClick={() => handleFilterClick("location", "all", () => onLocationChange("all"))}
-            >
-              All Locations
-            </button>
             {locationOptions.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 className={`${styles.filterBtn} ${locationFilter === option.value ? styles.active : ""}`}
                 onClick={() => handleFilterClick("location", option.value, () => onLocationChange(option.value))}
-                disabled={typeFilter === "merchandise"}
+                disabled={locationDisabled}
               >
                 {option.label}
               </button>
@@ -115,6 +110,7 @@ export function ShopFilters({
               type="button"
               className={`${styles.filterBtn} ${themeFilter === "all" ? styles.active : ""}`}
               onClick={() => handleFilterClick("theme", "all", () => onThemeChange("all"))}
+              disabled={locationDisabled}
             >
               All Themes
             </button>
@@ -124,6 +120,7 @@ export function ShopFilters({
                 type="button"
                 className={`${styles.filterBtn} ${themeFilter === option.value ? styles.active : ""}`}
                 onClick={() => handleFilterClick("theme", option.value, () => onThemeChange(option.value))}
+                disabled={locationDisabled}
               >
                 {option.label}
               </button>

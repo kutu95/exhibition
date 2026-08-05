@@ -116,7 +116,6 @@ export function ImportPhotoWizardClient({
   loadErrors = [],
 }: ImportPhotoWizardClientProps) {
   const [step, setStep] = useState(0);
-  const [understood, setUnderstood] = useState(false);
   const [masterFiles, setMasterFiles] = useState(initialMasterFiles);
   const [refreshingMasters, setRefreshingMasters] = useState(false);
   const [masterError, setMasterError] = useState<string | null>(null);
@@ -270,7 +269,7 @@ export function ImportPhotoWizardClient({
   const stepComplete = (index: number): boolean => {
     switch (index) {
       case 0:
-        return understood;
+        return true;
       case 1:
         return Boolean(masterFilename && selectedMaster);
       case 2:
@@ -290,9 +289,6 @@ export function ImportPhotoWizardClient({
 
   const canGoNext = step < 5 ? stepComplete(step) : false;
   const nextBlockedReason = (() => {
-    if (step === 0 && !understood) {
-      return "Confirm that you understand the pipeline before continuing.";
-    }
     if (step === 1 && !masterFilename) {
       return `Place a TIFF in ${masterFilesDirPath}, refresh, then select it.`;
     }
@@ -324,7 +320,6 @@ export function ImportPhotoWizardClient({
 
   const resetWizard = () => {
     setStep(0);
-    setUnderstood(false);
     setMasterFilename("");
     setTitle("");
     setSlug("");
@@ -471,20 +466,6 @@ export function ImportPhotoWizardClient({
                 <Link href="/admin/help/master-tiff">Preparing a master TIFF</Link>.
               </li>
             </ul>
-          </div>
-
-          <div className={styles.checklist}>
-            <label className={styles.checkboxRow}>
-              <input
-                type="checkbox"
-                checked={understood}
-                onChange={(event) => setUnderstood(event.target.checked)}
-              />
-              <span>
-                I understand: masters go on the server share (not browser upload), print sizes are custom paper from
-                long edge with base + markup pricing, and registering publishes the product for ordering.
-              </span>
-            </label>
           </div>
         </section>
       ) : null}

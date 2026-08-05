@@ -296,6 +296,8 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             ))}
           </div>
         ) : null}
+
+        {product.description ? <p className={styles.description}>{product.description}</p> : null}
       </div>
 
       <aside className={styles.sidebar}>
@@ -543,7 +545,6 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
 
         {error ? <p className={styles.error}>{error}</p> : null}
 
-        {product.description ? <p className={styles.description}>{product.description}</p> : null}
         {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
         <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
       </aside>

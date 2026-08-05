@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
@@ -14,6 +14,8 @@ type ShopProductBrowserProps = {
   products: ProductWithVariantsAndImages[];
 };
 
+const DEFAULT_LOCATION = "Redgate Beach";
+
 const pickDefaultVariant = (product: ProductWithVariantsAndImages) => {
   const active = product.product_variants.filter((variant) => variant.is_active);
   const pool = active.length > 0 ? active : product.product_variants;
@@ -21,12 +23,17 @@ const pickDefaultVariant = (product: ProductWithVariantsAndImages) => {
   return pool.reduce((best, variant) => (variant.price_aud < best.price_aud ? variant : best));
 };
 
+const resolveDefaultLocation = (locations: string[]): string => {
+  if (locations.includes(DEFAULT_LOCATION)) return DEFAULT_LOCATION;
+  return locations[0] ?? DEFAULT_LOCATION;
+};
+
 export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
   const router = useRouter();
   const { addItem } = useCart();
   const { favouriteIds, favouriteCount, isFavourite } = useFavourites();
   const [typeFilter, setTypeFilter] = useState<ProductTypeFilter>("all");
-  const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
+  const [locationFilter, setLocationFilter] = useState<LocationFilter>(DEFAULT_LOCATION);
   const [themeFilter, setThemeFilter] = useState<ThemeFilter>("all");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
 
@@ -44,10 +51,17 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
     [products],
   );
 
+  useEffect(() => {
+    if (locationOptions.length === 0) return;
+    if (!locationOptions.some((option) => option.value === locationFilter)) {
+      setLocationFilter(resolveDefaultLocation(locationOptions.map((option) => option.value)));
+    }
+  }, [locationFilter, locationOptions]);
+
   const themeOptions = useMemo(() => {
     const themes = new Map<string, string>();
     products
-      .filter((product) => product.product_type === "print")
+      .filter((product) => product.product_type === "print" && product.location_tag === locationFilter)
       .forEach((product) => {
         product.product_themes.forEach(({ theme }) => {
           if (theme.is_active) themes.set(theme.slug, theme.name);
@@ -56,13 +70,23 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
     return Array.from(themes, ([value, label]) => ({ value, label })).sort((a, b) =>
       a.label.localeCompare(b.label),
     );
-  }, [products]);
+  }, [locationFilter, products]);
+
+  useEffect(() => {
+    if (themeFilter === "all") return;
+    if (!themeOptions.some((option) => option.value === themeFilter)) {
+      setThemeFilter("all");
+    }
+  }, [themeFilter, themeOptions]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const typeMatch = typeFilter === "all" ? true : product.product_type === typeFilter;
-      const locationMatch = locationFilter === "all" || product.location_tag === locationFilter;
+      // Merchandise view ignores location/theme. Location is always required for prints.
+      const locationMatch =
+        typeFilter === "merchandise" || product.location_tag === locationFilter;
       const themeMatch =
+        typeFilter === "merchandise" ||
         themeFilter === "all" ||
         product.product_themes.some((assignment) => assignment.theme.slug === themeFilter);
       const favouriteMatch = !favouritesOnly || isFavourite(product.id);
@@ -74,9 +98,13 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
   const handleTypeChange = (next: ProductTypeFilter) => {
     setTypeFilter(next);
     if (next === "merchandise") {
-      setLocationFilter("all");
       setThemeFilter("all");
     }
+  };
+
+  const handleLocationChange = (next: LocationFilter) => {
+    setLocationFilter(next);
+    setThemeFilter("all");
   };
 
   const handleAddFavouritesToCart = () => {
@@ -113,7 +141,7 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
         locationOptions={locationOptions}
         themeOptions={themeOptions}
         onTypeChange={handleTypeChange}
-        onLocationChange={setLocationFilter}
+        onLocationChange={handleLocationChange}
         onThemeChange={setThemeFilter}
         onFavouritesOnlyChange={setFavouritesOnly}
       />
