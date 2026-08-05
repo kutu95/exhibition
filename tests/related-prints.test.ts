@@ -64,7 +64,7 @@ describe("scoreRelatedPrint", () => {
 });
 
 describe("pickRelatedPrints", () => {
-  it("returns the top two matches above the minimum score", () => {
+  it("returns the top matches above the minimum score", () => {
     const source = base({});
     const related = pickRelatedPrints(source, [
       base({
@@ -91,7 +91,23 @@ describe("pickRelatedPrints", () => {
       }),
     ]);
 
-    expect(related).toHaveLength(2);
     expect(related.map((row) => row.slug)).toEqual(["a", "b"]);
+  });
+
+  it("caps results at the requested limit", () => {
+    const source = base({});
+    const related = pickRelatedPrints(
+      source,
+      ["a", "b", "c", "d"].map((slug) =>
+        base({
+          slug,
+          title: slug.toUpperCase(),
+          master_filename: `20260518_${slug}.tif`,
+          image_url: `/images/${slug}.jpg`,
+        }),
+      ),
+      { limit: 2 },
+    );
+    expect(related).toHaveLength(2);
   });
 });

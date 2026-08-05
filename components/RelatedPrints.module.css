@@ -5,6 +5,13 @@
   padding-top: 1.75rem;
 }
 
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .heading {
   font-family: var(--font-display, "Cormorant Garamond", serif);
   font-weight: 400;
@@ -13,13 +20,53 @@
   margin: 0;
 }
 
-.list {
-  list-style: none;
+.controls {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.control {
+  border: 1px solid rgba(10, 22, 40, 0.3);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  width: 2.4rem;
+  height: 2.4rem;
   padding: 0;
+  cursor: pointer;
+}
+
+.control:hover:not(:disabled),
+.control:focus-visible:not(:disabled) {
+  border-color: var(--color-navy);
+  background: rgba(10, 22, 40, 0.04);
+}
+
+.control:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.track {
+  list-style: none;
+  padding: 0.15rem 0 0.4rem;
   margin: 1.1rem 0 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
-  gap: 1.1rem;
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.slide {
+  flex: 0 0 min(78vw, 18rem);
+  scroll-snap-align: start;
+  min-width: 0;
 }
 
 .link {
@@ -50,4 +97,10 @@
 .title {
   font-size: 0.95rem;
   line-height: 1.35;
+}
+
+@media (min-width: 900px) {
+  .slide {
+    flex-basis: min(42%, 20rem);
+  }
 }

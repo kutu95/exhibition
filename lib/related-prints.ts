@@ -31,7 +31,7 @@ const WEIGHT = {
 
 /** Ignore near-zero matches so the strip stays meaningful. */
 export const RELATED_PRINT_MIN_SCORE = 3;
-export const RELATED_PRINT_LIMIT = 2;
+export const RELATED_PRINT_LIMIT = 6;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
