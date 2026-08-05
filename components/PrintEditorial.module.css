@@ -6,8 +6,7 @@
 
 .heading,
 .placeHeading,
-.makingHeading,
-.relatedHeading {
+.makingHeading {
   font-family: var(--font-display, "Cormorant Garamond", serif);
   font-weight: 400;
   font-size: 1.5rem;
@@ -16,8 +15,7 @@
 }
 
 .placeHeading,
-.makingHeading,
-.relatedHeading {
+.makingHeading {
   margin-top: 1.6rem;
 }
 
@@ -40,45 +38,4 @@
   padding-top: 0.4rem;
   border-top: 1px solid rgba(10, 22, 40, 0.12);
   margin-top: 1.4rem;
-}
-
-.related {
-  margin-top: 1.6rem;
-  border-top: 1px solid rgba(10, 22, 40, 0.12);
-  padding-top: 0.4rem;
-}
-
-.relatedList {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
-  gap: 1rem;
-}
-
-.relatedLink {
-  display: grid;
-  gap: 0.55rem;
-  text-decoration: none;
-  color: inherit;
-  font-size: 0.95rem;
-}
-
-.relatedLink:hover span:last-child,
-.relatedLink:focus-visible span:last-child {
-  text-decoration: underline;
-}
-
-.relatedThumb {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 3 / 2;
-  border: 1px solid rgba(10, 22, 40, 0.2);
-  background: rgba(10, 22, 40, 0.04);
-}
-
-.relatedImage {
-  object-fit: cover;
 }

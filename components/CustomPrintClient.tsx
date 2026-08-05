@@ -18,7 +18,6 @@ import {
   CUSTOM_FRAME_OPTIONS,
   CUSTOM_LONG_EDGE_DEFAULT_MM,
   CUSTOM_LONG_EDGE_MIN_MM,
-  CUSTOM_ROLL_WIDTH_MAX_MM,
   CUSTOM_RTH_CANVAS_ID,
   deriveCustomSizeFromLongEdge,
   listCustomMediaOptions,
@@ -39,6 +38,7 @@ type CustomPrintClientProps = {
     id: string;
     slug: string;
     title: string;
+    description: string | null;
     location_tag: string | null;
     image_url: string;
   };
@@ -258,16 +258,12 @@ export function CustomPrintClient({
               priority
             />
           </FramedPreview>
-          <p className={styles.muted}>
-            Size keeps this photograph&apos;s aspect ratio. Long edge from {CUSTOM_LONG_EDGE_MIN_MM}–
-            {maxLongEdgeMm} mm (Pixel Perfect prints up to {CUSTOM_ROLL_WIDTH_MAX_MM} mm / 64″ on the
-            short edge).
-          </p>
         </div>
 
         <aside className={styles.panel}>
           {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
           <h1 className={styles.title}>{product.title}</h1>
+          {product.description ? <p className={styles.description}>{product.description}</p> : null}
           <p className={styles.subtitle}>Custom print</p>
           {editionSize ? <p className={styles.edition}>Edition of {editionSize}</p> : null}
 

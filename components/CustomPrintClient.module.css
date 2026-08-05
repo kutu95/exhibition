@@ -64,6 +64,15 @@
   line-height: 1.05;
 }
 
+.description {
+  margin: 0.55rem 0 0.85rem;
+  color: #2a2a2a;
+  font-family: var(--font-heading);
+  font-size: clamp(1.05rem, 1.6vw, 1.15rem);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
 .subtitle {
   margin: 0 0 0.5rem;
   color: #555;

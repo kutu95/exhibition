@@ -1,0 +1,53 @@
+.wrap {
+  padding: 0 0 4rem;
+  margin-top: 1rem;
+  border-top: 1px solid rgba(10, 22, 40, 0.12);
+  padding-top: 1.75rem;
+}
+
+.heading {
+  font-family: var(--font-display, "Cormorant Garamond", serif);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 1.1rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: 1.1rem;
+}
+
+.link {
+  display: grid;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.link:hover .title,
+.link:focus-visible .title {
+  text-decoration: underline;
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  background: rgba(10, 22, 40, 0.04);
+}
+
+.image {
+  object-fit: cover;
+}
+
+.title {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}

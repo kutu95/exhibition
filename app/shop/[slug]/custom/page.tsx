@@ -110,6 +110,7 @@ export default async function CustomPrintPage({ params }: PageProps) {
         id: product.id,
         slug: product.slug,
         title: product.title,
+        description: product.description,
         location_tag: product.location_tag,
         image_url: primaryImage,
       }}

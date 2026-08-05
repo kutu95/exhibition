@@ -4,12 +4,18 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { JsonLd } from "../../../components/JsonLd";
-import { PrintEditorial, type RelatedPrint } from "../../../components/PrintEditorial";
+import { PrintEditorial } from "../../../components/PrintEditorial";
 import { ProductDetailClient } from "../../../components/ProductDetailClient";
+import { RelatedPrints } from "../../../components/RelatedPrints";
 import { ShareButtons } from "../../../components/ShareButtons";
 import { isProductVisibleInCatalog, mapProductRow } from "../../../lib/catalog-products";
 import { buildMetadata, siteConfig } from "../../../lib/metadata";
-import { getPlaceContext, getPrintEditorial, PRINT_EDITORIAL } from "../../../lib/print-editorial";
+import { getPlaceContext, getPrintEditorial } from "../../../lib/print-editorial";
+import {
+  pickRelatedPrints,
+  type RelatedPrint,
+  type RelatedPrintCandidate,
+} from "../../../lib/related-prints";
 import { buildBreadcrumb, buildPhotographWork, buildProduct } from "../../../lib/structured-data";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type {
@@ -29,6 +35,36 @@ type ProductRow = Product & {
   product_variants: ProductVariant[] | null;
   product_images: ProductImage[] | null;
   product_themes: ProductTheme[] | null;
+};
+
+type RelatedRow = {
+  slug: string;
+  title: string;
+  location_tag: string | null;
+  photo_type_tag: string | null;
+  created_at: string;
+  product_images: ProductImage[] | null;
+  product_themes: Array<{ theme_id: string; theme: { is_active: boolean } | null }> | null;
+  product_variants: Array<{ master_filename: string | null; is_active: boolean | null }> | null;
+};
+
+const toCandidate = (row: RelatedRow): RelatedPrintCandidate => {
+  const images = [...(row.product_images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  const masterFilename =
+    row.product_variants?.find((variant) => variant.master_filename)?.master_filename ?? null;
+
+  return {
+    slug: row.slug,
+    title: row.title,
+    location_tag: row.location_tag,
+    photo_type_tag: row.photo_type_tag,
+    created_at: row.created_at,
+    master_filename: masterFilename,
+    theme_ids: (row.product_themes ?? [])
+      .filter((assignment) => assignment.theme?.is_active !== false)
+      .map((assignment) => assignment.theme_id),
+    image_url: images.find((image) => image.is_primary)?.image_url ?? images[0]?.image_url ?? null,
+  };
 };
 
 const getProductBySlug = cache(async (slug: string): Promise<ProductWithVariantsAndImages | null> => {
@@ -56,37 +92,38 @@ const getProductBySlug = cache(async (slug: string): Promise<ProductWithVariants
   return product;
 });
 
-/** Sibling prints sharing the same place essay — the only inbound links these pages had was /shop. */
-async function getRelatedPrints(slug: string): Promise<RelatedPrint[]> {
-  const editorial = PRINT_EDITORIAL[slug];
-  if (!editorial) return [];
-
-  const siblingSlugs = Object.entries(PRINT_EDITORIAL)
-    .filter(([otherSlug, other]) => otherSlug !== slug && other.place === editorial.place)
-    .map(([otherSlug]) => otherSlug);
-
-  if (siblingSlugs.length === 0) return [];
-
+async function getRelatedPrints(product: ProductWithVariantsAndImages): Promise<RelatedPrint[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("products")
-    .select("slug, title, product_images(image_url, is_primary, sort_order)")
-    .in("slug", siblingSlugs)
+    .select(
+      "slug, title, location_tag, photo_type_tag, created_at, product_images(image_url, is_primary, sort_order), product_themes(theme_id, theme:themes(is_active)), product_variants(master_filename, is_active)",
+    )
     .eq("is_available", true)
-    .eq("visibility", "public");
+    .eq("visibility", "public")
+    .eq("product_type", "print")
+    .neq("slug", product.slug);
 
-  if (error || !data) return [];
+  if (error || !data) {
+    console.error("Related prints query failed", error);
+    return [];
+  }
 
-  return (data as Array<{ slug: string; title: string; product_images: ProductImage[] | null }>).map(
-    (row) => {
-      const images = [...(row.product_images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
-      return {
-        slug: row.slug,
-        title: row.title,
-        imageUrl: images.find((image) => image.is_primary)?.image_url ?? images[0]?.image_url ?? null,
-      };
-    },
-  );
+  const source: RelatedPrintCandidate = {
+    slug: product.slug,
+    title: product.title,
+    location_tag: product.location_tag,
+    photo_type_tag: product.photo_type_tag,
+    created_at: product.created_at,
+    master_filename:
+      product.product_variants.find((variant) => variant.master_filename)?.master_filename ?? null,
+    theme_ids: product.product_themes
+      .filter((assignment) => assignment.theme?.is_active !== false)
+      .map((assignment) => assignment.theme_id),
+    image_url: product.product_images[0]?.image_url ?? null,
+  };
+
+  return pickRelatedPrints(source, (data as RelatedRow[]).map(toCandidate));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -137,7 +174,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   const editorial = getPrintEditorial(slug);
   const place = getPlaceContext(slug);
-  const related = editorial ? await getRelatedPrints(slug) : [];
+  const related = await getRelatedPrints(product);
 
   return (
     <>
@@ -162,14 +199,8 @@ export default async function ProductPage({ params }: PageProps) {
           }
         />
       </Suspense>
-      {editorial ? (
-        <PrintEditorial
-          title={product.title}
-          editorial={editorial}
-          place={place}
-          related={related}
-        />
-      ) : null}
+      {editorial ? <PrintEditorial title={product.title} editorial={editorial} place={place} /> : null}
+      <RelatedPrints title={product.title} related={related} />
     </>
   );
 }
