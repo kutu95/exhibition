@@ -142,6 +142,31 @@
   padding: 0;
 }
 
+.sizeLegend {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  margin-bottom: 0.45rem;
+  padding: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.sizeCustomLink {
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  color: var(--color-navy);
+}
+
+.sizeCustomLink:hover {
+  color: var(--color-rust);
+}
+
 .frameNote {
   margin: 0 0 0.65rem;
   color: #555;
@@ -266,17 +291,6 @@
   background: #fcfcfb;
 }
 
-.customLink {
-  margin: 1rem 0;
-  font-size: 0.92rem;
-}
-
-.customLink a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
-
 .variantRow {
   border: 1px solid rgba(10, 22, 40, 0.25);
   display: grid;
@@ -354,13 +368,12 @@
 }
 
 .description {
-  margin: 0.85rem 0 0;
-  max-width: 42rem;
+  margin: 0.55rem 0 0.85rem;
   color: #2a2a2a;
   font-family: var(--font-heading);
-  font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+  font-size: clamp(1.05rem, 1.6vw, 1.15rem);
   font-weight: 400;
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
 .shareRow {

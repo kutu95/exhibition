@@ -6,8 +6,47 @@
   margin-bottom: 2rem;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.titleMark {
+  flex-shrink: 0;
+  width: 3.25rem;
+  height: auto;
+  object-fit: contain;
+}
+
+.title {
+  margin: 0;
+}
+
+.excerptLabel {
+  margin: 0.55rem 0 0;
+  color: #555;
+  font-size: 0.98rem;
+  letter-spacing: 0.02em;
+}
+
+.orderLink {
+  margin: 0.45rem 0 0;
+  font-size: 0.95rem;
+}
+
+.orderLink a {
+  color: var(--color-navy);
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.orderLink a:hover {
+  color: var(--color-rust);
+}
+
 .byline {
-  margin: 0.65rem 0 0;
+  margin: 0.85rem 0 0;
   color: #555;
   font-size: 1rem;
 }
@@ -105,6 +144,7 @@
   padding: 1.4rem 1.5rem;
   border: 1px solid rgba(10, 22, 40, 0.22);
   background: rgba(10, 22, 40, 0.03);
+  scroll-margin-top: 5.5rem;
 }
 
 .interestEyebrow {

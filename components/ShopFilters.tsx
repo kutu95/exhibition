@@ -5,7 +5,7 @@ import { PlausibleEvents, trackEvent } from "@/lib/plausible";
 import styles from "./ShopFilters.module.css";
 
 export type ProductTypeFilter = "all" | "print" | "merchandise";
-export type LocationFilter = string;
+export type LocationFilter = "all" | string;
 export type ThemeFilter = "all" | string;
 
 type FilterOption = { value: string; label: string };
@@ -87,6 +87,14 @@ export function ShopFilters({
         <div>
           <p className={styles.groupLabel}>Location</p>
           <div className={styles.group}>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${locationFilter === "all" ? styles.active : ""}`}
+              onClick={() => handleFilterClick("location", "all", () => onLocationChange("all"))}
+              disabled={locationDisabled}
+            >
+              All Locations
+            </button>
             {locationOptions.map((option) => (
               <button
                 key={option.value}

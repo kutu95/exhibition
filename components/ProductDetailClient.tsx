@@ -296,13 +296,12 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             ))}
           </div>
         ) : null}
-
-        {product.description ? <p className={styles.description}>{product.description}</p> : null}
       </div>
 
       <aside className={styles.sidebar}>
         {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
         <h1 className={styles.title}>{product.title}</h1>
+        {product.description ? <p className={styles.description}>{product.description}</p> : null}
         {maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
 
         <div className={styles.priceSticky}>
@@ -317,7 +316,14 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
         {useOfferChooser ? (
           <div className={styles.offerChooser}>
             <fieldset className={styles.offerFieldset}>
-              <legend>Size</legend>
+              <legend className={styles.sizeLegend}>
+                <span>Size</span>
+                {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" ? (
+                  <Link className={styles.sizeCustomLink} href={`/shop/${product.slug}/custom`}>
+                    Custom
+                  </Link>
+                ) : null}
+              </legend>
               <div className={styles.offerOptions}>
                 {availableSizeIds.map((id) => {
                   const sample = priceForCombo({
@@ -492,14 +498,6 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             ))}
           </div>
         )}
-
-        {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" ? (
-          <p className={styles.customLink}>
-            <a href={`/shop/${product.slug}/custom`} target="_blank" rel="noreferrer">
-              Custom size, media &amp; framing
-            </a>
-          </p>
-        ) : null}
 
         <div className={styles.buyActions}>
           <FavouriteButton

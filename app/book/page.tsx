@@ -61,8 +61,23 @@ export default async function BookSamplerPage() {
 
       <article className={`section container-narrow ${styles.article}`}>
         <header className={styles.intro}>
-          <p className="eyebrow">From the book</p>
-          <h1 className="heading-section">Author&apos;s Preface</h1>
+          <div className={styles.titleRow}>
+            {hasPropImage ? (
+              <Image
+                src={PROP_IMAGE_SRC}
+                alt=""
+                width={72}
+                height={72}
+                className={styles.titleMark}
+                priority
+              />
+            ) : null}
+            <h1 className={`heading-section ${styles.title}`}>Author&apos;s Preface</h1>
+          </div>
+          <p className={styles.excerptLabel}>Excerpt from the book</p>
+          <p className={styles.orderLink}>
+            <a href="#register-interest">Order information</a>
+          </p>
           <p className={styles.byline}>John Bowskill</p>
         </header>
 
