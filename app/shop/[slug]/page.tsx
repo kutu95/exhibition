@@ -43,9 +43,24 @@ type RelatedRow = {
   location_tag: string | null;
   photo_type_tag: string | null;
   created_at: string;
-  product_images: ProductImage[] | null;
-  product_themes: Array<{ theme_id: string; theme: { is_active: boolean } | null }> | null;
+  product_images: Array<{
+    image_url: string;
+    is_primary: boolean;
+    sort_order: number;
+  }> | null;
+  product_themes: Array<{
+    theme_id: string;
+    theme: { is_active: boolean } | Array<{ is_active: boolean }> | null;
+  }> | null;
   product_variants: Array<{ master_filename: string | null; is_active: boolean | null }> | null;
+};
+
+const themeIsActive = (
+  theme: { is_active: boolean } | Array<{ is_active: boolean }> | null | undefined,
+): boolean => {
+  if (!theme) return true;
+  if (Array.isArray(theme)) return theme[0]?.is_active !== false;
+  return theme.is_active !== false;
 };
 
 const toCandidate = (row: RelatedRow): RelatedPrintCandidate => {
@@ -61,7 +76,7 @@ const toCandidate = (row: RelatedRow): RelatedPrintCandidate => {
     created_at: row.created_at,
     master_filename: masterFilename,
     theme_ids: (row.product_themes ?? [])
-      .filter((assignment) => assignment.theme?.is_active !== false)
+      .filter((assignment) => themeIsActive(assignment.theme))
       .map((assignment) => assignment.theme_id),
     image_url: images.find((image) => image.is_primary)?.image_url ?? images[0]?.image_url ?? null,
   };
@@ -123,7 +138,7 @@ async function getRelatedPrints(product: ProductWithVariantsAndImages): Promise<
     image_url: product.product_images[0]?.image_url ?? null,
   };
 
-  return pickRelatedPrints(source, (data as RelatedRow[]).map(toCandidate));
+  return pickRelatedPrints(source, (data as unknown as RelatedRow[]).map(toCandidate));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
