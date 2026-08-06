@@ -93,6 +93,7 @@ export function CustomPrintClient({
     mediaOptions.find((item) => item.id === "hm-photo-rag") ?? mediaOptions[0] ?? null;
 
   const [longEdgeMm, setLongEdgeMm] = useState(CUSTOM_LONG_EDGE_DEFAULT_MM);
+  const [longEdgeDraft, setLongEdgeDraft] = useState(String(CUSTOM_LONG_EDGE_DEFAULT_MM));
   const [mediaId, setMediaId] = useState(defaultMedia?.id ?? "");
   const [frameStyle, setFrameStyle] = useState<CustomFrameStyleId>("none");
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
@@ -103,6 +104,12 @@ export function CustomPrintClient({
     () => maxCustomLongEdgeMm(pixelWidth, pixelHeight),
     [pixelHeight, pixelWidth],
   );
+
+  const commitLongEdgeMm = (next: number) => {
+    const clamped = Math.min(maxLongEdgeMm, Math.max(CUSTOM_LONG_EDGE_MIN_MM, Math.round(next)));
+    setLongEdgeMm(clamped);
+    setLongEdgeDraft(String(clamped));
+  };
 
   const size = useMemo(
     () => deriveCustomSizeFromLongEdge(longEdgeMm, pixelWidth, pixelHeight),
@@ -324,20 +331,41 @@ export function CustomPrintClient({
               max={maxLongEdgeMm}
               step={1}
               value={Math.min(longEdgeMm, maxLongEdgeMm)}
-              onChange={(event) => setLongEdgeMm(Number.parseInt(event.target.value, 10))}
+              onChange={(event) => {
+                const next = Number.parseInt(event.target.value, 10);
+                setLongEdgeMm(next);
+                setLongEdgeDraft(String(next));
+              }}
             />
             <div className={styles.longEdgeRow}>
               <input
-                type="number"
-                min={CUSTOM_LONG_EDGE_MIN_MM}
-                max={maxLongEdgeMm}
-                value={longEdgeMm}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={longEdgeDraft}
+                aria-label="Long edge in millimetres"
                 onChange={(event) => {
-                  const next = Number.parseInt(event.target.value || "0", 10);
+                  const raw = event.target.value.replace(/[^\d]/g, "");
+                  setLongEdgeDraft(raw);
+                  if (raw === "") return;
+                  const next = Number.parseInt(raw, 10);
                   if (!Number.isFinite(next)) return;
-                  setLongEdgeMm(
-                    Math.min(maxLongEdgeMm, Math.max(CUSTOM_LONG_EDGE_MIN_MM, next)),
-                  );
+                  if (next >= CUSTOM_LONG_EDGE_MIN_MM && next <= maxLongEdgeMm) {
+                    setLongEdgeMm(next);
+                  }
+                }}
+                onBlur={() => {
+                  const next = Number.parseInt(longEdgeDraft, 10);
+                  if (Number.isFinite(next)) {
+                    commitLongEdgeMm(next);
+                    return;
+                  }
+                  setLongEdgeDraft(String(longEdgeMm));
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
                 }}
               />
               <span className={styles.muted}>mm</span>
