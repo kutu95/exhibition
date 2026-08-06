@@ -163,6 +163,45 @@ export type EmailSubscriber = {
   unsubscribed_at: string | null;
 };
 
+export type EmailCampaignStatus =
+  | "draft"
+  | "scheduled"
+  | "sending"
+  | "sent"
+  | "failed"
+  | "cancelled";
+
+export type EmailCampaign = {
+  id: string;
+  name: string;
+  subject: string;
+  preview_text: string | null;
+  blocks: unknown;
+  status: EmailCampaignStatus;
+  scheduled_at: string | null;
+  sent_at: string | null;
+  audience_count: number | null;
+  sent_count: number;
+  failed_count: number;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EmailCampaignSendStatus = "pending" | "sent" | "failed" | "skipped";
+
+export type EmailCampaignSend = {
+  id: string;
+  campaign_id: string;
+  subscriber_id: string | null;
+  email: string;
+  resend_id: string | null;
+  status: EmailCampaignSendStatus;
+  error: string | null;
+  sent_at: string | null;
+  created_at: string;
+};
+
 export type ExhibitionEvent = {
   id: string;
   slug: string;

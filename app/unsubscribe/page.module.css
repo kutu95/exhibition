@@ -1,0 +1,20 @@
+.wrap {
+  max-width: 36rem;
+}
+
+.title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+}
+
+.copy {
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+  color: #2a2a2a;
+}
+
+.error {
+  margin: 0 0 1rem;
+  color: #8b1e1e;
+}

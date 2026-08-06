@@ -14,6 +14,7 @@ const links = [
   { href: "/admin/register-photo", label: "Register Photo" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/print-profiles", label: "Print Templates" },
+  { href: "/admin/campaigns", label: "Email campaigns" },
   { href: "/admin/content", label: "Content" },
   { href: "/admin/content?tab=media", label: "Media" },
   { href: "/admin/subscribers", label: "Subscribers" },
