@@ -22,6 +22,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from PIL import Image, ImageCms, ImageOps
 
+# Masters are trusted local files and often exceed Pillow's default bomb limit.
+Image.MAX_IMAGE_PIXELS = None
+
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
 
 

@@ -194,6 +194,8 @@ export function ProductEditorForm({
   const [deleting, setDeleting] = useState(false);
   const [creatingTestOrderVariantId, setCreatingTestOrderVariantId] = useState<string | null>(null);
   const [testOrderMessage, setTestOrderMessage] = useState<string | null>(null);
+  const [preparingPrintVariantId, setPreparingPrintVariantId] = useState<string | null>(null);
+  const [printPrepareMessages, setPrintPrepareMessages] = useState<Record<string, string>>({});
   const [rebuildingOffer, setRebuildingOffer] = useState(false);
   const activeVariantTemplates = useMemo(
     () => variantTemplates.filter((template) => template.is_active),
@@ -431,6 +433,80 @@ export function ProductEditorForm({
     setTestOrderMessage(`Created test order ${body?.order_number ?? ""}.`);
     setCreatingTestOrderVariantId(null);
     router.refresh();
+  };
+
+  const preparePrintFile = async (variant: VariantInput) => {
+    if (!initialData?.id || !variant.id) {
+      setError("Save the product before preparing a print file.");
+      return;
+    }
+    if (!masterFilename) {
+      setError("This product has no master TIFF on its variants.");
+      return;
+    }
+    if (!variant.width_mm || !variant.height_mm) {
+      setError("Variant needs width and height before preparing a print file.");
+      return;
+    }
+
+    setPreparingPrintVariantId(variant.id);
+    setError(null);
+    setPrintPrepareMessages((current) => ({
+      ...current,
+      [variant.id!]: "Preparing lab TIFF from master (can take a few minutes for large files)…",
+    }));
+
+    try {
+      const response = await adminClientFetch(
+        `/api/admin/products/${initialData.id}/variants/${variant.id}/prepare-print`,
+        { method: "POST", timeoutMs: 600_000 },
+      );
+      const body = (await response.json().catch(() => null)) as
+        | {
+            error?: string;
+            filename?: string;
+            paper_type?: string | null;
+            finish?: string | null;
+            is_framed?: boolean | null;
+            width_mm?: number;
+            height_mm?: number;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Failed to prepare print file.");
+      }
+
+      const labBits = [
+        body?.paper_type ? `Paper: ${body.paper_type}` : null,
+        body?.finish ? `Finish: ${body.finish}` : null,
+        body?.is_framed ? "Framed" : "Unframed",
+        body?.width_mm && body?.height_mm ? `${Math.round(body.width_mm)}×${Math.round(body.height_mm)} mm` : null,
+      ].filter(Boolean);
+
+      setPrintPrepareMessages((current) => ({
+        ...current,
+        [variant.id!]: `Ready: ${body?.filename ?? "TIFF"}${labBits.length ? ` · ${labBits.join(" · ")}` : ""}. Use Download TIFF, then send to Pixel Perfect manually.`,
+      }));
+    } catch (prepareError) {
+      const message = prepareError instanceof Error ? prepareError.message : adminClientFetchError(prepareError);
+      setError(message);
+      setPrintPrepareMessages((current) => {
+        const next = { ...current };
+        delete next[variant.id!];
+        return next;
+      });
+    } finally {
+      setPreparingPrintVariantId(null);
+    }
+  };
+
+  const downloadPrintFile = (variant: VariantInput) => {
+    if (!initialData?.id || !variant.id) {
+      setError("Save the product before downloading a print file.");
+      return;
+    }
+    window.location.href = `/api/admin/products/${initialData.id}/variants/${variant.id}/print-file?mode=download`;
   };
 
   const saveActions = (
@@ -705,6 +781,8 @@ export function ProductEditorForm({
                   }
                   activeVariantTemplates={activeVariantTemplates}
                   creatingTestOrderVariantId={creatingTestOrderVariantId}
+                  preparingPrintVariantId={preparingPrintVariantId}
+                  printPrepareMessage={variant.id ? printPrepareMessages[variant.id] ?? null : null}
                   onChange={(next) =>
                     setVariants((current) => current.map((row, i) => (i === index ? next : row)))
                   }
@@ -718,6 +796,8 @@ export function ProductEditorForm({
                     )
                   }
                   onCreateTestOrder={() => createTestOrder(variant)}
+                  onPreparePrintFile={() => void preparePrintFile(variant)}
+                  onDownloadPrintFile={() => downloadPrintFile(variant)}
                 />
               </div>
             </details>

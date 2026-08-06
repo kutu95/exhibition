@@ -55,9 +55,13 @@ type ProductVariantPanelProps = {
   previewUrl: string | null;
   activeVariantTemplates: VariantTemplate[];
   creatingTestOrderVariantId: string | null;
+  preparingPrintVariantId: string | null;
+  printPrepareMessage: string | null;
   onChange: (next: VariantInput) => void;
   onApplyTemplate: (template: VariantTemplate) => void;
   onCreateTestOrder: () => void;
+  onPreparePrintFile: () => void;
+  onDownloadPrintFile: () => void;
 };
 
 export function ProductVariantPanel({
@@ -70,9 +74,13 @@ export function ProductVariantPanel({
   previewUrl,
   activeVariantTemplates,
   creatingTestOrderVariantId,
+  preparingPrintVariantId,
+  printPrepareMessage,
   onChange,
   onApplyTemplate,
   onCreateTestOrder,
+  onPreparePrintFile,
+  onDownloadPrintFile,
 }: ProductVariantPanelProps) {
   const templateWidthMm = Number.parseInt(variant.width_mm || "0", 10) || 1;
   const templateHeightMm = Number.parseInt(variant.height_mm || "0", 10) || 1;
@@ -152,6 +160,28 @@ export function ProductVariantPanel({
           <button
             className={styles.btnSecondary}
             type="button"
+            onClick={onPreparePrintFile}
+            disabled={
+              !variant.id ||
+              !masterFilename ||
+              !variant.width_mm ||
+              !variant.height_mm ||
+              preparingPrintVariantId === variant.id
+            }
+          >
+            {preparingPrintVariantId === variant.id ? "Preparing print file…" : "Prepare print file"}
+          </button>
+          <button
+            className={styles.btnSecondary}
+            type="button"
+            onClick={onDownloadPrintFile}
+            disabled={!variant.id || !variant.width_mm || !variant.height_mm}
+          >
+            Download TIFF
+          </button>
+          <button
+            className={styles.btnSecondary}
+            type="button"
             onClick={onCreateTestOrder}
             disabled={!variant.id || !variant.is_active || creatingTestOrderVariantId === variant.id}
           >
@@ -161,6 +191,7 @@ export function ProductVariantPanel({
           </button>
         </div>
       ) : null}
+      {mode === "edit" && printPrepareMessage ? <p className={styles.muted}>{printPrepareMessage}</p> : null}
 
       <details className={styles.advancedPanel}>
         <summary className={styles.advancedSummary}>
