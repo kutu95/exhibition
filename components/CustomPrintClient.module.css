@@ -288,6 +288,21 @@
   gap: 0.65rem;
 }
 
+.adminPrint {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(10, 22, 40, 0.15);
+}
+
+.adminHint {
+  margin: 0;
+  color: #666;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .button {
   width: 100%;
 }

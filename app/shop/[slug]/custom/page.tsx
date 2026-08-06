@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { CustomPrintClient } from "../../../../components/CustomPrintClient";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../../../lib/admin-auth";
 import { isProductVisibleInCatalog, mapProductRow } from "../../../../lib/catalog-products";
 import { getMasterFileDimensions } from "../../../../lib/master-files";
 import { buildMetadata } from "../../../../lib/metadata";
@@ -104,6 +106,9 @@ export default async function CustomPrintPage({ params }: PageProps) {
   const edition =
     editionFromAll.length > 0 ? Math.max(...editionFromAll) : editionSize;
 
+  const cookieStore = await cookies();
+  const isAdmin = await verifyAdminSessionToken(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+
   return (
     <CustomPrintClient
       product={{
@@ -124,6 +129,7 @@ export default async function CustomPrintPage({ params }: PageProps) {
       frameRates={pricing.frameRates}
       rthCanvasRates={pricing.rthCanvasRates}
       papers={pricing.papers}
+      isAdmin={isAdmin}
     />
   );
 }

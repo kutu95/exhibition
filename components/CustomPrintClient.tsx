@@ -52,6 +52,8 @@ type CustomPrintClientProps = {
   frameRates: FrameRateBand[];
   rthCanvasRates: RthCanvasRateBand[];
   papers: ManagedPaper[];
+  /** When true (admin session cookie), show prepare/download TIFF control. */
+  isAdmin?: boolean;
 };
 
 const FRAME_COLOUR_OPTIONS: { id: FrameColourId; label: string }[] = [
@@ -78,6 +80,7 @@ export function CustomPrintClient({
   frameMarkupFactor,
   frameBasePriceAud,
   frameRates,
+  isAdmin = false,
   rthCanvasRates,
   papers,
 }: CustomPrintClientProps) {
@@ -93,7 +96,7 @@ export function CustomPrintClient({
   const [mediaId, setMediaId] = useState(defaultMedia?.id ?? "");
   const [frameStyle, setFrameStyle] = useState<CustomFrameStyleId>("none");
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
-  const [busy, setBusy] = useState<"cart" | "buy" | null>(null);
+  const [busy, setBusy] = useState<"cart" | "buy" | "print" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const maxLongEdgeMm = useMemo(
@@ -219,6 +222,34 @@ export function CustomPrintClient({
       window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start checkout.");
+      setBusy(null);
+    }
+  };
+
+  const handlePreparePrintDownload = async () => {
+    setBusy("print");
+    setError(null);
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}/prepare-custom-print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          long_edge_mm: longEdgeMm,
+          pixel_width: pixelWidth,
+          pixel_height: pixelHeight,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+        download_path?: string;
+      } | null;
+      if (!response.ok || !body?.download_path) {
+        throw new Error(body?.error ?? "Failed to prepare print file.");
+      }
+      window.location.href = body.download_path;
+      setBusy(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to prepare print file.");
       setBusy(null);
     }
   };
@@ -424,6 +455,21 @@ export function CustomPrintClient({
                 {PURCHASES_DISABLED_MESSAGE} <Link href="/contact">Contact</Link>
               </p>
             )}
+            {isAdmin ? (
+              <div className={styles.adminPrint}>
+                <button
+                  className={`button-outline ${styles.button}`}
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => void handlePreparePrintDownload()}
+                >
+                  {busy === "print" ? "Preparing print TIFF…" : "Prepare & download print TIFF"}
+                </button>
+                <p className={styles.adminHint}>
+                  Admin only · Lab TIFF at the size above (Adobe RGB, 300 DPI). Generation can take a few minutes.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           {error ? <p className={styles.error}>{error}</p> : null}
