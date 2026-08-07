@@ -24,7 +24,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const blocks = parseCampaignBlocks(campaign.blocks);
-  const html = renderCampaignEmailHtml({
+  const html = await renderCampaignEmailHtml({
     subject: campaign.subject || "Preview",
     previewText: campaign.preview_text,
     blocks,

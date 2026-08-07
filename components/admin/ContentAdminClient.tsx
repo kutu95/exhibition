@@ -125,24 +125,35 @@ const mediaUsageLabels = (file: MediaFile): string[] => {
 
 const isManagedLocalMediaPath = (src: string): boolean => src.startsWith("/images/") || src.startsWith("/video/");
 
-function MediaLibraryThumb({ file }: { file: MediaFile }) {
+function MediaLibraryThumb({
+  file,
+  className,
+  width = 120,
+  height = 80,
+}: {
+  file: MediaFile;
+  className?: string;
+  width?: number;
+  height?: number;
+}) {
   const [failed, setFailed] = useState(false);
+  const thumbClass = className ?? styles.libraryThumb;
 
   if (file.file_type === "video") {
-    return <video className={styles.libraryThumb} src={file.url_path} muted loop playsInline />;
+    return <video className={thumbClass} src={file.url_path} muted loop playsInline />;
   }
 
   if (failed) {
-    return <div className={styles.missingThumb}>File missing on disk</div>;
+    return <div className={className ? styles.missingThumbFill : styles.missingThumb}>File missing on disk</div>;
   }
 
   return (
     <Image
       src={file.url_path}
       alt={file.alt_text ?? ""}
-      width={120}
-      height={80}
-      className={styles.libraryThumb}
+      width={width}
+      height={height}
+      className={thumbClass}
       unoptimized={isManagedLocalMediaPath(file.url_path)}
       onError={() => setFailed(true)}
     />
@@ -519,6 +530,7 @@ function MediaLibrary({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pinnedMediaId, setPinnedMediaId] = useState<string | null>(null);
 
   const filteredFiles = useMemo(() => {
     if (filter === "all") return mediaFiles;
@@ -628,75 +640,113 @@ function MediaLibrary({
       ) : null}
 
       <div className={styles.mediaGrid}>
-        {filteredFiles.map((file) => (
-          <article className={styles.mediaCard} key={file.id}>
-            <MediaLibraryThumb file={file} />
+        {filteredFiles.map((file) => {
+          const usageLabels = mediaUsageLabels(file);
+          const inUse = usageLabels.length > 0;
 
-            <p
-              className={
-                mediaUsageLabels(file).length > 0 ? styles.usageBadgeInUse : styles.usageBadgeUnused
-              }
+          return (
+            <article
+              className={`${styles.mediaCard} ${pinnedMediaId === file.id ? styles.mediaCardOpen : ""}`}
+              key={file.id}
             >
-              {mediaUsageLabels(file).length > 0
-                ? `In use: ${mediaUsageLabels(file).join(", ")}`
-                : "Unused"}
-            </p>
+              <button
+                type="button"
+                className={styles.mediaCardPreview}
+                aria-expanded={pinnedMediaId === file.id}
+                aria-label={`Media details for ${file.original_filename || file.filename}`}
+                onClick={() => {
+                  setPinnedMediaId((current) => (current === file.id ? null : file.id));
+                }}
+              >
+                <MediaLibraryThumb
+                  file={file}
+                  className={styles.libraryThumbFill}
+                  width={320}
+                  height={220}
+                />
+                <span
+                  className={inUse ? styles.usageDotInUse : styles.usageDotUnused}
+                  aria-hidden="true"
+                  title={inUse ? `In use: ${usageLabels.join(", ")}` : "Unused"}
+                />
+              </button>
 
-            <p className={styles.mediaName} title={file.filename}>
-              {truncateFilename(file.filename)}
-            </p>
-            <p className={styles.mutedText}>{formatFileSize(file.file_size_bytes)}</p>
-            <p className={styles.mutedText}>{formatDateTime(file.uploaded_at)}</p>
+              <div
+                className={styles.mediaHoverPanel}
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                <p className={styles.mediaHoverTitle} title={file.filename}>
+                  {truncateFilename(file.original_filename || file.filename)}
+                </p>
+                <p
+                  className={inUse ? styles.usageBadgeInUse : styles.usageBadgeUnused}
+                >
+                  {inUse ? `In use: ${usageLabels.join(", ")}` : "Unused"}
+                </p>
+                <p className={styles.mutedText}>
+                  {formatFileSize(file.file_size_bytes)} · {formatDateTime(file.uploaded_at)}
+                </p>
+                {file.width && file.height ? (
+                  <p className={styles.mutedText}>
+                    {file.width} × {file.height}
+                  </p>
+                ) : null}
 
-            <div className={styles.metaField}>
-              <span>Alt text</span>
-              <InlineEditableField
-                value={file.alt_text}
-                placeholder="Click to add"
-                onSave={async (nextValue) => onUpdateMediaField(file.id, { alt_text: nextValue })}
-              />
-            </div>
+                <div className={styles.metaField}>
+                  <span>Alt text</span>
+                  <InlineEditableField
+                    value={file.alt_text}
+                    placeholder="Click to add"
+                    onSave={async (nextValue) => onUpdateMediaField(file.id, { alt_text: nextValue })}
+                  />
+                </div>
 
-            <div className={styles.metaField}>
-              <span>Usage note</span>
-              <InlineEditableField
-                value={file.usage_note}
-                placeholder="Click to add"
-                onSave={async (nextValue) => onUpdateMediaField(file.id, { usage_note: nextValue })}
-              />
-            </div>
+                <div className={styles.metaField}>
+                  <span>Usage note</span>
+                  <InlineEditableField
+                    value={file.usage_note}
+                    placeholder="Click to add"
+                    onSave={async (nextValue) => onUpdateMediaField(file.id, { usage_note: nextValue })}
+                  />
+                </div>
 
-            <button
-              className={styles.urlPath}
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(file.url_path);
-              }}
-            >
-              {file.url_path}
-            </button>
+                <button
+                  className={styles.urlPath}
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(file.url_path);
+                  }}
+                >
+                  {file.url_path}
+                </button>
 
-            <button
-              className={styles.deleteButton}
-              type="button"
-              disabled={mediaUsageLabels(file).length > 0}
-              title={
-                mediaUsageLabels(file).length > 0
-                  ? "Replace or unlink this file before deleting it."
-                  : "Delete this unused file"
-              }
-              onClick={() => {
-                if (!window.confirm("Delete this file? This cannot be undone.")) return;
-                setError(null);
-                void onDeleteMedia(file.id).catch((deleteError) => {
-                  setError(deleteError instanceof Error ? deleteError.message : "Failed to delete media.");
-                });
-              }}
-            >
-              {mediaUsageLabels(file).length > 0 ? "In use" : "Delete"}
-            </button>
-          </article>
-        ))}
+                <button
+                  className={styles.deleteButton}
+                  type="button"
+                  disabled={inUse}
+                  title={
+                    inUse
+                      ? "Replace or unlink this file before deleting it."
+                      : "Delete this unused file"
+                  }
+                  onClick={() => {
+                    if (!window.confirm("Delete this file? This cannot be undone.")) return;
+                    setError(null);
+                    void onDeleteMedia(file.id).catch((deleteError) => {
+                      setError(
+                        deleteError instanceof Error ? deleteError.message : "Failed to delete media.",
+                      );
+                    });
+                  }}
+                >
+                  {inUse ? "In use" : "Delete"}
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

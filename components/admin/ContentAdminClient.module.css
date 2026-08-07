@@ -229,16 +229,55 @@
 
 .mediaGrid {
   display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
 
 .mediaCard {
+  position: relative;
   border: 1px solid #ddd;
   background: #fff;
-  padding: 0.65rem;
-  display: grid;
+  padding: 0;
+  overflow: visible;
+  z-index: 0;
+}
+
+.mediaCardPreview {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #f3f3f3;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.mediaCard:hover,
+.mediaCard:focus-within,
+.mediaCardOpen {
+  z-index: 5;
+}
+
+.mediaHoverPanel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 0.35rem);
+  display: none;
   gap: 0.45rem;
+  padding: 0.7rem;
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  z-index: 6;
+}
+
+.mediaCard:hover .mediaHoverPanel,
+.mediaCard:focus-within .mediaHoverPanel,
+.mediaCardOpen .mediaHoverPanel {
+  display: grid;
 }
 
 .libraryThumb {
@@ -246,6 +285,14 @@
   height: 80px;
   object-fit: cover;
   border: 1px solid #ddd;
+}
+
+.libraryThumbFill {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border: 0;
 }
 
 .missingThumb {
@@ -259,6 +306,46 @@
   font-size: 0.72rem;
   text-align: center;
   padding: 0.35rem;
+}
+
+.missingThumbFill {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: #fff6f6;
+  color: #8a2f2f;
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.usageDotInUse,
+.usageDotUnused {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.usageDotInUse {
+  background: #176b2c;
+}
+
+.usageDotUnused {
+  background: #9a9a9a;
+}
+
+.mediaHoverTitle {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  word-break: break-word;
 }
 
 .usageBadgeInUse,

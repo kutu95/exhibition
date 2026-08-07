@@ -64,13 +64,15 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       products: productAssets,
-      media: (media ?? []).map((file) => ({
-        id: file.id,
-        url_path: file.url_path,
-        alt_text: file.alt_text,
-        width: file.width,
-        height: file.height,
-      })),
+      media: (media ?? [])
+        .filter((file) => !String(file.url_path ?? "").includes("/email-w1200-"))
+        .map((file) => ({
+          id: file.id,
+          url_path: file.url_path,
+          alt_text: file.alt_text,
+          width: file.width,
+          height: file.height,
+        })),
     });
   } catch (error) {
     return handleRouteError(error, "Admin campaign assets failed");

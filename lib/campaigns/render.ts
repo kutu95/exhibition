@@ -1,5 +1,6 @@
 import { siteConfig } from "../metadata";
 import type { CampaignBlock } from "./blocks";
+import { prepareCampaignBlocksForEmail } from "./email-image";
 
 const NAVY = "#0a1628";
 const CREAM = "#f5f0e8";
@@ -65,21 +66,25 @@ export type RenderCampaignEmailInput = {
   blocks: CampaignBlock[];
   unsubscribeUrl: string;
   recipientFirstName?: string | null;
+  /** When true, skip derivative generation (caller already prepared blocks). */
+  skipImagePrepare?: boolean;
 };
 
-export const renderCampaignEmailHtml = ({
+export const renderCampaignEmailHtml = async ({
   subject,
   previewText,
   blocks,
   unsubscribeUrl,
   recipientFirstName,
-}: RenderCampaignEmailInput): string => {
+  skipImagePrepare = false,
+}: RenderCampaignEmailInput): Promise<string> => {
+  const readyBlocks = skipImagePrepare ? blocks : await prepareCampaignBlocksForEmail(blocks);
   const greetingName = recipientFirstName?.trim().split(/\s+/)[0] || null;
   const greeting = greetingName
     ? `<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:${INK};">Dear ${escapeHtml(greetingName)},</p>`
     : "";
 
-  const body = blocks.map(renderBlock).join("\n");
+  const body = readyBlocks.map(renderBlock).join("\n");
   const preview = escapeHtml((previewText || subject || "").trim());
   const year = new Date().getFullYear();
 

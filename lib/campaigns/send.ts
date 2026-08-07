@@ -1,4 +1,5 @@
 import { campaignBlocksSchema, type CampaignBlock } from "./blocks";
+import { prepareCampaignBlocksForEmail } from "./email-image";
 import { renderCampaignEmailHtml } from "./render";
 import { buildUnsubscribeUrl } from "./unsubscribe";
 import { sendCampaignEmail, isCampaignEmailConfigured } from "../emails/campaign";
@@ -184,12 +185,14 @@ export const dispatchCampaign = async (
       subscriberId: UNSUBSCRIBE_PLACEHOLDER_ID,
       email: options.testTo,
     });
-    const html = renderCampaignEmailHtml({
+    const emailBlocks = await prepareCampaignBlocksForEmail(blocks);
+    const html = await renderCampaignEmailHtml({
       subject,
       previewText: campaign.preview_text,
-      blocks,
+      blocks: emailBlocks,
       unsubscribeUrl,
       recipientFirstName: options.testFirstName?.trim() || null,
+      skipImagePrepare: true,
     });
     const result = await sendCampaignEmail({
       to: options.testTo,
@@ -247,18 +250,20 @@ export const dispatchCampaign = async (
   let sent = 0;
   let failed = 0;
   let lastError: string | null = null;
+  const emailBlocks = await prepareCampaignBlocksForEmail(blocks);
 
   for (const recipient of recipients) {
     const unsubscribeUrl = await buildUnsubscribeUrl({
       subscriberId: recipient.subscriberId ?? UNSUBSCRIBE_PLACEHOLDER_ID,
       email: recipient.email,
     });
-    const html = renderCampaignEmailHtml({
+    const html = await renderCampaignEmailHtml({
       subject,
       previewText: campaign.preview_text,
-      blocks,
+      blocks: emailBlocks,
       unsubscribeUrl,
       recipientFirstName: recipient.firstName,
+      skipImagePrepare: true,
     });
 
     const result = await sendCampaignEmail({
