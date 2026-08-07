@@ -35,6 +35,7 @@ export async function POST(request: Request, context: RouteContext) {
         subject: source.subject,
         preview_text: source.preview_text,
         blocks: blocks.length > 0 ? blocks : emptyCampaignBlocks(),
+        audience: source.audience === "talk_registrations" ? "talk_registrations" : "subscribers",
         status: "draft",
         scheduled_at: null,
         sent_at: null,

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../lib/admin-auth";
 import { emptyCampaignBlocks, campaignBlocksSchema } from "../../../../lib/campaigns/blocks";
-import { listActiveSubscribers } from "../../../../lib/campaigns/send";
+import { countCampaignAudiences, isCampaignAudience } from "../../../../lib/campaigns/send";
 import { handleRouteError } from "../../../../lib/api-route-errors";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
 
@@ -14,6 +14,7 @@ const createSchema = z.object({
   subject: z.string().max(300).optional(),
   preview_text: z.string().max(500).nullable().optional(),
   blocks: campaignBlocksSchema.optional(),
+  audience: z.enum(["subscribers", "talk_registrations"]).optional(),
 });
 
 export async function GET(request: Request) {
@@ -23,12 +24,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [{ data, error }, subscribers] = await Promise.all([
+    const [{ data, error }, counts] = await Promise.all([
       supabaseAdmin
         .from("email_campaigns")
         .select("*")
         .order("updated_at", { ascending: false }),
-      listActiveSubscribers().catch(() => []),
+      countCampaignAudiences().catch(() => ({ subscribers: 0, talk_registrations: 0 })),
     ]);
 
     if (error) {
@@ -37,7 +38,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       campaigns: data ?? [],
-      audience_count: subscribers.length,
+      audience_count: counts.subscribers,
+      audience_counts: counts,
     });
   } catch (error) {
     return handleRouteError(error, "Admin campaigns list failed");
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
+    const audience = isCampaignAudience(parsed.data.audience) ? parsed.data.audience : "subscribers";
     const { data, error } = await supabaseAdmin
       .from("email_campaigns")
       .insert({
@@ -64,6 +67,7 @@ export async function POST(request: Request) {
         subject: parsed.data.subject?.trim() || "",
         preview_text: parsed.data.preview_text?.trim() || null,
         blocks: parsed.data.blocks ?? emptyCampaignBlocks(),
+        audience,
         status: "draft",
         created_at: now,
         updated_at: now,

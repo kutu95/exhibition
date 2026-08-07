@@ -19,6 +19,7 @@ const patchSchema = z.object({
   blocks: campaignBlocksSchema.optional(),
   status: z.enum(["draft", "scheduled", "cancelled"]).optional(),
   scheduled_at: z.string().nullable().optional(),
+  audience: z.enum(["subscribers", "talk_registrations"]).optional(),
 });
 
 export async function GET(request: Request, context: RouteContext) {
@@ -107,6 +108,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       updates.preview_text = parsed.data.preview_text?.trim() || null;
     }
     if (parsed.data.blocks !== undefined) updates.blocks = parsed.data.blocks;
+    if (parsed.data.audience !== undefined) updates.audience = parsed.data.audience;
     if (parsed.data.status !== undefined) updates.status = parsed.data.status;
     if (parsed.data.scheduled_at !== undefined) {
       updates.scheduled_at = parsed.data.scheduled_at;

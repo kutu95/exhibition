@@ -20,6 +20,10 @@ type CampaignDetailResponse = {
 
 type CampaignsResponse = {
   audience_count: number;
+  audience_counts?: {
+    subscribers: number;
+    talk_registrations: number;
+  };
 };
 
 export default async function AdminCampaignEditPage({ params }: PageProps) {
@@ -34,13 +38,23 @@ export default async function AdminCampaignEditPage({ params }: PageProps) {
 
   const list = await fetchAdminJson<CampaignsResponse>("/api/admin/campaigns").catch(() => ({
     audience_count: 0,
+    audience_counts: { subscribers: 0, talk_registrations: 0 },
   }));
+
+  const counts = list.audience_counts ?? {
+    subscribers: list.audience_count,
+    talk_registrations: 0,
+  };
 
   return (
     <CampaignEditorClient
-      campaign={detail.campaign}
+      campaign={{
+        ...detail.campaign,
+        audience:
+          detail.campaign.audience === "talk_registrations" ? "talk_registrations" : "subscribers",
+      }}
       stats={detail.stats}
-      audienceCount={list.audience_count}
+      audienceCounts={counts}
     />
   );
 }

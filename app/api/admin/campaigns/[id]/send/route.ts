@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../../../lib/admin-auth";
 import { dispatchCampaign } from "../../../../../../lib/campaigns/send";
@@ -11,6 +12,10 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+const bodySchema = z.object({
+  audience: z.enum(["subscribers", "talk_registrations"]).optional(),
+});
+
 export async function POST(request: Request, context: RouteContext) {
   const isAuthed = await verifyAdminSession(request);
   if (!isAuthed) {
@@ -20,7 +25,15 @@ export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const result = await dispatchCampaign({ campaignId: id });
+    const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid send request." }, { status: 400 });
+    }
+
+    const result = await dispatchCampaign({
+      campaignId: id,
+      audience: parsed.data.audience,
+    });
     if (!result.ok) {
       return NextResponse.json(
         {
@@ -28,6 +41,7 @@ export async function POST(request: Request, context: RouteContext) {
           sent: result.sent,
           failed: result.failed,
           audience: result.audience,
+          audience_type: result.audience_type,
         },
         { status: 500 },
       );
@@ -38,6 +52,7 @@ export async function POST(request: Request, context: RouteContext) {
       sent: result.sent,
       failed: result.failed,
       audience: result.audience,
+      audience_type: result.audience_type,
     });
   } catch (error) {
     return handleRouteError(error, "Admin campaign send failed");

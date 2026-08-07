@@ -9,7 +9,7 @@ import {
   createCampaignBlockId,
   type CampaignBlock,
 } from "../../lib/campaigns/blocks";
-import type { EmailCampaign } from "../../lib/supabase/types";
+import type { EmailCampaign, EmailCampaignAudience } from "../../lib/supabase/types";
 import styles from "./CampaignEditorClient.module.css";
 
 type ProductAsset = {
@@ -37,7 +37,10 @@ type CampaignStats = {
 type CampaignEditorClientProps = {
   campaign: EmailCampaign;
   stats: CampaignStats;
-  audienceCount: number;
+  audienceCounts: {
+    subscribers: number;
+    talk_registrations: number;
+  };
 };
 
 const readOnlyStatuses = new Set(["sending", "sent"]);
@@ -45,7 +48,7 @@ const readOnlyStatuses = new Set(["sending", "sent"]);
 export function CampaignEditorClient({
   campaign: initial,
   stats: initialStats,
-  audienceCount,
+  audienceCounts,
 }: CampaignEditorClientProps) {
   const router = useRouter();
   const readOnly = readOnlyStatuses.has(initial.status);
@@ -60,6 +63,9 @@ export function CampaignEditorClient({
   const [scheduledAtLocal, setScheduledAtLocal] = useState(() =>
     initial.scheduled_at ? toLocalInputValue(initial.scheduled_at) : "",
   );
+  const [audience, setAudience] = useState<EmailCampaignAudience>(
+    initial.audience === "talk_registrations" ? "talk_registrations" : "subscribers",
+  );
   const [status, setStatus] = useState(initial.status);
   const [stats, setStats] = useState(initialStats);
   const [products, setProducts] = useState<ProductAsset[]>([]);
@@ -69,6 +75,11 @@ export function CampaignEditorClient({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+
+  const selectedAudienceCount =
+    audience === "talk_registrations"
+      ? audienceCounts.talk_registrations
+      : audienceCounts.subscribers;
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +112,7 @@ export function CampaignEditorClient({
   const save = async (extra?: {
     status?: "draft" | "scheduled" | "cancelled";
     scheduled_at?: string | null;
+    audience?: EmailCampaignAudience;
   }) => {
     setBusy("save");
     setError(null);
@@ -114,6 +126,7 @@ export function CampaignEditorClient({
           subject,
           preview_text: previewText || null,
           blocks,
+          audience: extra?.audience ?? audience,
           ...extra,
         }),
       });
@@ -185,14 +198,16 @@ export function CampaignEditorClient({
   };
 
   const sendNow = async () => {
+    const listLabel =
+      audience === "talk_registrations" ? "talk registrations" : "website subscribers";
     if (
       !window.confirm(
-        `Send this campaign to ${audienceCount} active subscriber${audienceCount === 1 ? "" : "s"}?`,
+        `Send this campaign to ${selectedAudienceCount} ${listLabel}?`,
       )
     ) {
       return;
     }
-    const saved = await save({ status: "draft", scheduled_at: null });
+    const saved = await save({ status: "draft", scheduled_at: null, audience });
     if (!saved) return;
     setBusy("send");
     setError(null);
@@ -200,6 +215,8 @@ export function CampaignEditorClient({
     try {
       const response = await fetch(`/api/admin/campaigns/${initial.id}/send`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audience }),
       });
       const body = (await response.json().catch(() => null)) as {
         error?: string;
@@ -218,7 +235,7 @@ export function CampaignEditorClient({
         pending: 0,
       });
       setMessage(
-        `Sent to ${body?.sent ?? 0} of ${body?.audience ?? audienceCount} (failed: ${body?.failed ?? 0}).`,
+        `Sent to ${body?.sent ?? 0} of ${body?.audience ?? selectedAudienceCount} (failed: ${body?.failed ?? 0}).`,
       );
       router.refresh();
     } catch (err) {
@@ -344,7 +361,9 @@ export function CampaignEditorClient({
           <p className={styles.meta}>
             Status: <strong>{status}</strong>
             {" · "}
-            Audience: {audienceCount} active
+            Website subscribers: {audienceCounts.subscribers}
+            {" · "}
+            Talk registrations: {audienceCounts.talk_registrations}
             {(status === "sent" || status === "failed") && (
               <>
                 {" · "}
@@ -536,6 +555,33 @@ export function CampaignEditorClient({
 
           <div className={styles.sendPanel}>
             <h2>Send</h2>
+            <fieldset className={styles.audienceFieldset} disabled={readOnly}>
+              <legend>Send to</legend>
+              <label className={styles.audienceOption}>
+                <input
+                  type="radio"
+                  name="campaign-audience"
+                  checked={audience === "subscribers"}
+                  onChange={() => setAudience("subscribers")}
+                />
+                <span>
+                  Website subscribers
+                  <span className={styles.audienceCount}> ({audienceCounts.subscribers})</span>
+                </span>
+              </label>
+              <label className={styles.audienceOption}>
+                <input
+                  type="radio"
+                  name="campaign-audience"
+                  checked={audience === "talk_registrations"}
+                  onChange={() => setAudience("talk_registrations")}
+                />
+                <span>
+                  Talk registrations
+                  <span className={styles.audienceCount}> ({audienceCounts.talk_registrations})</span>
+                </span>
+              </label>
+            </fieldset>
             <div className={styles.testRow}>
               <input
                 type="email"
@@ -563,16 +609,21 @@ export function CampaignEditorClient({
               </button>
             </div>
             <p className={styles.hint}>
-              Scheduled sends run when <code>/api/admin/campaigns/process-scheduled</code> is called
-              (admin session or Bearer CRON_SECRET / FULFILMENT_API_KEY).
+              Scheduled sends use the list selected above. They run when{" "}
+              <code>/api/admin/campaigns/process-scheduled</code> is called (admin session or Bearer
+              CRON_SECRET / FULFILMENT_API_KEY).
             </p>
             <button
               type="button"
               className={styles.dangerBtn}
-              disabled={readOnly || busy !== null || audienceCount === 0}
+              disabled={readOnly || busy !== null || selectedAudienceCount === 0}
               onClick={() => void sendNow()}
             >
-              {busy === "send" ? "Sending…" : `Send now to ${audienceCount} subscribers`}
+              {busy === "send"
+                ? "Sending…"
+                : `Send now to ${selectedAudienceCount} ${
+                    audience === "talk_registrations" ? "talk registrations" : "subscribers"
+                  }`}
             </button>
           </div>
         </div>

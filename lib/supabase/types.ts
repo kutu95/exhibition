@@ -171,6 +171,8 @@ export type EmailCampaignStatus =
   | "failed"
   | "cancelled";
 
+export type EmailCampaignAudience = "subscribers" | "talk_registrations";
+
 export type EmailCampaign = {
   id: string;
   name: string;
@@ -178,6 +180,7 @@ export type EmailCampaign = {
   preview_text: string | null;
   blocks: unknown;
   status: EmailCampaignStatus;
+  audience: EmailCampaignAudience;
   scheduled_at: string | null;
   sent_at: string | null;
   audience_count: number | null;

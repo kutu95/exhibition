@@ -11,9 +11,14 @@ import styles from "./CampaignsTableClient.module.css";
 type CampaignsTableClientProps = {
   campaigns: EmailCampaign[];
   audienceCount: number;
+  talkAudienceCount: number;
 };
 
-export function CampaignsTableClient({ campaigns, audienceCount }: CampaignsTableClientProps) {
+export function CampaignsTableClient({
+  campaigns,
+  audienceCount,
+  talkAudienceCount,
+}: CampaignsTableClientProps) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +84,9 @@ export function CampaignsTableClient({ campaigns, audienceCount }: CampaignsTabl
         <div>
           <h1>Email campaigns</h1>
           <p className={styles.summary}>
-            {audienceCount} active subscriber{audienceCount === 1 ? "" : "s"} (not unsubscribed)
+            {audienceCount} website subscriber{audienceCount === 1 ? "" : "s"}
+            {" · "}
+            {talkAudienceCount} talk registration{talkAudienceCount === 1 ? "" : "s"}
           </p>
         </div>
         <button className={styles.primaryBtn} type="button" onClick={() => void createCampaign()} disabled={busyId === "new"}>
