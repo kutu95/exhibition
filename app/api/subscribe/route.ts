@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { sendWelcomeEmailIfConfigured } from "../../../lib/campaigns/welcome";
 import { sendSubscriberAlertEmail } from "../../../lib/emails/registration-alert";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 
@@ -14,17 +15,23 @@ const subscribeSchema = z.object({
 
 type SubscribeSource = NonNullable<z.infer<typeof subscribeSchema>["source"]>;
 
-const notifySubscriber = (
-  email: string,
-  firstName: string | null | undefined,
-  source: SubscribeSource | null | undefined,
-  reactivated: boolean,
-) => {
+const afterSubscribe = (input: {
+  subscriberId: string;
+  email: string;
+  firstName?: string | null;
+  source?: SubscribeSource | null;
+  reactivated: boolean;
+}) => {
   void sendSubscriberAlertEmail({
-    email,
-    firstName: firstName ?? null,
-    source: source ?? null,
-    reactivated,
+    email: input.email,
+    firstName: input.firstName ?? null,
+    source: input.source ?? null,
+    reactivated: input.reactivated,
+  });
+  void sendWelcomeEmailIfConfigured({
+    subscriberId: input.subscriberId,
+    email: input.email,
+    firstName: input.firstName ?? null,
   });
 };
 
@@ -116,19 +123,29 @@ export async function POST(request: Request) {
       }
 
       if (existing.unsubscribed_at !== null) {
-        notifySubscriber(email, first_name, source, true);
+        afterSubscribe({
+          subscriberId: existing.id,
+          email,
+          firstName: first_name,
+          source,
+          reactivated: true,
+        });
       }
 
       return NextResponse.json({ success: true });
     }
 
-    const { error: insertError } = await supabaseAdmin.from("email_subscribers").insert({
-      email,
-      first_name: first_name ?? null,
-      source: source ?? null,
-    });
+    const { data: created, error: insertError } = await supabaseAdmin
+      .from("email_subscribers")
+      .insert({
+        email,
+        first_name: first_name ?? null,
+        source: source ?? null,
+      })
+      .select("id")
+      .single();
 
-    if (insertError) {
+    if (insertError || !created) {
       console.error("Subscribe insert failed", insertError);
       return NextResponse.json(
         { success: false, error: "Could not process subscription." },
@@ -136,7 +153,13 @@ export async function POST(request: Request) {
       );
     }
 
-    notifySubscriber(email, first_name, source, false);
+    afterSubscribe({
+      subscriberId: created.id,
+      email,
+      firstName: first_name,
+      source,
+      reactivated: false,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

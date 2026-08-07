@@ -9,6 +9,7 @@ import {
   createCampaignBlockId,
   type CampaignBlock,
 } from "../../lib/campaigns/blocks";
+import { WELCOME_CAMPAIGN_NAME } from "../../lib/campaigns/welcome-shared";
 import type { EmailCampaign, EmailCampaignAudience } from "../../lib/supabase/types";
 import styles from "./CampaignEditorClient.module.css";
 
@@ -390,6 +391,12 @@ export function CampaignEditorClient({
             Internal name
             <input value={name} onChange={(event) => setName(event.target.value)} disabled={readOnly} />
           </label>
+          {name.trim().toLowerCase() === WELCOME_CAMPAIGN_NAME.toLowerCase() ? (
+            <p className={styles.hint}>
+              This campaign is sent automatically to each new website subscriber (once per email). Keep it as a
+              draft — do not use Send to all unless you intend a bulk resend.
+            </p>
+          ) : null}
           <label className={styles.field}>
             Subject
             <input
