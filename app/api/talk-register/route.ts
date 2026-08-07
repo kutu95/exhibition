@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { handleRouteError } from "../../../lib/api-route-errors";
+import { sendTalkRegistrationAlertEmail } from "../../../lib/emails/registration-alert";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 import {
   getTalkCapacity,
@@ -110,6 +111,14 @@ export async function POST(request: Request) {
       console.error("Talk registration insert failed", insertError);
       return NextResponse.json({ success: false, error: "Could not complete registration." }, { status: 500 });
     }
+
+    void sendTalkRegistrationAlertEmail({
+      email,
+      name,
+      partySize,
+      list,
+      source,
+    });
 
     const nextRemaining =
       list === "confirmed" ? Math.max(0, capacity - seatsTaken - partySize) : seatsRemaining;

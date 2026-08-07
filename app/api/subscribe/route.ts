@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { sendSubscriberAlertEmail } from "../../../lib/emails/registration-alert";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 
 const subscribeSchema = z.object({
@@ -12,6 +13,20 @@ const subscribeSchema = z.object({
 });
 
 type SubscribeSource = NonNullable<z.infer<typeof subscribeSchema>["source"]>;
+
+const notifySubscriber = (
+  email: string,
+  firstName: string | null | undefined,
+  source: SubscribeSource | null | undefined,
+  reactivated: boolean,
+) => {
+  void sendSubscriberAlertEmail({
+    email,
+    firstName: firstName ?? null,
+    source: source ?? null,
+    reactivated,
+  });
+};
 
 export async function POST(request: Request) {
   try {
@@ -100,6 +115,10 @@ export async function POST(request: Request) {
         }
       }
 
+      if (existing.unsubscribed_at !== null) {
+        notifySubscriber(email, first_name, source, true);
+      }
+
       return NextResponse.json({ success: true });
     }
 
@@ -116,6 +135,8 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    notifySubscriber(email, first_name, source, false);
 
     return NextResponse.json({ success: true });
   } catch (error) {
