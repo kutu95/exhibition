@@ -15,6 +15,8 @@ import styles from "./page.module.css";
 const PORTRAIT_SRC = "/images/john-bowskill-portrait.jpg";
 const PREFACE_HREF = "/book";
 
+export const revalidate = 60;
+
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("about");
 }

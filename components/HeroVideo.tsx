@@ -37,7 +37,15 @@ export function HeroVideo({
   return (
     <section className={styles.hero}>
       {resolvedVideoSrc ? (
-        <video className={styles.media} autoPlay muted loop playsInline poster={resolvedPosterSrc}>
+        <video
+          className={styles.media}
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster={resolvedPosterSrc}
+          aria-label="Coastal photography from The Georgette 150th exhibition near Redgate Beach, Margaret River"
+        >
           <source src={resolvedVideoSrc} />
         </video>
       ) : (

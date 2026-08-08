@@ -12,8 +12,10 @@ import {
   buildWebsite,
   HOME_FAQ_ITEMS,
 } from "../lib/structured-data";
-import { createSupabaseServerClient } from "../lib/supabase/server";
+import { createSupabasePublicClient } from "../lib/supabase/public";
 import styles from "./page.module.css";
+
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("home");
@@ -28,7 +30,7 @@ export default async function HomePage() {
   const [, contentResult] = await Promise.all([
     awaitPageMetadata("home"),
     (async () => {
-      const supabase = await createSupabaseServerClient();
+      const supabase = createSupabasePublicClient();
       return supabase
         .from("site_content")
         .select("content_key, content_value")

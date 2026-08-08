@@ -5,7 +5,7 @@ import { JsonLd } from "../../../components/JsonLd";
 import { installationPages } from "../../../lib/installation-pages";
 import { awaitPageMetadata, buildPageMetadata } from "../../../lib/seo-content";
 import { buildBreadcrumb } from "../../../lib/structured-data";
-import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { createSupabasePublicClient } from "../../../lib/supabase/public";
 import { getInstallationBody } from "../../../lib/utils/installation-content";
 import {
   resolveContentImage,
@@ -13,6 +13,8 @@ import {
 } from "../../../lib/utils/site-content-image";
 
 const content = installationPages.cubarama;
+
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("cubarama");
@@ -22,7 +24,7 @@ export default async function CubaramaPage() {
   const [, contentResult] = await Promise.all([
     awaitPageMetadata("cubarama"),
     (async () => {
-      const supabase = await createSupabaseServerClient();
+      const supabase = createSupabasePublicClient();
       return supabase
         .from("site_content")
         .select("content_key, content_value, media_files(alt_text, url_path)")

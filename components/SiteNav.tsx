@@ -59,7 +59,7 @@ export function SiteNav({ exhibitionTitle }: SiteNavProps) {
         <Link className={styles.logo} href="/">
           <Image
             src="/images/broken-propeller-mark.png"
-            alt=""
+            alt="Georgette 150th propeller mark"
             width={48}
             height={32}
             className={styles.logoMark}

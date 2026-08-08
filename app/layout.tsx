@@ -1,16 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import Script from "next/script";
 import { ReactNode } from "react";
 
-import { CartProvider } from "../components/CartProvider";
-import { FavouritesProvider } from "../components/FavouritesProvider";
-import { PurchasesAccessProvider } from "../components/PurchasesAccessProvider";
-import { SiteFooter } from "../components/SiteFooter";
-import { SiteNav } from "../components/SiteNav";
+import { PublicShell } from "../components/PublicShell";
 import { buildMetadata, siteConfig } from "../lib/metadata";
-import { arePurchasesAllowedForHost } from "../lib/purchases-access";
+import { isPurchasesLanOnlyEnabled } from "../lib/purchases-access";
 import "./globals.css";
+
+export const revalidate = 60;
 
 const baseMetadata = buildMetadata({});
 
@@ -57,22 +54,14 @@ export const viewport: Viewport = {
   themeColor: "#0a1628",
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const headerStore = await headers();
-  const pathname = headerStore.get("x-pathname") ?? "";
-  const isAdminRoute = pathname.startsWith("/admin");
-  const purchasesHeader = headerStore.get("x-purchases-allowed");
-  const purchasesAllowed =
-    purchasesHeader === "1" ||
-    purchasesHeader === "0"
-      ? purchasesHeader === "1"
-      : arePurchasesAllowedForHost(headerStore.get("host"));
+export default function RootLayout({ children }: { children: ReactNode }) {
+  const purchasesLanOnly = isPurchasesLanOnlyEnabled();
   const isStripeBypassEnabled = ["1", "true", "yes", "on"].includes(
     (process.env.CHECKOUT_BYPASS_STRIPE ?? "").trim().toLowerCase(),
   );
 
-  // Use the static site name here — awaiting Supabase in the root layout delayed
-  // the entire document and left crawlers with only the loading shell.
+  // Static site name — avoid awaiting Supabase in the root layout so public
+  // pages stay ISR-eligible and crawlers get a complete <head>.
   const exhibitionTitle = siteConfig.name;
 
   return (
@@ -111,19 +100,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             Stripe bypass is ON. Checkout creates paid test orders directly (no Stripe charge).
           </div>
         ) : null}
-        {isAdminRoute ? (
-          <main style={{ minHeight: "100vh", paddingTop: 0 }}>{children}</main>
-        ) : (
-          <PurchasesAccessProvider allowed={purchasesAllowed}>
-            <CartProvider>
-              <FavouritesProvider>
-                <SiteNav exhibitionTitle={exhibitionTitle} />
-                <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
-                <SiteFooter exhibitionTitle={exhibitionTitle} showCollectionsCta={purchasesAllowed} />
-              </FavouritesProvider>
-            </CartProvider>
-          </PurchasesAccessProvider>
-        )}
+        <PublicShell exhibitionTitle={exhibitionTitle} purchasesLanOnly={purchasesLanOnly}>
+          {children}
+        </PublicShell>
       </body>
     </html>
   );

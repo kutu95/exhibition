@@ -9,6 +9,8 @@ import { buildMetadata, siteConfig } from "../../../lib/metadata";
 import { buildArticle, buildBreadcrumb } from "../../../lib/structured-data";
 import styles from "./page.module.css";
 
+export const revalidate = 60;
+
 type PageProps = { params: Promise<{ slug: string }> };
 
 /** Set true to show the Sources / citations panel on history articles again. */

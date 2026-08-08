@@ -7,6 +7,8 @@ import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import { buildBreadcrumb, buildExhibitionEvent } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
+export const revalidate = 60;
+
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("visit");
 }

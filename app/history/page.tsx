@@ -7,6 +7,8 @@ import { buildMetadata, siteConfig } from "../../lib/metadata";
 import { buildBreadcrumb, buildShipEntity } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
+export const revalidate = 60;
+
 const PAGE_TITLE = "SS Georgette — history and research";
 const PAGE_DESCRIPTION =
   "Research into the SS Georgette, wrecked at Calgardup Bay on 1 December 1876: the Catalpa pursuit, the marine inquiry, and how the Grace Bussell rescue story was made. Drawn from primary records.";

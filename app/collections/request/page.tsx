@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { headers } from "next/headers";
 
-import { CollectionsRequestForm } from "../../../components/CollectionsRequestForm";
 import { buildMetadata } from "../../../lib/metadata";
-import {
-  areCollectionsAllowedForHost,
-  COLLECTIONS_DISABLED_MESSAGE,
-} from "../../../lib/purchases-access";
+import { CollectionsRequestGate } from "./CollectionsRequestGate";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = buildMetadata({
@@ -24,7 +18,6 @@ type PageProps = {
 
 export default async function CollectionsRequestPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const collectionsAllowed = areCollectionsAllowedForHost((await headers()).get("host"));
   const notice =
     params.invalid === "1"
       ? "That access link is no longer valid. You can request access below."
@@ -44,17 +37,7 @@ export default async function CollectionsRequestPage({ searchParams }: PageProps
         </p>
       </header>
 
-      {!collectionsAllowed ? (
-        <p className={styles.notice}>
-          {COLLECTIONS_DISABLED_MESSAGE}{" "}
-          <Link href="/contact">Contact</Link>
-        </p>
-      ) : (
-        <>
-          {notice ? <p className={styles.notice}>{notice}</p> : null}
-          <CollectionsRequestForm />
-        </>
-      )}
+      <CollectionsRequestGate notice={notice} />
     </section>
   );
 }

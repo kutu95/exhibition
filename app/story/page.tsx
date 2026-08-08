@@ -8,8 +8,10 @@ import { ShareButtons } from "../../components/ShareButtons";
 import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import { siteConfig } from "../../lib/metadata";
 import { buildArticle, buildBreadcrumb } from "../../lib/structured-data";
-import { createSupabaseServerClient } from "../../lib/supabase/server";
+import { createSupabasePublicClient } from "../../lib/supabase/public";
 import styles from "./page.module.css";
+
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("story");
@@ -25,7 +27,7 @@ export default async function StoryPage() {
   const [, contentResult] = await Promise.all([
     awaitPageMetadata("story"),
     (async () => {
-      const supabase = await createSupabaseServerClient();
+      const supabase = createSupabasePublicClient();
       return supabase
         .from("site_content")
         .select("content_key, content_value")

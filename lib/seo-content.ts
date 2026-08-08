@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import { buildMetadata, siteConfig } from "./metadata";
 import { SEO_CONTENT_LABELS, SEO_CONTENT_KEYS, type SeoContentKey } from "./seo-content-shared";
-import { createSupabaseServerClient } from "./supabase/server";
+import { createSupabasePublicClient } from "./supabase/public";
 
 export type SeoPageId =
   | "home"
@@ -30,7 +30,7 @@ export { SEO_CONTENT_KEYS, SEO_CONTENT_LABELS };
 
 /** Seed defaults — used only when DB keys are missing/blank so pages never 500 for crawlers. */
 export const SEO_FALLBACKS: Record<SeoContentKey, string> = {
-  seo_home_title: "The Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
+  seo_home_title: "The Georgette 150th Exhibition | John Bowskill",
   seo_home_description:
     "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
   seo_story_title: "The Story | The Georgette 150th",
@@ -168,7 +168,7 @@ async function loadSeoForPage(pageId: SeoPageId): Promise<SeoContent> {
   const config = SEO_PAGE_CONFIG[pageId];
 
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabasePublicClient();
     const { data, error } = await supabase
       .from("site_content")
       .select("content_key, content_value")
@@ -189,8 +189,6 @@ async function loadSeoForPage(pageId: SeoPageId): Promise<SeoContent> {
       ogType: config.ogType,
     };
   } catch (err) {
-    // Reading cookies during a static-render probe throws by design: it is how Next
-    // marks the route dynamic. Swallowing it would hide real Supabase failures.
     unstable_rethrow(err);
     console.warn(`[seo] Unexpected error loading SEO for "${pageId}":`, err);
     return staticSeo(pageId);

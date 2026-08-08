@@ -8,7 +8,7 @@ import { JsonLd } from "../../components/JsonLd";
 import { SectionDivider } from "../../components/SectionDivider";
 import { TalkRegistrationForm } from "../../components/TalkRegistrationForm";
 import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
-import { createSupabaseServerClient } from "../../lib/supabase/server";
+import { createSupabasePublicClient } from "../../lib/supabase/public";
 import { getInstallationBody } from "../../lib/utils/installation-content";
 import {
   isManagedLocalMediaPath,
@@ -18,6 +18,8 @@ import {
 } from "../../lib/utils/site-content-image";
 import { buildBreadcrumb, buildExhibitionEvent } from "../../lib/structured-data";
 import styles from "./page.module.css";
+
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("installations");
@@ -42,7 +44,7 @@ export default async function InstallationsPage() {
   const [, contentResult] = await Promise.all([
     awaitPageMetadata("installations"),
     (async () => {
-      const supabase = await createSupabaseServerClient();
+      const supabase = createSupabasePublicClient();
       return supabase
         .from("site_content")
         .select("content_key, content_value, media_files(alt_text, url_path)")

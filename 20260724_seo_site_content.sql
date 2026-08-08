@@ -8,7 +8,7 @@ insert into exhibition.site_content (content_key, content_value, content_type)
 values
   (
     'seo_home_title',
-    'The Georgette 150th Anniversary Photographic Exhibition | John Bowskill',
+    'The Georgette 150th Exhibition | John Bowskill',
     'text'
   ),
   (

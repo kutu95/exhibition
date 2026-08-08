@@ -12,6 +12,8 @@ import { siteConfig } from "../../lib/metadata";
 import { buildArticle, buildBreadcrumb } from "../../lib/structured-data";
 import styles from "./page.module.css";
 
+export const revalidate = 60;
+
 /** Place the February 2024 drone wreck photograph at this path. */
 const WRECK_IMAGE_SRC = "/images/georgette-wreck-drone-feb-2024.jpg";
 const WRECK_IMAGE_ALT =
