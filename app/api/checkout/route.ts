@@ -22,6 +22,7 @@ const checkoutSchema = z.object({
       }),
     )
     .min(1),
+  source: z.enum(["wall"]).optional(),
 });
 
 type VariantRecord = {
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
     }
 
     const requestedItems = parsed.data.items;
+    const checkoutSource = parsed.data.source ?? "";
     const variantIds = [...new Set(requestedItems.map((item) => item.variant_id))];
 
     const includeVault = await hasActiveVaultSessionFromRequest(request);
@@ -118,11 +120,19 @@ export async function POST(request: Request) {
           status: "paid",
           customer_email: "stripe-bypass@exhibition.local",
           customer_name: "Stripe bypass test order",
-          shipping_address: null,
+          shipping_address: {
+            street: "Studio pickup",
+            suburb: "Margaret River",
+            state: "WA",
+            postcode: "6285",
+            method: "exhibition_pickup",
+          },
           subtotal_aud: subtotal,
           shipping_aud: 0,
           total_aud: subtotal,
-          notes: "Order created with CHECKOUT_BYPASS_STRIPE enabled.",
+          notes: checkoutSource
+            ? `Order created with CHECKOUT_BYPASS_STRIPE enabled. source=${checkoutSource}`
+            : "Order created with CHECKOUT_BYPASS_STRIPE enabled.",
         })
         .select("id,order_number")
         .single();
@@ -186,16 +196,46 @@ export async function POST(request: Request) {
       };
     });
 
+    const cancelUrl =
+      checkoutSource === "wall" && requestedItems.length === 1
+        ? `${siteUrl}/shop`
+        : `${siteUrl}/shop`;
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
       success_url: `${siteUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/shop`,
+      cancel_url: cancelUrl,
       shipping_address_collection: {
         allowed_countries: ["AU", "NZ", "GB", "US", "CA", "DE", "FR", "NL", "SG", "JP"],
       },
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 0, currency: "aud" },
+            display_name: "Exhibition pickup",
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 0 },
+              maximum: { unit: "business_day", value: 1 },
+            },
+          },
+        },
+        {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: 0, currency: "aud" },
+            display_name: "Ship to address (Australia free / international arranged)",
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 3 },
+              maximum: { unit: "business_day", value: 14 },
+            },
+          },
+        },
+      ],
       metadata: {
         variant_ids: JSON.stringify(requestedItems),
+        ...(checkoutSource ? { source: checkoutSource } : {}),
       },
     });
 

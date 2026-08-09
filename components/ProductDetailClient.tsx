@@ -14,6 +14,7 @@ import {
 } from "./FramedPreview";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { readCart } from "../lib/cart";
+import { isWallSource } from "../lib/exhibition-links";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
 import {
   findVariantForOfferCombo,
@@ -107,6 +108,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   const [error, setError] = useState<string | null>(null);
   const { addItem, itemCount } = useCart();
   const purchasesAllowed = usePurchasesAllowed();
+  const fromWall = isWallSource(searchParams.get("src"));
 
   useEffect(() => {
     if (!useOfferChooser) return;
@@ -135,6 +137,16 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
     () => variants.find((variant) => variant.id === selectedVariantId),
     [variants, selectedVariantId],
   );
+
+  useEffect(() => {
+    trackEvent(PlausibleEvents.SHOP_VIEW_PRODUCT, {
+      product: product.title,
+      variant: selectedVariant?.variant_label ?? "default",
+      ...(fromWall ? { source: "wall" } : {}),
+    });
+    // Once per product page open (wall vs normal).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id, fromWall]);
 
   const maxEditionSize = useMemo(() => {
     const sizes = variants
@@ -185,30 +197,24 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       product: product.title,
       variant: selectedVariant.variant_label,
       price: selectedVariant.price_aud,
+      ...(fromWall ? { source: "wall" } : {}),
     });
     router.push("/cart");
   };
 
-  const handleBuyNow = async () => {
-    if (!purchasesAllowed) return;
-    const item = cartLine();
-    if (!item || !selectedVariant) return;
+  const startCheckout = async (checkoutItems: { variant_id: string; quantity: number }[]) => {
+    if (!selectedVariant) return;
 
     try {
       setIsCheckingOut(true);
       setError(null);
-
-      addItem(item);
-      const checkoutItems = readCart().map((row) => ({
-        variant_id: row.variant_id,
-        quantity: row.quantity,
-      }));
 
       trackEvent(PlausibleEvents.SHOP_CHECKOUT_START, {
         product: product.title,
         variant: selectedVariant.variant_label,
         price: selectedVariant.price_aud,
         items: checkoutItems.length,
+        ...(fromWall ? { source: "wall" } : {}),
       });
 
       const response = await fetch("/api/checkout", {
@@ -216,7 +222,10 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ items: checkoutItems }),
+        body: JSON.stringify({
+          items: checkoutItems,
+          ...(fromWall ? { source: "wall" } : {}),
+        }),
       });
 
       const data = (await response.json()) as { url?: string; error?: string };
@@ -231,6 +240,25 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       setError("Unable to start checkout. Please try again.");
       setIsCheckingOut(false);
     }
+  };
+
+  const handleBuyThisPrint = async () => {
+    if (!purchasesAllowed) return;
+    const item = cartLine();
+    if (!item || !selectedVariant) return;
+    await startCheckout([{ variant_id: item.variant_id, quantity: item.quantity }]);
+  };
+
+  const handleBuyNow = async () => {
+    if (!purchasesAllowed) return;
+    const item = cartLine();
+    if (!item || !selectedVariant) return;
+    addItem(item);
+    const checkoutItems = readCart().map((row) => ({
+      variant_id: row.variant_id,
+      quantity: row.quantity,
+    }));
+    await startCheckout(checkoutItems);
   };
 
   return (
@@ -299,6 +327,32 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       </div>
 
       <aside className={styles.sidebar}>
+        {fromWall ? (
+          <div className={styles.wallBanner}>
+            {purchasesAllowed ? (
+              <>
+                <p>
+                  You&apos;re viewing the print on the wall. Choose size and finish, then buy this print — or ask at the
+                  desk if you prefer to pay in person.
+                </p>
+                <p>
+                  Exhibition pickup is available at checkout. Prefer staff help? Ask at the desk.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  You&apos;re viewing the print on the wall. Favourite it on your phone, then ask at the desk to purchase
+                  with card or cash.
+                </p>
+                <p>
+                  Online checkout is temporarily closed.{" "}
+                  <Link href="/contact">Contact</Link> for enquiries after your visit.
+                </p>
+              </>
+            )}
+          </div>
+        ) : null}
         {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
         <h1 className={styles.title}>{product.title}</h1>
         {product.description ? <p className={styles.description}>{product.description}</p> : null}
@@ -318,7 +372,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             <fieldset className={styles.offerFieldset}>
               <legend className={styles.sizeLegend}>
                 <span>Size</span>
-                {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" ? (
+                {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" && !fromWall ? (
                   <Link className={styles.sizeCustomLink} href={`/shop/${product.slug}/custom`}>
                     Custom
                   </Link>
@@ -499,7 +553,7 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
           </div>
         )}
 
-        <div className={styles.buyActions}>
+        <div className={`${styles.buyActions} ${fromWall ? styles.buyActionsWall : ""}`}>
           <FavouriteButton
             productId={product.id}
             productTitle={product.title}
@@ -507,34 +561,45 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
             className={styles.favouriteButton}
           />
           {purchasesAllowed ? (
-            <>
-              <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
-                Add to cart
-              </button>
+            fromWall ? (
               <button
-                className={`button-outline ${styles.buyButton}`}
+                className={`button-solid ${styles.buyButton}`}
                 type="button"
-                onClick={handleBuyNow}
+                onClick={handleBuyThisPrint}
                 disabled={isCheckingOut}
               >
-                {isCheckingOut
-                  ? "Redirecting..."
-                  : itemCount > 0
-                    ? "Buy now (includes cart)"
-                    : "Buy now"}
+                {isCheckingOut ? "Redirecting..." : "Buy this print"}
               </button>
-            </>
+            ) : (
+              <>
+                <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
+                  Add to cart
+                </button>
+                <button
+                  className={`button-outline ${styles.buyButton}`}
+                  type="button"
+                  onClick={handleBuyNow}
+                  disabled={isCheckingOut}
+                >
+                  {isCheckingOut
+                    ? "Redirecting..."
+                    : itemCount > 0
+                      ? "Buy now (includes cart)"
+                      : "Buy now"}
+                </button>
+              </>
+            )
           ) : null}
         </div>
 
-        {!purchasesAllowed ? (
+        {!purchasesAllowed && !fromWall ? (
           <p className={styles.purchaseNotice}>
             {PURCHASES_DISABLED_MESSAGE}{" "}
             <Link href="/contact">Contact</Link>
           </p>
         ) : null}
 
-        {purchasesAllowed && itemCount > 0 ? (
+        {purchasesAllowed && !fromWall && itemCount > 0 ? (
           <p className={styles.cartFeedback}>
             {itemCount} item{itemCount === 1 ? "" : "s"} already in your cart.{" "}
             <Link href="/cart">View cart</Link>

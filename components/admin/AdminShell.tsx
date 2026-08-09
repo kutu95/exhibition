@@ -9,6 +9,7 @@ import styles from "../../app/admin/admin.module.css";
 const links = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/on-site", label: "On-site sale" },
   { href: "/admin/fulfilment", label: "Fulfilment" },
   { href: "/admin/import-wizard", label: "Import Wizard" },
   { href: "/admin/register-photo", label: "Register Photo" },

@@ -91,6 +91,23 @@ const getCheckoutMetadataItems = (metadata: Stripe.Metadata | null): CheckoutMet
 };
 
 const getFlattenedShippingAddress = (session: Stripe.Checkout.Session) => {
+  const shippingRate = session.shipping_cost?.shipping_rate;
+  const rateName =
+    typeof shippingRate === "object" && shippingRate && "display_name" in shippingRate
+      ? String(shippingRate.display_name ?? "")
+      : "";
+  const isExhibitionPickup = /exhibition\s*pickup/i.test(rateName);
+
+  if (isExhibitionPickup) {
+    return {
+      street: "Studio pickup",
+      suburb: "Margaret River",
+      state: "WA",
+      postcode: "6285",
+      method: "exhibition_pickup",
+    };
+  }
+
   const address = session.customer_details?.address;
 
   if (!address) {
@@ -102,6 +119,7 @@ const getFlattenedShippingAddress = (session: Stripe.Checkout.Session) => {
     suburb: address.city ?? "",
     state: address.state ?? "",
     postcode: address.postal_code ?? "",
+    method: "ship",
   };
 };
 
@@ -159,9 +177,9 @@ const upsertPaidOrderFromSession = async (
     customer_name: session.customer_details?.name ?? null,
     shipping_address: getFlattenedShippingAddress(session),
     subtotal_aud: session.amount_subtotal ?? 0,
-    shipping_aud: 0,
+    shipping_aud: session.shipping_cost?.amount_total ?? 0,
     total_aud: session.amount_total ?? 0,
-    notes: null,
+    notes: session.metadata?.source ? `source=${session.metadata.source}` : null,
   };
 
   const { data: createdOrder, error: orderError } = await supabaseAdmin
@@ -257,7 +275,7 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const expandedSession = await stripe.checkout.sessions.retrieve(session.id, {
-          expand: ["line_items.data.price.product"],
+          expand: ["line_items.data.price.product", "shipping_cost.shipping_rate"],
         });
         const lineItems =
           expandedSession.line_items?.data ??
@@ -268,7 +286,7 @@ export async function POST(request: Request) {
             })
           ).data;
 
-        await upsertPaidOrderFromSession(session, lineItems);
+        await upsertPaidOrderFromSession(expandedSession, lineItems);
         break;
       }
       case "payment_intent.payment_failed": {

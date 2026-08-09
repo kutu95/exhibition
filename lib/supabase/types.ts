@@ -123,6 +123,7 @@ export type Order = {
   order_number: string;
   stripe_payment_intent_id: string | null;
   stripe_checkout_session_id: string | null;
+  square_payment_id: string | null;
   status: OrderStatus;
   customer_email: string;
   customer_name: string | null;

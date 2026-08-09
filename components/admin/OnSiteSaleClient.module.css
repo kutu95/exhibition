@@ -1,0 +1,170 @@
+.wrap {
+  display: grid;
+  gap: 1rem;
+  max-width: 720px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.45rem;
+}
+
+.muted {
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.link {
+  color: #111;
+  font-size: 0.92rem;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.notice,
+.noticeOk {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.92rem;
+  border: 1px solid #ddd;
+}
+
+.notice {
+  background: #fff8e8;
+  border-color: #e6d4a8;
+}
+
+.noticeOk {
+  background: #eef7f0;
+  border-color: #b7d4c0;
+}
+
+.panel {
+  border: 1px solid #d8d8d8;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.field,
+.fieldNarrow {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+
+.fieldNarrow {
+  max-width: 100px;
+}
+
+.field input,
+.field select,
+.field textarea,
+.fieldNarrow input {
+  font: inherit;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  background: #fff;
+}
+
+.total {
+  margin: 0.25rem 0 0;
+  font-size: 1.15rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+}
+
+.radioRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.1rem;
+}
+
+.addressGrid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.actions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.markPaid {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.primary,
+.secondary,
+.ghost {
+  font: inherit;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0;
+  cursor: pointer;
+  text-align: center;
+}
+
+.primary {
+  background: #111;
+  color: #fff;
+  border: 1px solid #111;
+}
+
+.secondary {
+  background: #fff;
+  color: #111;
+  border: 1px solid #111;
+}
+
+.ghost {
+  background: transparent;
+  color: #333;
+  border: 1px dashed #999;
+}
+
+.primary:disabled,
+.secondary:disabled,
+.ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #8b1e1e;
+  margin: 0;
+}
+
+.success {
+  color: #1b5e3a;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .actions {
+    grid-template-columns: 1fr 1fr;
+  }
+}

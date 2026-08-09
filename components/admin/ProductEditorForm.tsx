@@ -401,7 +401,7 @@ export function ProductEditorForm({
     }
 
     const confirmed = window.confirm(
-      `Create a paid admin test order for "${variant.variant_label}" without Stripe? This will enter fulfilment.`,
+      `Create a paid fulfilment test order for "${variant.variant_label}" without Stripe? Prefer On-site sale for real desk sales.`,
     );
     if (!confirmed) return;
 
@@ -415,6 +415,7 @@ export function ProductEditorForm({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        mode: "test",
         variant_id: variant.id,
         quantity: 1,
       }),
@@ -880,7 +881,19 @@ export function ProductEditorForm({
           ))}
         </section>
 
-        {mode === "edit" ? <ProductWallQrCodes slug={slug} title={title} /> : null}
+        {mode === "edit" ? (
+          <ProductWallQrCodes
+            slug={slug}
+            title={title}
+            productId={initialData?.id}
+            variants={variants
+              .filter((variant) => variant.id && variant.is_active)
+              .map((variant) => ({
+                id: variant.id!,
+                label: variant.variant_label.trim() || "Untitled variant",
+              }))}
+          />
+        ) : null}
 
         {error ? <p className={styles.error}>{error}</p> : null}
         {testOrderMessage ? <p className={styles.success}>{testOrderMessage}</p> : null}

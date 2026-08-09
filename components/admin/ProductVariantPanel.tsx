@@ -187,7 +187,7 @@ export function ProductVariantPanel({
           >
             {creatingTestOrderVariantId === variant.id
               ? "Creating test order..."
-              : "Create Test Order (No Stripe)"}
+              : "Create fulfilment test order"}
           </button>
         </div>
       ) : null}
