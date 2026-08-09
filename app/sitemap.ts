@@ -10,24 +10,35 @@ type ProductSitemapRow = {
 };
 
 /**
- * Bumped whenever the hand-written page copy changes. A `lastmod` that never
- * moves tells Google there is nothing to recrawl.
+ * Bumped whenever the hand-written page copy / SEO surface changes.
+ * A frozen `lastmod` tells Google there is nothing to recrawl.
  */
-const staticLastMod = new Date("2026-08-05");
+const staticLastMod = new Date("2026-08-10");
+
+/** Regenerate so new prints appear without waiting for a redeploy. */
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Service role: public catalogue only — vault products must never appear.
+  // Explicit high range avoids accidental PostgREST max-rows truncation.
   const [{ data: products, error }, historyPages] = await Promise.all([
     supabaseAdmin
       .from("products")
       .select("slug, created_at")
       .eq("is_available", true)
-      .eq("visibility", "public"),
+      .eq("visibility", "public")
+      .order("slug", { ascending: true })
+      .range(0, 4999),
     getPublishedHistoryPages(),
   ]);
 
   if (error) {
     console.error("Sitemap product query failed", error);
+  }
+
+  const productRows = (products ?? []) as ProductSitemapRow[];
+  if (!error && productRows.length === 0) {
+    console.warn("Sitemap: zero public products returned — check Supabase connectivity.");
   }
 
   // Drafts have no `status: published`, so they are absent here as well as unroutable.
@@ -51,10 +62,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ]
       : [];
 
-  const productUrls = ((products ?? []) as ProductSitemapRow[]).map((product) => ({
+  const productUrls = productRows.map((product) => ({
     url: `${siteConfig.url}/shop/${product.slug}`,
-    // Print pages now carry hand-written editorial copy, so the page changed
-    // more recently than the catalogue row it was built from.
+    // Print pages carry hand-written editorial copy newer than many catalogue rows.
     lastModified: new Date(
       Math.max(
         new Date(product.created_at || staticLastMod).getTime(),
