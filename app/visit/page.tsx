@@ -46,7 +46,7 @@ export default async function VisitPage() {
           <p>
             <a
               className="text-link"
-              href="https://maps.app.goo.gl/K7cW5Xro8tSXhSoUA"
+              href="https://maps.app.goo.gl/R5SQRh93FApfYRi48"
               target="_blank"
               rel="noopener noreferrer"
             >
