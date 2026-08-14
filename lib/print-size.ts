@@ -72,6 +72,17 @@ export const formatSizePair = (widthMm: number, heightMm: number, unit: SizeUnit
 export const formatDualSize = (widthMm: number, heightMm: number): string =>
   `${formatSizePair(widthMm, heightMm, "mm")} · ${formatSizePair(widthMm, heightMm, "in")}`;
 
+/** Compact mm / cm / in line for Pixel Perfect paste and the fulfilment dashboard. */
+export const formatLabDimensions = (widthMm: number, heightMm: number): string => {
+  const wMm = Math.round(widthMm);
+  const hMm = Math.round(heightMm);
+  const wCm = (Math.round(widthMm) / 10).toFixed(1);
+  const hCm = (Math.round(heightMm) / 10).toFixed(1);
+  const wIn = roundDisplayValue(mmToInches(widthMm), "in");
+  const hIn = roundDisplayValue(mmToInches(heightMm), "in");
+  return `${wMm} × ${hMm} mm · ${wCm} × ${hCm} cm · ${wIn} × ${hIn} in`;
+};
+
 export const longEdgeInputToMm = (value: number, unit: SizeUnit): number => {
   if (value <= 0) return 0;
   return unit === "mm" ? Math.round(value) : Math.round(inchesToMm(value));

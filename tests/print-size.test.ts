@@ -16,6 +16,7 @@ import {
   deriveAspectPreservingSizeMm,
   estimatePixelPerfectLabCost,
   formatDualSize,
+  formatLabDimensions,
   formatPhotoAspectSummary,
   inchesToMm,
   longEdgeFromDimensions,
@@ -99,6 +100,10 @@ describe("print size helpers", () => {
     expect(formatDualSize(594, 445)).toContain("Height 445 mm");
     expect(formatDualSize(594, 445)).toContain("Width");
     expect(formatDualSize(594, 445)).toContain("in");
+  });
+
+  it("formats lab dimensions in mm, cm, and inches for Pixel Perfect", () => {
+    expect(formatLabDimensions(420, 594)).toBe("420 × 594 mm · 42.0 × 59.4 cm · 16.54 × 23.39 in");
   });
 
   it("estimates Pixel Perfect lab cost from size and paper", () => {

@@ -9,6 +9,7 @@ import {
   pixelPerfectEditionLine,
   pixelPerfectStudioHeader,
 } from "../../lib/studio-orders";
+import { formatLabDimensions } from "../../lib/print-size";
 import { formatAUD } from "../../lib/utils/currency";
 import styles from "./FulfilmentDashboardClient.module.css";
 
@@ -138,11 +139,21 @@ const driveFileUrl = (item: FulfilmentDashboardItem): string | null => {
 const hasPreparedPrintFile = (item: FulfilmentDashboardItem): boolean =>
   Boolean(item.local_print_file_path?.trim()) || Boolean(item.cloud_file_url?.trim().startsWith("file:"));
 
+const expectedPrintFileName = (item: FulfilmentDashboardItem): string => {
+  const width = Math.trunc(Number(item.width_mm) || 0);
+  const height = Math.trunc(Number(item.height_mm) || 0);
+  return `${item.order_number}_${item.slug}_${width}x${height}mm.tif`;
+};
+
 const localPrintFileName = (item: FulfilmentDashboardItem): string => {
   if (item.local_print_file_name?.trim()) return item.local_print_file_name.trim();
   const filePath = localFilePath(item);
-  const parts = filePath.split(/[/\\]/);
-  return parts[parts.length - 1] || filePath;
+  if (filePath && !/^https?:/i.test(filePath) && !filePath.startsWith("file:")) {
+    const parts = filePath.split(/[/\\]/);
+    const name = parts[parts.length - 1];
+    if (name && /\.tiff?$/i.test(name)) return name;
+  }
+  return expectedPrintFileName(item);
 };
 
 const printFilePreviewUrl = (orderItemId: string): string =>
@@ -181,21 +192,17 @@ const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
     isStudioItem(item) ? pixelPerfectStudioHeader : null,
     `Customer: ${item.customer_name ?? ""}`,
     `Deliver to: ${formatAddress(item)}`,
-    driveFileUrl(item) ? `Drive file: ${driveFileUrl(item)}` : null,
-    hasPreparedPrintFile(item) ? `Prepared print file: ${localFilePath(item)}` : null,
-    !driveFileUrl(item) && !hasPreparedPrintFile(item) && item.cloud_file_url
-      ? `File: ${item.cloud_file_url}`
-      : null,
     driveFolderUrl(item) ? `Drive folder: ${driveFolderUrl(item)}` : null,
+    localPrintFileName(item) ? `Filename: ${localPrintFileName(item)}` : null,
     item.tier_label ? `Range: ${item.tier_label}` : null,
     `Paper: ${item.paper_type ?? ""}`,
     item.finish ? `Finish: ${item.finish}` : null,
-    `Size: ${item.width_mm} x ${item.height_mm} mm`,
+    `Size: ${formatLabDimensions(item.width_mm, item.height_mm)}`,
     item.fit_mode === "custom_size"
       ? `Framing: custom size (lock ${item.size_lock ?? "long_edge"}) — order as custom paper at Pixel Perfect`
       : `Framing: cover crop${item.crop_offset ? ` (pan ${Number(item.crop_offset).toFixed(2)})` : ""}`,
     item.front_face_width_mm && item.front_face_height_mm
-      ? `Front face: ${item.front_face_width_mm} x ${item.front_face_height_mm} mm`
+      ? `Front face: ${formatLabDimensions(item.front_face_width_mm, item.front_face_height_mm)}`
       : null,
     item.canvas_wrap_mm ? `Canvas wrap: ${item.canvas_wrap_mm} mm${item.wrap_style ? `, ${item.wrap_style}` : ""}` : null,
     item.is_framed ? `Frame: ${item.frame_type ?? "Framed"}` : null,
@@ -450,7 +457,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   <p><strong>Address:</strong> {formatAddress(item)}</p>
                   <p><strong>Variant:</strong> {item.variant_label}</p>
                   <p><strong>Range:</strong> {item.tier_label ?? "—"}</p>
-                  <p><strong>Dimensions:</strong> {item.width_mm} x {item.height_mm} mm</p>
+                  <p><strong>Dimensions:</strong> {formatLabDimensions(item.width_mm, item.height_mm)}</p>
                   <p>
                     <strong>Framing:</strong>{" "}
                     {item.fit_mode === "custom_size"
@@ -513,33 +520,33 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                         </div>
                       ) : null}
 
-                      {driveFileUrl(item) ? (
-                        <p>
-                          <strong>Drive file:</strong>{" "}
-                          <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
-                            Open public TIFF in Google Drive
-                          </a>
-                          <button
-                            className={styles.button}
-                            type="button"
-                            onClick={() => copyToClipboard(driveFileUrl(item)!, "Pixel Perfect file link")}
-                          >
-                            Copy Pixel Perfect Link
-                          </button>
-                        </p>
-                      ) : null}
-
                       {driveFolderUrl(item) ? (
                         <p>
                           <strong>Drive folder:</strong>{" "}
                           <a href={driveFolderUrl(item)!} target="_blank" rel="noreferrer">
                             Open in Google Drive
                           </a>
+                          <button
+                            className={styles.button}
+                            type="button"
+                            onClick={() => copyToClipboard(driveFolderUrl(item)!, "Pixel Perfect folder link")}
+                          >
+                            Copy folder link
+                          </button>
                           <span className={styles.muted}>
                             {driveFileUrl(item)
-                              ? " — TIFF uploaded automatically"
+                              ? " — TIFF is in this folder; enter the filename on the Pixel Perfect form"
                               : " — automatic upload was unavailable; upload the prepared print file manually"}
                           </span>
+                        </p>
+                      ) : null}
+
+                      {driveFileUrl(item) && !driveFolderUrl(item) ? (
+                        <p>
+                          <strong>Drive file:</strong>{" "}
+                          <a href={driveFileUrl(item)!} target="_blank" rel="noreferrer">
+                            Open public TIFF in Google Drive
+                          </a>
                         </p>
                       ) : null}
 
