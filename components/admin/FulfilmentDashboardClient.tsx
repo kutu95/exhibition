@@ -4,12 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
-import {
-  isStudioOrderNotes,
-  pixelPerfectEditionLine,
-  pixelPerfectStudioHeader,
-} from "../../lib/studio-orders";
+import { buildPixelPerfectOrderEmail } from "../../lib/pixel-perfect-email";
 import { formatLabDimensions } from "../../lib/print-size";
+import { isStudioOrderNotes } from "../../lib/studio-orders";
 import { formatAUD } from "../../lib/utils/currency";
 import styles from "./FulfilmentDashboardClient.module.css";
 
@@ -186,38 +183,25 @@ const statusTimeline = (item: FulfilmentDashboardItem) => {
 const isStudioItem = (item: FulfilmentDashboardItem): boolean =>
   isStudioOrderNotes(item.order_notes) || isStudioOrderNotes(item.fulfilment_notes);
 
-const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
-  [
-    `ORDER REF: ${item.order_number}`,
-    isStudioItem(item) ? pixelPerfectStudioHeader : null,
-    `Customer: ${item.customer_name ?? ""}`,
-    `Deliver to: ${formatAddress(item)}`,
-    driveFolderUrl(item) ? `Drive folder: ${driveFolderUrl(item)}` : null,
-    localPrintFileName(item) ? `Filename: ${localPrintFileName(item)}` : null,
-    item.tier_label ? `Range: ${item.tier_label}` : null,
-    `Paper: ${item.paper_type ?? ""}`,
-    item.finish ? `Finish: ${item.finish}` : null,
-    `Size: ${formatLabDimensions(item.width_mm, item.height_mm)}`,
-    item.fit_mode === "custom_size"
-      ? `Framing: custom size (lock ${item.size_lock ?? "long_edge"}) — order as custom paper at Pixel Perfect`
-      : `Framing: cover crop${item.crop_offset ? ` (pan ${Number(item.crop_offset).toFixed(2)})` : ""}`,
-    item.front_face_width_mm && item.front_face_height_mm
-      ? `Front face: ${formatLabDimensions(item.front_face_width_mm, item.front_face_height_mm)}`
-      : null,
-    item.canvas_wrap_mm ? `Canvas wrap: ${item.canvas_wrap_mm} mm${item.wrap_style ? `, ${item.wrap_style}` : ""}` : null,
-    item.is_framed ? `Frame: ${item.frame_type ?? "Framed"}` : null,
-    item.shipping_class ? `Shipping class: ${item.shipping_class}` : null,
-    pixelPerfectEditionLine({
-      edition_number_assigned: item.edition_number_assigned,
-      edition_size: item.edition_size,
-      is_studio_order: isStudioItem(item),
-    }),
-    "Colour space: Adobe RGB 1998",
-    `Print ready: Yes - ${item.print_dpi}ppi, Adobe RGB 1998, 8-bit TIFF, flattened, ZIP`,
-    "Trimmed: Yes",
-    item.variant_fulfilment_notes ? `Notes: ${item.variant_fulfilment_notes}` : null,
-    `Qty: ${item.quantity}`,
-  ].filter(Boolean).join("\n");
+const pixelPerfectEmail = (item: FulfilmentDashboardItem) =>
+  buildPixelPerfectOrderEmail({
+    order_number: item.order_number,
+    photo_title: item.photo_title || item.title,
+    width_mm: item.width_mm,
+    height_mm: item.height_mm,
+    paper_type: item.paper_type,
+    finish: item.finish,
+    is_framed: item.is_framed,
+    frame_type: item.frame_type,
+    print_dpi: item.print_dpi,
+    quantity: item.quantity,
+    is_studio_order: isStudioItem(item),
+    drive_folder_url: driveFolderUrl(item),
+    filename: localPrintFileName(item),
+    canvas_wrap_mm: item.canvas_wrap_mm,
+    wrap_style: item.wrap_style,
+    shipping_address: item.shipping_address,
+  });
 
 export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashboardClientProps) {
   const router = useRouter();
@@ -556,7 +540,11 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                         </p>
                       ) : null}
 
-                      <textarea className={styles.textarea} readOnly value={pixelPerfectText(item)} />
+                      <p className={styles.muted}>
+                        Email to admin@pixelperfect.com.au. They will invoice; pay separately. Paste the Drive folder
+                        link and type the filename on their side if they ask.
+                      </p>
+                      <textarea className={styles.textarea} readOnly value={pixelPerfectEmail(item).body} rows={18} />
                     </>
                   ) : (
                     <p className={styles.muted}>
@@ -569,10 +557,13 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                       className={styles.button}
                       type="button"
                       disabled={!hasPreparedPrintFile(item) && !item.cloud_file_url}
-                      onClick={() => copyToClipboard(pixelPerfectText(item), "Pixel Perfect order text")}
+                      onClick={() =>
+                        copyToClipboard(pixelPerfectEmail(item).body, "Pixel Perfect order email")
+                      }
                     >
-                      Copy Pixel Perfect Text
+                      Copy Pixel Perfect email
                     </button>
+                    <a href={pixelPerfectEmail(item).mailtoHref}>Open in email app</a>
                     <a href="https://pixelperfect.com.au/order-form" target="_blank" rel="noreferrer">
                       Open Pixel Perfect Form
                     </a>
