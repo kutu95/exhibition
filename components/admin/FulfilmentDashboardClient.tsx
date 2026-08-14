@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
+import {
+  isStudioOrderNotes,
+  pixelPerfectEditionLine,
+  pixelPerfectStudioHeader,
+} from "../../lib/studio-orders";
 import { formatAUD } from "../../lib/utils/currency";
 import styles from "./FulfilmentDashboardClient.module.css";
 
@@ -64,6 +69,7 @@ export type FulfilmentDashboardItem = {
   pixel_perfect_order_ref: string | null;
   tracking_number: string | null;
   fulfilment_notes: string | null;
+  order_notes?: string | null;
   file_ready_at?: string | null;
   submitted_to_lab_at?: string | null;
   shipped_at?: string | null;
@@ -166,9 +172,13 @@ const statusTimeline = (item: FulfilmentDashboardItem) => {
   return { steps, eventLines };
 };
 
+const isStudioItem = (item: FulfilmentDashboardItem): boolean =>
+  isStudioOrderNotes(item.order_notes) || isStudioOrderNotes(item.fulfilment_notes);
+
 const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
   [
     `ORDER REF: ${item.order_number}`,
+    isStudioItem(item) ? pixelPerfectStudioHeader : null,
     `Customer: ${item.customer_name ?? ""}`,
     `Deliver to: ${formatAddress(item)}`,
     driveFileUrl(item) ? `Drive file: ${driveFileUrl(item)}` : null,
@@ -190,7 +200,11 @@ const pixelPerfectText = (item: FulfilmentDashboardItem): string =>
     item.canvas_wrap_mm ? `Canvas wrap: ${item.canvas_wrap_mm} mm${item.wrap_style ? `, ${item.wrap_style}` : ""}` : null,
     item.is_framed ? `Frame: ${item.frame_type ?? "Framed"}` : null,
     item.shipping_class ? `Shipping class: ${item.shipping_class}` : null,
-    `Edition: ${item.edition_number_assigned ?? ""} of ${item.edition_size ?? ""}`,
+    pixelPerfectEditionLine({
+      edition_number_assigned: item.edition_number_assigned,
+      edition_size: item.edition_size,
+      is_studio_order: isStudioItem(item),
+    }),
     "Colour space: Adobe RGB 1998",
     `Print ready: Yes - ${item.print_dpi}ppi, Adobe RGB 1998, 8-bit TIFF, flattened, ZIP`,
     "Trimmed: Yes",
@@ -399,7 +413,10 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                     </p>
                   </div>
                 </div>
-                <span className={styles.status}>{item.fulfilment_status.replaceAll("_", " ")}</span>
+                <div className={styles.summaryBadges}>
+                  {isStudioItem(item) ? <span className={styles.studioBadge}>Studio</span> : null}
+                  <span className={styles.status}>{item.fulfilment_status.replaceAll("_", " ")}</span>
+                </div>
               </summary>
 
               <div className={styles.cardBody}>
@@ -445,9 +462,17 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   <p><strong>Frame:</strong> {item.is_framed ? item.frame_type ?? "Framed" : "No"}</p>
                   <p><strong>Shipping class:</strong> {item.shipping_class ?? "—"}</p>
                   <p><strong>Colour space:</strong> Adobe RGB 1998</p>
-                  <p><strong>Edition:</strong> {item.edition_number_assigned ?? "—"} / {item.edition_size ?? "—"}</p>
+                  <p>
+                    <strong>Edition:</strong>{" "}
+                    {isStudioItem(item)
+                      ? "n/a (artist copy)"
+                      : `${item.edition_number_assigned ?? "—"} / ${item.edition_size ?? "—"}`}
+                  </p>
                   <p><strong>Qty:</strong> {item.quantity}</p>
-                  <p><strong>Price:</strong> {formatAUD(item.price)}</p>
+                  <p>
+                    <strong>Price:</strong>{" "}
+                    {isStudioItem(item) ? "Studio copy — pay lab directly" : formatAUD(item.price)}
+                  </p>
                   <p><strong>Master file:</strong> {item.master_filename ?? "—"}</p>
                 </div>
 
@@ -572,14 +597,16 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                     <button className={styles.button} type="button" onClick={() => markShipped(item)}>
                       Mark Shipped
                     </button>
-                    <button
-                      className={styles.button}
-                      type="button"
-                      disabled={!item.tracking_number && !trackingNumbers[item.order_item_id]}
-                      onClick={() => notifyCustomer(item)}
-                    >
-                      Notify Customer
-                    </button>
+                    {isStudioItem(item) ? null : (
+                      <button
+                        className={styles.button}
+                        type="button"
+                        disabled={!item.tracking_number && !trackingNumbers[item.order_item_id]}
+                        onClick={() => notifyCustomer(item)}
+                      >
+                        Notify Customer
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

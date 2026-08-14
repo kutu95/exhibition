@@ -100,6 +100,23 @@
   white-space: nowrap;
 }
 
+.summaryBadges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.studioBadge {
+  border: 1px solid #6f2ca0;
+  color: #6f2ca0;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.45rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .cardBody {
   margin-top: 0.85rem;
 }

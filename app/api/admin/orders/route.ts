@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { verifyAdminSession } from "../../../../lib/admin-auth";
+import { isStudioOrderNotes } from "../../../../lib/studio-orders";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
 
 type OrderListRow = {
@@ -11,6 +12,7 @@ type OrderListRow = {
   status: string;
   total_aud: number | null;
   created_at: string;
+  notes: string | null;
 };
 
 export async function GET(request: Request) {
@@ -21,7 +23,7 @@ export async function GET(request: Request) {
 
   const { data: orders, error: ordersError } = await supabaseAdmin
     .from("orders")
-    .select("id,order_number,customer_name,customer_email,status,total_aud,created_at")
+    .select("id,order_number,customer_name,customer_email,status,total_aud,created_at,notes")
     .order("created_at", { ascending: false });
 
   if (ordersError) {
@@ -52,6 +54,7 @@ export async function GET(request: Request) {
     orderRows.map((order) => ({
       ...order,
       items_count: itemsCountMap.get(order.id) ?? 0,
+      is_studio: isStudioOrderNotes(order.notes),
     })),
   );
 }

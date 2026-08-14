@@ -193,6 +193,7 @@ export function ProductEditorForm({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [creatingTestOrderVariantId, setCreatingTestOrderVariantId] = useState<string | null>(null);
+  const [creatingStudioOrderVariantId, setCreatingStudioOrderVariantId] = useState<string | null>(null);
   const [testOrderMessage, setTestOrderMessage] = useState<string | null>(null);
   const [preparingPrintVariantId, setPreparingPrintVariantId] = useState<string | null>(null);
   const [printPrepareMessages, setPrintPrepareMessages] = useState<Record<string, string>>({});
@@ -433,6 +434,50 @@ export function ProductEditorForm({
 
     setTestOrderMessage(`Created test order ${body?.order_number ?? ""}.`);
     setCreatingTestOrderVariantId(null);
+    router.refresh();
+  };
+
+  const createStudioOrder = async (variant: VariantInput) => {
+    if (!variant.id) {
+      setError("Save the product before creating a studio order.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Create a studio print order for "${variant.variant_label}"? No payment and no edition number. The fulfilment worker will prepare the lab TIFF.`,
+    );
+    if (!confirmed) return;
+
+    setCreatingStudioOrderVariantId(variant.id);
+    setError(null);
+    setTestOrderMessage(null);
+
+    const response = await fetch("/api/admin/orders/manual", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        mode: "studio",
+        variant_id: variant.id,
+        quantity: 1,
+      }),
+    });
+
+    const body = (await response.json().catch(() => null)) as
+      | { error?: string; order_number?: string }
+      | null;
+
+    if (!response.ok) {
+      setError(body?.error ?? "Failed to create studio order.");
+      setCreatingStudioOrderVariantId(null);
+      return;
+    }
+
+    setTestOrderMessage(
+      `Created studio order ${body?.order_number ?? ""}. Open Fulfilment for specs and the print file.`,
+    );
+    setCreatingStudioOrderVariantId(null);
     router.refresh();
   };
 
@@ -782,6 +827,7 @@ export function ProductEditorForm({
                   }
                   activeVariantTemplates={activeVariantTemplates}
                   creatingTestOrderVariantId={creatingTestOrderVariantId}
+                  creatingStudioOrderVariantId={creatingStudioOrderVariantId}
                   preparingPrintVariantId={preparingPrintVariantId}
                   printPrepareMessage={variant.id ? printPrepareMessages[variant.id] ?? null : null}
                   onChange={(next) =>
@@ -797,6 +843,7 @@ export function ProductEditorForm({
                     )
                   }
                   onCreateTestOrder={() => createTestOrder(variant)}
+                  onCreateStudioOrder={() => createStudioOrder(variant)}
                   onPreparePrintFile={() => void preparePrintFile(variant)}
                   onDownloadPrintFile={() => downloadPrintFile(variant)}
                 />

@@ -13,6 +13,7 @@ import {
   mapOfferPresentationToFrame,
 } from "./FramedPreview";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
+import { adminClientFetch, adminClientFetchError } from "../lib/admin-client-fetch";
 import { readCart } from "../lib/cart";
 import { isWallSource } from "../lib/exhibition-links";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
@@ -42,6 +43,7 @@ import styles from "./ProductDetailClient.module.css";
 type ProductDetailClientProps = {
   product: ProductWithVariantsAndImages;
   shareButtons?: ReactNode;
+  isAdmin?: boolean;
 };
 
 const FINISH_OPTIONS: OfferFinishId[] = ["archival_matte", "rth_canvas"];
@@ -60,7 +62,7 @@ const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   return `${Math.round(widthMm)} × ${Math.round(heightMm)} mm · ${wIn} × ${hIn} in`;
 };
 
-export function ProductDetailClient({ product, shareButtons }: ProductDetailClientProps) {
+export function ProductDetailClient({ product, shareButtons, isAdmin = false }: ProductDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const primaryImage = product.product_images[0]?.image_url ?? "";
@@ -105,6 +107,8 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
   const [activeImage, setActiveImage] = useState(primaryImage);
   const [imageRatio, setImageRatio] = useState<number | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isStudioOrdering, setIsStudioOrdering] = useState(false);
+  const [studioOrderMessage, setStudioOrderMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { addItem, itemCount } = useCart();
   const purchasesAllowed = usePurchasesAllowed();
@@ -259,6 +263,51 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
       quantity: row.quantity,
     }));
     await startCheckout(checkoutItems);
+  };
+
+  const handleStudioOrder = async () => {
+    if (!isAdmin || !selectedVariant || product.product_type !== "print") return;
+
+    const confirmed = window.confirm(
+      `Create a studio print order for "${selectedVariant.variant_label}"? No payment and no edition number. The fulfilment worker will prepare the lab TIFF.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsStudioOrdering(true);
+      setError(null);
+      setStudioOrderMessage(null);
+
+      const response = await adminClientFetch("/api/admin/orders/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "studio",
+          variant_id: selectedVariant.id,
+          quantity: 1,
+        }),
+      });
+
+      const body = (await response.json().catch(() => null)) as
+        | { error?: string; order_number?: string; order_id?: string }
+        | null;
+
+      if (response.status === 401) {
+        setError("Admin session expired. Sign in at /admin/login, then try again.");
+        return;
+      }
+
+      if (!response.ok) {
+        setError(body?.error ?? "Could not create studio order.");
+        return;
+      }
+
+      setStudioOrderMessage(body?.order_number ?? "created");
+    } catch (studioError) {
+      setError(adminClientFetchError(studioError));
+    } finally {
+      setIsStudioOrdering(false);
+    }
   };
 
   return (
@@ -607,6 +656,29 @@ export function ProductDetailClient({ product, shareButtons }: ProductDetailClie
         ) : null}
 
         {error ? <p className={styles.error}>{error}</p> : null}
+
+        {isAdmin && product.product_type === "print" ? (
+          <div className={styles.studioOrder}>
+            <button
+              className={`button-outline ${styles.buyButton}`}
+              type="button"
+              onClick={() => void handleStudioOrder()}
+              disabled={!selectedVariant || isStudioOrdering}
+            >
+              {isStudioOrdering ? "Creating studio order…" : "Order for studio"}
+            </button>
+            {studioOrderMessage ? (
+              <p className={styles.studioOrderSuccess}>
+                Studio order {studioOrderMessage} created.{" "}
+                <Link href="/admin/fulfilment">Open fulfilment</Link> for specs and the print file.
+              </p>
+            ) : (
+              <p className={styles.studioOrderHint}>
+                Admin only · No payment, no edition number. Queues a lab TIFF for Pixel Perfect.
+              </p>
+            )}
+          </div>
+        ) : null}
 
         {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
         <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { verifyAdminSession } from "../../../../lib/admin-auth";
+import { isRevenueOrder, isStudioOrderNotes } from "../../../../lib/studio-orders";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
-
-const revenueStatuses = new Set(["paid", "processing", "shipped", "delivered"]);
 
 const getWeekStart = (isoDate: string): string => {
   const date = new Date(isoDate);
@@ -22,14 +21,14 @@ export async function GET(request: Request) {
 
   const { data: orders, error: ordersError } = await supabaseAdmin
     .from("orders")
-    .select("id,status,total_aud,created_at")
+    .select("id,status,total_aud,created_at,notes")
     .order("created_at", { ascending: false });
 
   if (ordersError) {
     return NextResponse.json({ error: ordersError.message }, { status: 500 });
   }
 
-  const paidLikeOrders = (orders ?? []).filter((order) => revenueStatuses.has(order.status));
+  const paidLikeOrders = (orders ?? []).filter((order) => isRevenueOrder(order));
   const paidLikeOrderIds = paidLikeOrders.map((order) => order.id);
 
   const { data: orderItems, error: orderItemsError } = await supabaseAdmin
@@ -102,7 +101,8 @@ export async function GET(request: Request) {
 
   const statusBreakdownMap = new Map<string, number>();
   (orders ?? []).forEach((order) => {
-    statusBreakdownMap.set(order.status, (statusBreakdownMap.get(order.status) ?? 0) + 1);
+    const status = isStudioOrderNotes(order.notes) ? "studio" : order.status;
+    statusBreakdownMap.set(status, (statusBreakdownMap.get(status) ?? 0) + 1);
   });
 
   const weekRevenueMap = new Map<string, number>();

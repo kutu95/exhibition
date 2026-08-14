@@ -17,6 +17,7 @@ type OrderListItem = {
   items_count: number;
   total_aud: number | null;
   created_at: string;
+  is_studio?: boolean;
 };
 
 type OrdersTableClientProps = {
@@ -30,7 +31,12 @@ export function OrdersTableClient({ orders }: OrdersTableClientProps) {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return orders.filter((order) => {
-      const statusMatch = statusFilter === "all" ? true : order.status === statusFilter;
+      const statusMatch =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "studio"
+            ? Boolean(order.is_studio)
+            : order.status === statusFilter && !order.is_studio;
       const searchMatch =
         term.length === 0
           ? true
@@ -52,6 +58,7 @@ export function OrdersTableClient({ orders }: OrdersTableClientProps) {
           <option value="delivered">Delivered</option>
           <option value="cancelled">Cancelled</option>
           <option value="refunded">Refunded</option>
+          <option value="studio">Studio copies</option>
         </select>
 
         <input
@@ -87,6 +94,7 @@ export function OrdersTableClient({ orders }: OrdersTableClientProps) {
                 <td>{order.customer_email}</td>
                 <td>
                   <StatusBadge status={order.status} />
+                  {order.is_studio ? <StatusBadge status="studio" /> : null}
                 </td>
                 <td>{order.items_count}</td>
                 <td>{formatAUD(order.total_aud ?? 0)}</td>

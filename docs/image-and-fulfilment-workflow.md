@@ -42,6 +42,7 @@ flowchart LR
 |-------|------------|--------|
 | Register photo | Admin UI or PhotoLab API | Product, variants, web image, Stripe prices |
 | Browse & buy | Customer on site | Paid `order_items` |
+| Order for studio | Admin on shop / product editor | $0 `order_items` (no edition, not sales) |
 | Auto print prep | Python worker | Sized Adobe RGB TIFF + `file_ready` |
 | Lab & ship | Admin fulfilment dashboard | Pixel Perfect ref, tracking, emails |
 
@@ -160,7 +161,9 @@ sequenceDiagram
 
 **Manual orders:** `POST /api/admin/orders/manual` also creates items in `awaiting_file`.
 
-At this point **no print file exists yet** — only the database row and Stripe payment.
+**Studio / artist copies:** while signed in as admin, **Order for studio** on `/shop/{slug}` or the product editor creates a $0 order (`mode: studio`). No Stripe, no edition number, excluded from sales. Fulfilment is unchanged — worker prepares the TIFF, `/admin/fulfilment` has specs and the file path for Pixel Perfect.
+
+At this point **no print file exists yet** — only the database row (and Stripe payment for customer orders).
 
 ---
 

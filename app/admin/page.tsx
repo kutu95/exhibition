@@ -18,6 +18,7 @@ type DashboardData = {
     status: string;
     total_aud: number | null;
     created_at: string;
+    is_studio?: boolean;
   }>;
 };
 
@@ -69,7 +70,10 @@ export default async function AdminDashboardPage() {
                     {order.order_number}
                   </Link>
                 </td>
-                <td>{order.customer_name ?? "—"}</td>
+                <td>
+                  {order.customer_name ?? "—"}
+                  {order.is_studio ? " (studio)" : ""}
+                </td>
                 <td>{order.status}</td>
                 <td>{formatAud(order.total_aud ?? 0)}</td>
                 <td>{formatDateTime(order.created_at)}</td>

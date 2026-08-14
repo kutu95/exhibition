@@ -55,11 +55,13 @@ type ProductVariantPanelProps = {
   previewUrl: string | null;
   activeVariantTemplates: VariantTemplate[];
   creatingTestOrderVariantId: string | null;
+  creatingStudioOrderVariantId: string | null;
   preparingPrintVariantId: string | null;
   printPrepareMessage: string | null;
   onChange: (next: VariantInput) => void;
   onApplyTemplate: (template: VariantTemplate) => void;
   onCreateTestOrder: () => void;
+  onCreateStudioOrder: () => void;
   onPreparePrintFile: () => void;
   onDownloadPrintFile: () => void;
 };
@@ -74,11 +76,13 @@ export function ProductVariantPanel({
   previewUrl,
   activeVariantTemplates,
   creatingTestOrderVariantId,
+  creatingStudioOrderVariantId,
   preparingPrintVariantId,
   printPrepareMessage,
   onChange,
   onApplyTemplate,
   onCreateTestOrder,
+  onCreateStudioOrder,
   onPreparePrintFile,
   onDownloadPrintFile,
 }: ProductVariantPanelProps) {
@@ -178,6 +182,16 @@ export function ProductVariantPanel({
             disabled={!variant.id || !variant.width_mm || !variant.height_mm}
           >
             Download TIFF
+          </button>
+          <button
+            className={styles.btnSecondary}
+            type="button"
+            onClick={onCreateStudioOrder}
+            disabled={!variant.id || creatingStudioOrderVariantId === variant.id}
+          >
+            {creatingStudioOrderVariantId === variant.id
+              ? "Creating studio order..."
+              : "Order for studio"}
           </button>
           <button
             className={styles.btnSecondary}

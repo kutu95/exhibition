@@ -10,6 +10,7 @@ type OrderListItem = {
   items_count: number;
   total_aud: number | null;
   created_at: string;
+  is_studio?: boolean;
 };
 
 export default async function AdminOrdersPage() {

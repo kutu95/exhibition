@@ -1,13 +1,14 @@
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { cache } from "react";
 
 import { JsonLd } from "../../../components/JsonLd";
 import { PrintEditorial } from "../../../components/PrintEditorial";
 import { ProductDetailClient } from "../../../components/ProductDetailClient";
 import { RelatedPrints } from "../../../components/RelatedPrints";
 import { ShareButtons } from "../../../components/ShareButtons";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../../lib/admin-auth";
 import { isProductVisibleInCatalog, mapProductRow } from "../../../lib/catalog-products";
 import { buildMetadata, siteConfig } from "../../../lib/metadata";
 import { getPlaceContext, getPrintEditorial } from "../../../lib/print-editorial";
@@ -189,7 +190,8 @@ export default async function ProductPage({ params }: PageProps) {
 
   const editorial = getPrintEditorial(slug);
   const place = getPlaceContext(slug);
-  const related = await getRelatedPrints(product);
+  const [related, cookieStore] = await Promise.all([getRelatedPrints(product), cookies()]);
+  const isAdmin = await verifyAdminSessionToken(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
 
   return (
     <>
@@ -205,6 +207,7 @@ export default async function ProductPage({ params }: PageProps) {
       <Suspense fallback={<p className="section container">Loading print…</p>}>
         <ProductDetailClient
           product={product}
+          isAdmin={isAdmin}
           shareButtons={
             <ShareButtons
               url={`${siteConfig.url}/shop/${product.slug}`}

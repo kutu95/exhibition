@@ -377,6 +377,24 @@
   color: var(--color-rust);
 }
 
+.studioOrder {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed rgba(10, 22, 40, 0.2);
+}
+
+.studioOrderHint,
+.studioOrderSuccess {
+  margin: 0.45rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #4a4a4a;
+}
+
+.studioOrderSuccess a {
+  text-decoration: underline;
+}
+
 .description {
   margin: 0.55rem 0 0.85rem;
   color: #2a2a2a;

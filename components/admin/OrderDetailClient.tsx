@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { formatAUD } from "../../lib/utils/currency";
+import { isStudioOrderNotes } from "../../lib/studio-orders";
 import { StatusBadge } from "./StatusBadge";
 import styles from "./OrderDetailClient.module.css";
 
@@ -95,6 +96,7 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
       <section className={styles.panel}>
         <h1>{order.order_number}</h1>
         <StatusBadge status={order.status} />
+        {isStudioOrderNotes(order.notes) ? <StatusBadge status="studio" /> : null}
         <div className={styles.inlineControls} style={{ marginTop: "0.9rem" }}>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
             {statusOptions.map((option) => (

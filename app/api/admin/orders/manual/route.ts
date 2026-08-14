@@ -4,6 +4,11 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { assignEditionsToOrder } from "../../../../../lib/edition-assignment";
 import { sendOrderConfirmationEmail } from "../../../../../lib/emails/order-confirmation";
+import {
+  STUDIO_CUSTOMER,
+  STUDIO_FULFILMENT_NOTE,
+  buildStudioOrderNotes,
+} from "../../../../../lib/studio-orders";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
 import type { Order } from "../../../../../lib/supabase/types";
 
@@ -18,7 +23,7 @@ const shippingAddressSchema = z.object({
 });
 
 const manualOrderSchema = z.object({
-  mode: z.enum(["test", "on_site"]).default("test"),
+  mode: z.enum(["test", "on_site", "studio"]).default("test"),
   variant_id: z.string().uuid(),
   quantity: z.number().int().positive().max(10).default(1),
   customer_email: z.string().email().optional(),
@@ -102,6 +107,10 @@ const normalizeAddress = (
 };
 
 const paymentNote = (payload: z.infer<typeof manualOrderSchema>): string => {
+  if (payload.mode === "studio") {
+    return buildStudioOrderNotes(payload.notes);
+  }
+
   const parts: string[] = [];
   if (payload.mode === "test") {
     parts.push("Fulfilment test order (no Stripe).");
@@ -132,7 +141,9 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
-  const paymentMethod = payload.payment_method ?? (payload.mode === "test" ? "manual" : undefined);
+  const paymentMethod =
+    payload.payment_method ??
+    (payload.mode === "test" || payload.mode === "studio" ? "manual" : undefined);
 
   if (payload.mode === "on_site") {
     if (!paymentMethod) {
@@ -177,7 +188,7 @@ export async function POST(request: Request) {
 
   const variantRow = variant as unknown as VariantRow;
   const product = getProduct(variantRow.products);
-  if (!product || !variantRow.is_active || !product.is_available) {
+  if (!product) {
     return NextResponse.json({ error: "Variant is not currently available." }, { status: 400 });
   }
 
@@ -185,16 +196,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Manual / on-site sales are only enabled for print variants." }, { status: 400 });
   }
 
-  const unitPrice = variantRow.price_aud;
+  const isStudio = payload.mode === "studio";
+  if (!isStudio && (!variantRow.is_active || !product.is_available)) {
+    return NextResponse.json({ error: "Variant is not currently available." }, { status: 400 });
+  }
+
+  const unitPrice = isStudio ? 0 : variantRow.price_aud;
   const subtotal = unitPrice * payload.quantity;
   const customerEmail =
     payload.customer_email?.trim() ||
-    (payload.mode === "test" || payload.allow_placeholder_customer
-      ? "admin-test-order@exhibition.local"
-      : "");
+    (isStudio
+      ? STUDIO_CUSTOMER.email
+      : payload.mode === "test" || payload.allow_placeholder_customer
+        ? "admin-test-order@exhibition.local"
+        : "");
   const customerName =
     payload.customer_name?.trim() ||
-    (payload.mode === "test" || payload.allow_placeholder_customer ? "Admin test order" : "");
+    (isStudio
+      ? STUDIO_CUSTOMER.name
+      : payload.mode === "test" || payload.allow_placeholder_customer
+        ? "Admin test order"
+        : "");
 
   if (!customerEmail || !customerName) {
     return NextResponse.json({ error: "Customer name and email are required." }, { status: 400 });
@@ -245,7 +267,15 @@ export async function POST(request: Request) {
   }
 
   const fulfilmentStatus =
-    payload.fulfilment === "taken_today" ? ("delivered" as const) : ("awaiting_file" as const);
+    isStudio || payload.fulfilment !== "taken_today"
+      ? ("awaiting_file" as const)
+      : ("delivered" as const);
+
+  const fulfilmentNotes = isStudio
+    ? STUDIO_FULFILMENT_NOTE
+    : payload.mode === "on_site"
+      ? `On-site sale (${paymentMethod ?? "manual"}).`
+      : "Created via admin fulfilment test (no Stripe).";
 
   const { data: createdItems, error: itemError } = await supabaseAdmin
     .from("order_items")
@@ -256,10 +286,7 @@ export async function POST(request: Request) {
       unit_price_aud: unitPrice,
       edition_number_assigned: null,
       fulfilment_status: fulfilmentStatus,
-      fulfilment_notes:
-        payload.mode === "on_site"
-          ? `On-site sale (${paymentMethod ?? "manual"}).`
-          : "Created via admin fulfilment test (no Stripe).",
+      fulfilment_notes: fulfilmentNotes,
     })
     .select("id, variant_id, quantity, unit_price_aud, edition_number_assigned");
 
@@ -269,25 +296,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not create order item." }, { status: 500 });
   }
 
-  try {
-    await assignEditionsToOrder(createdOrder.id);
-  } catch (error) {
-    console.error("Edition assignment failed for manual order", error);
-    return NextResponse.json(
-      {
-        error: "Order created but edition assignment failed. Please review order manually.",
-        order_id: createdOrder.id,
-        order_number: createdOrder.order_number,
-      },
-      { status: 500 },
-    );
+  if (!isStudio) {
+    try {
+      await assignEditionsToOrder(createdOrder.id);
+    } catch (error) {
+      console.error("Edition assignment failed for manual order", error);
+      return NextResponse.json(
+        {
+          error: "Order created but edition assignment failed. Please review order manually.",
+          order_id: createdOrder.id,
+          order_number: createdOrder.order_number,
+        },
+        { status: 500 },
+      );
+    }
   }
 
   const shouldEmail =
-    payload.send_confirmation_email === true ||
-    (payload.mode === "on_site" &&
-      !payload.allow_placeholder_customer &&
-      !customerEmail.endsWith("@exhibition.local"));
+    !isStudio &&
+    (payload.send_confirmation_email === true ||
+      (payload.mode === "on_site" &&
+        !payload.allow_placeholder_customer &&
+        !customerEmail.endsWith("@exhibition.local")));
 
   if (shouldEmail) {
     const { data: assignedItems } = await supabaseAdmin
@@ -318,5 +348,6 @@ export async function POST(request: Request) {
     status: "paid",
     fulfilment_status: fulfilmentStatus,
     total_aud: subtotal,
+    is_studio: isStudio,
   });
 }

@@ -68,6 +68,7 @@ export type FulfilmentItem = {
   pixel_perfect_order_ref: string | null;
   tracking_number: string | null;
   fulfilment_notes: string | null;
+  order_notes: string | null;
   file_ready_at: string | null;
   submitted_to_lab_at: string | null;
   shipped_at: string | null;
@@ -165,6 +166,7 @@ const fulfilmentItemJson = `
       'pixel_perfect_order_ref', oi.pixel_perfect_order_ref,
       'tracking_number', oi.tracking_number,
       'fulfilment_notes', oi.fulfilment_notes,
+      'order_notes', o.notes,
       'file_ready_at', oi.file_ready_at,
       'submitted_to_lab_at', oi.submitted_to_lab_at,
       'shipped_at', oi.shipped_at,
