@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
-import { buildPixelPerfectOrderEmail } from "../../lib/pixel-perfect-email";
+import { PIXEL_PERFECT_ORDER_EMAIL, buildPixelPerfectOrderEmail } from "../../lib/pixel-perfect-email";
 import { formatLabDimensions } from "../../lib/print-size";
 import { isStudioOrderNotes } from "../../lib/studio-orders";
 import { formatAUD } from "../../lib/utils/currency";
@@ -183,25 +183,24 @@ const statusTimeline = (item: FulfilmentDashboardItem) => {
 const isStudioItem = (item: FulfilmentDashboardItem): boolean =>
   isStudioOrderNotes(item.order_notes) || isStudioOrderNotes(item.fulfilment_notes);
 
-const pixelPerfectEmail = (item: FulfilmentDashboardItem) =>
-  buildPixelPerfectOrderEmail({
-    order_number: item.order_number,
-    photo_title: item.photo_title || item.title,
-    width_mm: item.width_mm,
-    height_mm: item.height_mm,
-    paper_type: item.paper_type,
-    finish: item.finish,
-    is_framed: item.is_framed,
-    frame_type: item.frame_type,
-    print_dpi: item.print_dpi,
-    quantity: item.quantity,
-    is_studio_order: isStudioItem(item),
-    drive_folder_url: driveFolderUrl(item),
-    filename: localPrintFileName(item),
-    canvas_wrap_mm: item.canvas_wrap_mm,
-    wrap_style: item.wrap_style,
-    shipping_address: item.shipping_address,
-  });
+const pixelPerfectEmailItem = (item: FulfilmentDashboardItem) => ({
+  order_number: item.order_number,
+  photo_title: item.photo_title || item.title,
+  width_mm: item.width_mm,
+  height_mm: item.height_mm,
+  paper_type: item.paper_type,
+  finish: item.finish,
+  is_framed: item.is_framed,
+  frame_type: item.frame_type,
+  print_dpi: item.print_dpi,
+  quantity: item.quantity,
+  drive_folder_url: driveFolderUrl(item),
+  filename: localPrintFileName(item),
+  canvas_wrap_mm: item.canvas_wrap_mm,
+  wrap_style: item.wrap_style,
+});
+
+const studioStatusesForLabEmail = new Set(["awaiting_file", "file_ready"]);
 
 export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashboardClientProps) {
   const router = useRouter();
@@ -252,6 +251,17 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     },
     [items, statusFilter],
   );
+
+  const studioLabEmail = useMemo(() => {
+    const studioItems = items.filter(
+      (item) => isStudioItem(item) && studioStatusesForLabEmail.has(item.fulfilment_status),
+    );
+    if (studioItems.length === 0) return null;
+    return {
+      count: studioItems.length,
+      ...buildPixelPerfectOrderEmail(studioItems.map(pixelPerfectEmailItem)),
+    };
+  }, [items]);
 
   const patchItem = async (itemId: string, body: Record<string, unknown>, successMessage: string) => {
     setError(null);
@@ -356,6 +366,35 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
           Collapse all
         </button>
         <span className={styles.muted}>Fetched {new Date(fetchedAt).toLocaleString("en-AU")}</span>
+      </div>
+
+      <div className={styles.studioEmailBar}>
+        {studioLabEmail ? (
+          <>
+            <p className={styles.muted}>
+              {studioLabEmail.count} studio print{studioLabEmail.count === 1 ? "" : "s"} waiting for the lab.
+              One email to {PIXEL_PERFECT_ORDER_EMAIL} — they invoice; you pay separately.
+            </p>
+            <div className={styles.actionRow}>
+              <button
+                className={styles.button}
+                type="button"
+                onClick={() =>
+                  copyToClipboard(
+                    [`To: ${studioLabEmail.to}`, `Subject: ${studioLabEmail.subject}`, "", studioLabEmail.body].join(
+                      "\n",
+                    ),
+                    "Studio Pixel Perfect email",
+                  )
+                }
+              >
+                Copy studio order email
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className={styles.muted}>No studio orders waiting for the lab (awaiting file or file ready).</p>
+        )}
       </div>
 
       {message ? <p>{message}</p> : null}
@@ -519,7 +558,9 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                           </button>
                           <span className={styles.muted}>
                             {driveFileUrl(item)
-                              ? " — TIFF is in this folder; enter the filename on the Pixel Perfect form"
+                              ? isStudioItem(item)
+                                ? " — TIFF is in this folder; filename is in the studio order email"
+                                : " — TIFF is in this folder; enter the filename on the Pixel Perfect form"
                               : " — automatic upload was unavailable; upload the prepared print file manually"}
                           </span>
                         </p>
@@ -539,12 +580,6 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                           <strong>File URL:</strong> <code>{item.cloud_file_url}</code>
                         </p>
                       ) : null}
-
-                      <p className={styles.muted}>
-                        Email to admin@pixelperfect.com.au. They will invoice; pay separately. Paste the Drive folder
-                        link and type the filename on their side if they ask.
-                      </p>
-                      <textarea className={styles.textarea} readOnly value={pixelPerfectEmail(item).body} rows={18} />
                     </>
                   ) : (
                     <p className={styles.muted}>
@@ -552,18 +587,13 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                     </p>
                   )}
 
+                  {isStudioItem(item) && studioStatusesForLabEmail.has(item.fulfilment_status) ? (
+                    <p className={styles.muted}>
+                      Included in the studio order email at the top of this page (all studio prints waiting for the lab).
+                    </p>
+                  ) : null}
+
                   <div className={styles.actionRow}>
-                    <button
-                      className={styles.button}
-                      type="button"
-                      disabled={!hasPreparedPrintFile(item) && !item.cloud_file_url}
-                      onClick={() =>
-                        copyToClipboard(pixelPerfectEmail(item).body, "Pixel Perfect order email")
-                      }
-                    >
-                      Copy Pixel Perfect email
-                    </button>
-                    <a href={pixelPerfectEmail(item).mailtoHref}>Open in email app</a>
                     <a href="https://pixelperfect.com.au/order-form" target="_blank" rel="noreferrer">
                       Open Pixel Perfect Form
                     </a>

@@ -6,6 +6,18 @@
   margin: 1rem 0;
 }
 
+.studioEmailBar {
+  border: 1px solid #d8d8d8;
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.studioEmailBar p {
+  margin: 0;
+}
+
 .controls button,
 .button {
   border: 1px solid #111;
@@ -26,8 +38,7 @@
 }
 
 .controls select,
-.field,
-.textarea {
+.field {
   border: 1px solid #cfcfcf;
   border-radius: 0;
   font: inherit;
@@ -163,11 +174,6 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   align-items: center;
-}
-
-.textarea {
-  min-height: 280px;
-  width: 100%;
 }
 
 .muted {

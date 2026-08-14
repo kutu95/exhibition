@@ -8,28 +8,37 @@ import {
   pixelPerfectPaperLabel,
 } from "../lib/pixel-perfect-email";
 
-const baseItem = {
-  order_number: "GEO-0042",
-  photo_title: "Isaac Rock No. 3",
-  width_mm: 420,
-  height_mm: 297,
+const rag = {
   paper_type: "Hahnemühle Photo Rag 308gsm",
   finish: "archival_matte",
   is_framed: false,
   frame_type: null,
   print_dpi: 300,
   quantity: 1,
-  is_studio_order: true,
-  drive_folder_url: "https://drive.google.com/drive/folders/abc123",
-  filename: "GEO-0042_isaac-rock-no-3_420x297mm.tif",
   canvas_wrap_mm: null,
   wrap_style: null,
-  shipping_address: {
-    street: "Studio pickup",
-    suburb: "Margaret River",
-    state: "WA",
-    postcode: "6285",
-  },
+};
+
+const itemA = {
+  ...rag,
+  order_number: "GEO-0042",
+  photo_title: "Isaac Rock No. 3",
+  width_mm: 420,
+  height_mm: 297,
+  drive_folder_url: "https://drive.google.com/drive/folders/abc123",
+  filename: "GEO-0042_isaac-rock-no-3_420x297mm.tif",
+};
+
+const itemB = {
+  ...rag,
+  order_number: "GEO-0043",
+  photo_title: "Redgate",
+  width_mm: 594,
+  height_mm: 396,
+  is_framed: true,
+  frame_type: "standard_perspex",
+  drive_folder_url: "https://drive.google.com/drive/folders/def456",
+  filename: "GEO-0043_redgate_594x396mm.tif",
 };
 
 describe("pixel Perfect order email", () => {
@@ -45,31 +54,35 @@ describe("pixel Perfect order email", () => {
     expect(pixelPerfectPaperLabel("Hahnemühle Photo Rag Pearl")).toBe("Hahnemuhle Photo Rag Pearl");
   });
 
-  it("builds a confirmation-style email for a studio order", () => {
-    const email = buildPixelPerfectOrderEmail(baseItem);
+  it("puts identity once in the header and lists each print without prices", () => {
+    const email = buildPixelPerfectOrderEmail([itemA, itemB]);
     expect(email.to).toBe(PIXEL_PERFECT_ORDER_EMAIL);
-    expect(email.subject).toBe("Print order GEO-0042 — Isaac Rock No. 3");
+    expect(email.subject).toBe("Studio print order — 2 items (GEO-0042, GEO-0043)");
     expect(email.body).toContain("John Bowskill");
-    expect(email.body).toContain("john@streamtime.com.au");
-    expect(email.body).toContain("Please deliver to my address");
     expect(email.body).toContain("20 Morris Rd");
-    expect(email.body).toContain("Forest Grove, Western Australia 6286");
+    expect(email.body.match(/Full Name/g)?.length).toBe(1);
+    expect(email.body.match(/Shipping Address/g)?.length).toBe(1);
+    expect(email.body).toContain("Print 1 of 2 — GEO-0042 — Isaac Rock No. 3");
+    expect(email.body).toContain("Print 2 of 2 — GEO-0043 — Redgate");
     expect(email.body).toContain("GEO-0042_isaac-rock-no-3_420x297mm.tif");
-    expect(email.body).toContain("https://drive.google.com/drive/folders/abc123");
-    expect(email.body).toContain("Hahnemuhle Photo Rag 308gsm");
+    expect(email.body).toContain("https://drive.google.com/drive/folders/def456");
     expect(email.body).toContain("16.54 x 11.69 (A3)");
-    expect(email.body).toContain("Photo or Inkjet printing");
-    expect(email.body).toContain("Would you like Framing and Mounting options?\nNone");
-    expect(email.mailtoHref.startsWith(`mailto:${PIXEL_PERFECT_ORDER_EMAIL}?`)).toBe(true);
+    expect(email.body).toContain("Standard frame with Perspex");
+    expect(email.body).toContain("leave my prints untrimmed");
+    expect(email.body).not.toContain("Price (AUD)");
+    expect(email.body.match(/Email address/g)?.length).toBe(1);
   });
 
-  it("asks for untrimmed prints when framing is included", () => {
-    const email = buildPixelPerfectOrderEmail({
-      ...baseItem,
-      is_framed: true,
-      frame_type: "standard_perspex",
-    });
-    expect(email.body).toContain("leave my prints untrimmed");
-    expect(email.body).toContain("Standard frame with Perspex");
+  it("uses a single-print subject when there is only one item", () => {
+    const email = buildPixelPerfectOrderEmail([itemA]);
+    expect(email.subject).toBe("Print order GEO-0042 — Isaac Rock No. 3");
+    expect(email.body).toContain("Print 1 of 1 — GEO-0042 — Isaac Rock No. 3");
+  });
+
+  it("does not repeat paper or size in the header", () => {
+    const email = buildPixelPerfectOrderEmail([itemA, itemB]);
+    expect(email.body.match(/Choose a paper/g)?.length).toBe(2);
+    expect(email.body.match(/What size \(inches\)\?/g)?.length).toBe(2);
+    expect(email.body.indexOf("Print 1 of 2")).toBeGreaterThan(email.body.indexOf("20 Morris Rd"));
   });
 });

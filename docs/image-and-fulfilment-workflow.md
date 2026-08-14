@@ -161,7 +161,7 @@ sequenceDiagram
 
 **Manual orders:** `POST /api/admin/orders/manual` also creates items in `awaiting_file`.
 
-**Studio / artist copies:** while signed in as admin, **Order for studio** on `/shop/{slug}` or the product editor creates a $0 order (`mode: studio`). No Stripe, no edition number, excluded from sales. Fulfilment is unchanged — worker prepares the TIFF, `/admin/fulfilment` has specs and the file path for Pixel Perfect.
+**Studio / artist copies:** while signed in as admin, **Order for studio** on `/shop/{slug}` or the product editor creates a $0 order (`mode: studio`). No Stripe, no edition number, excluded from sales. Worker still prepares the TIFF. On `/admin/fulfilment`, **Copy studio order email** copies one draft for every studio item still waiting for the lab (`awaiting_file` or `file_ready`): your contact and Morris Rd address once, then a section per print (no prices). Paste into an email to Pixel Perfect.
 
 At this point **no print file exists yet** — only the database row (and Stripe payment for customer orders).
 
@@ -234,7 +234,7 @@ Dimensions come from **`product_variants`** at order time (originally copied fro
 Typical admin flow:
 
 1. Wait for **`file_ready`** (open `cloud_file_url`).
-2. Place order with **Pixel Perfect** (external lab); save **`pixel_perfect_order_ref`** → status **`submitted_to_lab`**.
+2. For studio copies, send the page-level Pixel Perfect email; for customer prints, use their form. Save **`pixel_perfect_order_ref`** → status **`submitted_to_lab`**.
 3. When despatched, set **`tracking_number`** → **`shipped`**; optional **`/api/admin/fulfilment/notify-customer`**.
 
 Paper type, finish, framing, and variant notes are metadata for the lab; colour space for the file is normalized to the configured output profile (normally Adobe RGB 1998).

@@ -1,6 +1,6 @@
 import { siteContact } from "./contact";
 import { siteConfig } from "./metadata";
-import { estimatePixelPerfectLabCost, mmToInches, roundDisplayValue } from "./print-size";
+import { mmToInches, roundDisplayValue } from "./print-size";
 
 export const PIXEL_PERFECT_ORDER_EMAIL = "admin@pixelperfect.com.au";
 
@@ -30,21 +30,13 @@ export type PixelPerfectEmailItem = {
   frame_type: string | null;
   print_dpi: number;
   quantity: number;
-  is_studio_order: boolean;
   drive_folder_url: string | null;
   filename: string;
   canvas_wrap_mm: number | null;
   wrap_style: string | null;
-  shipping_address: PixelPerfectEmailAddress;
 };
 
 const field = (label: string, value: string): string => `${label}\n${value}`;
-
-const expandState = (state: string): string => {
-  const trimmed = state.trim();
-  if (/^wa$/i.test(trimmed)) return "Western Australia";
-  return trimmed;
-};
 
 export const pixelPerfectPaperLabel = (paperType: string | null): string => {
   const raw = paperType?.trim() || "Hahnemuhle Photo Rag";
@@ -87,48 +79,43 @@ const framingOption = (item: PixelPerfectEmailItem): string => {
   return "Standard frame with Perspex";
 };
 
-const isStudioLikeAddress = (address: PixelPerfectEmailAddress): boolean => {
-  const street = address.street.trim().toLowerCase();
-  return street.includes("studio") || street.includes("pickup") || street.includes("exhibition");
-};
+const trimOption = (item: PixelPerfectEmailItem): string =>
+  item.is_framed
+    ? "No, leave my prints untrimmed (small white handling border) for framing or mounting"
+    : "Yes, please trim to the ordered size";
 
-const shippingLines = (item: PixelPerfectEmailItem): string => {
-  if (item.is_studio_order || isStudioLikeAddress(item.shipping_address)) {
-    return ["20 Morris Rd", "Forest Grove, Western Australia 6286"].join("\n");
-  }
-  const { street, suburb, state, postcode } = item.shipping_address;
-  const locality = [suburb, expandState(state), postcode].filter(Boolean).join(", ");
-  return [street, locality].filter(Boolean).join("\n");
-};
-
-const estimatedPrice = (item: PixelPerfectEmailItem): string => {
-  const estimate = item.paper_type
-    ? estimatePixelPerfectLabCost(item.width_mm, item.height_mm, item.paper_type)
-    : null;
-  if (!estimate) return "Please quote";
-  const extra = item.is_framed || item.finish?.toLowerCase().includes("canvas") ? " (print only — please add framing/canvas)" : "";
-  return `${estimate.labCostAud.toFixed(2)}${extra}`;
-};
-
-export const buildPixelPerfectOrderEmail = (
-  item: PixelPerfectEmailItem,
-): { to: string; subject: string; body: string; mailtoHref: string } => {
+const printSection = (item: PixelPerfectEmailItem, index: number, total: number): string => {
   const paper = pixelPerfectPaperLabel(item.paper_type);
   const sizeIn = formatPixelPerfectInchSize(item.width_mm, item.height_mm);
-  const options = imageOptions(item);
-  const qty = String(item.quantity);
-  const dpi = item.print_dpi || 300;
-  const folder = item.drive_folder_url?.trim() || "";
-  const filename = item.filename.trim();
+  const folder = item.drive_folder_url?.trim() || "Folder link not available yet";
+  const filename = item.filename.trim() || "See Google Drive folder";
 
-  const subject = `Print order ${item.order_number} — ${item.photo_title}`;
+  return [
+    `Print ${index + 1} of ${total} — ${item.order_number} — ${item.photo_title}`,
+    "",
+    field("File or Folder Name", filename),
+    "",
+    field("Google Drive folder", folder),
+    "",
+    field("Which image options do you like?", imageOptions(item)),
+    "",
+    field("Choose a paper", paper),
+    "",
+    field("How many do you want?", String(item.quantity)),
+    "",
+    field("What size (inches)?", sizeIn),
+    "",
+    field("Would you like Framing and Mounting options?", framingOption(item)),
+    "",
+    field("Do your prints require trimming?", trimOption(item)),
+  ].join("\n");
+};
 
-  const body = [
+const headerBlock = (dpi: number): string =>
+  [
     "Hello Pixel Perfect,",
     "",
-    "Please invoice the print order below. I am sending this instead of the website form. Files are print-ready on Google Drive. I will pay on invoice.",
-    "",
-    `Our reference: ${item.order_number} — ${item.photo_title}`,
+    "Please invoice the studio print order below. I am sending this instead of the website form. Files are print-ready on Google Drive. I will pay on invoice.",
     "",
     field("Full Name", siteContact.name),
     "",
@@ -145,7 +132,7 @@ export const buildPixelPerfectOrderEmail = (
     "",
     field("Pick Up or Delivery", "Please deliver to my address"),
     "",
-    field("Shipping Address", shippingLines(item)),
+    field("Shipping Address", ["20 Morris Rd", "Forest Grove, Western Australia 6286"].join("\n")),
     "",
     field(
       "Are your files print ready?",
@@ -153,50 +140,29 @@ export const buildPixelPerfectOrderEmail = (
     ),
     "",
     field(
-      "Do your prints require trimming?",
-      item.is_framed
-        ? "No, leave my prints untrimmed (small white handling border) for framing or mounting"
-        : "Yes, please trim to the ordered size",
-    ),
-    "",
-    field("File or Folder Name", filename || folder || "See Google Drive link below"),
-    "",
-    field("Which image options do you like?", options),
-    "",
-    field("Choose a paper", paper),
-    "",
-    field("How many do you want?", qty),
-    "",
-    field("What size (inches)?", sizeIn),
-    "",
-    field("Would you like Framing and Mounting options?", framingOption(item)),
-    "",
-    field("Paper Choice", paper),
-    "",
-    field("Size (in)", sizeIn.replace(/ \([^)]+\)$/, "")),
-    "",
-    field("Image Options", options),
-    "",
-    field("Quantity", qty),
-    "",
-    field("Price (AUD)", estimatedPrice(item)),
-    "",
-    field("delivery", "Please deliver to my address"),
-    "",
-    field(
       "Are your image files already on cloud storage? (Dropbox, wetransfer, iCloud etc)",
-      "Yes, I can provide a link to my files for downloading.",
-    ),
-    "",
-    field(
-      "ADD FILES : Option 1 : If your image files are already in cloud storage (Dropbox, Google Drive, Wetransfer, Apple Photos etc) you can paste the relevant link in this box.",
-      folder || "Google Drive folder link will follow separately.",
+      "Yes, I can provide a link to my files for downloading. Folder links and filenames are in each print section below.",
     ),
     "",
     `Studio address on file: ${siteConfig.exhibition.location}.`,
   ].join("\n");
 
-  const mailtoHref = `mailto:${PIXEL_PERFECT_ORDER_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+export const buildPixelPerfectOrderEmail = (
+  items: PixelPerfectEmailItem[],
+): { to: string; subject: string; body: string } => {
+  const prints = items.filter((item) => item.order_number);
+  const dpi = prints[0]?.print_dpi || 300;
+  const refs = [...new Set(prints.map((item) => item.order_number))];
+  const subject =
+    prints.length === 1
+      ? `Print order ${prints[0]!.order_number} — ${prints[0]!.photo_title}`
+      : `Studio print order — ${prints.length} items (${refs.join(", ")})`;
 
-  return { to: PIXEL_PERFECT_ORDER_EMAIL, subject, body, mailtoHref };
+  const body = [
+    headerBlock(dpi),
+    "",
+    ...prints.flatMap((item, index) => ["", printSection(item, index, prints.length)]),
+  ].join("\n");
+
+  return { to: PIXEL_PERFECT_ORDER_EMAIL, subject, body };
 };
