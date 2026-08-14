@@ -216,7 +216,6 @@ export async function POST(request: Request) {
             fixed_amount: { amount: 0, currency: "aud" },
             display_name: "Exhibition pickup",
             delivery_estimate: {
-              minimum: { unit: "business_day", value: 0 },
               maximum: { unit: "business_day", value: 1 },
             },
           },
@@ -246,6 +245,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error("Checkout route failed", error);
-    return NextResponse.json({ error: "Could not create checkout session." }, { status: 500 });
+    const stripeMessage =
+      error instanceof Stripe.errors.StripeError ? error.message.trim() : "";
+    return NextResponse.json(
+      { error: stripeMessage || "Could not create checkout session." },
+      { status: 500 },
+    );
   }
 }

@@ -48,7 +48,11 @@ export function CartClient() {
       window.location.href = data.url;
     } catch (checkoutError) {
       console.error(checkoutError);
-      setError("Unable to start checkout. Please try again.");
+      setError(
+        checkoutError instanceof Error
+          ? checkoutError.message
+          : "Unable to start checkout. Please try again.",
+      );
       setIsCheckingOut(false);
     }
   };
