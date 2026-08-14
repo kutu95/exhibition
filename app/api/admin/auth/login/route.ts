@@ -4,6 +4,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createAdminSessionToken, getAdminCookieConfig, isSecureAdminRequest } from "../../../../../lib/admin-auth";
+import {
+  checkAdminLoginRateLimit,
+  clearAdminLoginFailures,
+  getAdminLoginClientIp,
+  recordAdminLoginFailure,
+} from "../../../../../lib/admin-login-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -19,8 +25,26 @@ const comparePassword = (provided: string, expected: string): boolean => {
   return timingSafeEqual(providedHash, expectedHash);
 };
 
+const lockedResponse = (retryAfterSeconds: number) => {
+  const response = NextResponse.json(
+    {
+      error: "Too many failed sign-in attempts. Please try again later.",
+      retryAfterSeconds,
+    },
+    { status: 429 },
+  );
+  response.headers.set("Retry-After", String(retryAfterSeconds));
+  return response;
+};
+
 export async function POST(request: Request) {
   try {
+    const ip = getAdminLoginClientIp(request);
+    const rate = checkAdminLoginRateLimit(ip);
+    if (!rate.allowed) {
+      return lockedResponse(rate.retryAfterSeconds);
+    }
+
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
 
@@ -38,8 +62,14 @@ export async function POST(request: Request) {
 
     const valid = comparePassword(parsed.data.password, expectedPassword);
     if (!valid) {
+      const afterFailure = recordAdminLoginFailure(ip);
+      if (!afterFailure.allowed) {
+        return lockedResponse(afterFailure.retryAfterSeconds);
+      }
       return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
     }
+
+    clearAdminLoginFailures(ip);
 
     const token = await createAdminSessionToken();
     const response = NextResponse.json({ success: true });

@@ -30,6 +30,18 @@ export function AdminLoginForm() {
         return;
       }
 
+      if (response.status === 429) {
+        const payload = (await response.json().catch(() => null)) as
+          | { error?: string; retryAfterSeconds?: number }
+          | null;
+        const minutes = payload?.retryAfterSeconds
+          ? Math.max(1, Math.ceil(payload.retryAfterSeconds / 60))
+          : 15;
+        setError(payload?.error ?? `Too many failed attempts. Try again in about ${minutes} minutes.`);
+        setLoading(false);
+        return;
+      }
+
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         setError(payload?.error ?? "Unable to sign in.");
