@@ -25,7 +25,7 @@ const itemA = {
   photo_title: "Isaac Rock No. 3",
   width_mm: 420,
   height_mm: 297,
-  drive_folder_url: "https://drive.google.com/drive/folders/abc123",
+  drive_file_url: "https://drive.google.com/file/d/abc123/view",
   filename: "GEO-0042_isaac-rock-no-3_420x297mm.tif",
 };
 
@@ -37,7 +37,7 @@ const itemB = {
   height_mm: 396,
   is_framed: true,
   frame_type: "standard_perspex",
-  drive_folder_url: "https://drive.google.com/drive/folders/def456",
+  drive_file_url: "https://drive.google.com/file/d/def456/view",
   filename: "GEO-0043_redgate_594x396mm.tif",
 };
 
@@ -64,13 +64,23 @@ describe("pixel Perfect order email", () => {
     expect(email.body.match(/Shipping Address/g)?.length).toBe(1);
     expect(email.body).toContain("Print 1 of 2 — GEO-0042 — Isaac Rock No. 3");
     expect(email.body).toContain("Print 2 of 2 — GEO-0043 — Redgate");
+    expect(email.body).toContain("File Name");
+    expect(email.body).not.toContain("File or Folder Name");
+    expect(email.body).toContain("Google Drive Link");
+    expect(email.body).not.toContain("Google Drive folder");
     expect(email.body).toContain("GEO-0042_isaac-rock-no-3_420x297mm.tif");
-    expect(email.body).toContain("https://drive.google.com/drive/folders/def456");
+    expect(email.body).toContain("https://drive.google.com/file/d/def456/view");
+    expect(email.body).not.toContain("/drive/folders/");
     expect(email.body).toContain("16.54 x 11.69 (A3)");
     expect(email.body).toContain("Standard frame with Perspex");
     expect(email.body).toContain("leave my prints untrimmed");
+    expect(email.body).toContain("Not beyond the ordered size");
     expect(email.body).not.toContain("Price (AUD)");
     expect(email.body.match(/Email address/g)?.length).toBe(1);
+    expect(email.html.match(/<table/g)?.length).toBe(3);
+    expect(email.html.match(/background:#333333/g)?.length).toBe(3);
+    expect(email.html).toContain("Print 1 of 2 — GEO-0042 — Isaac Rock No. 3");
+    expect(email.html).toContain("href=\"https://drive.google.com/file/d/def456/view\"");
   });
 
   it("uses a single-print subject when there is only one item", () => {
@@ -81,8 +91,8 @@ describe("pixel Perfect order email", () => {
 
   it("does not repeat paper or size in the header", () => {
     const email = buildPixelPerfectOrderEmail([itemA, itemB]);
-    expect(email.body.match(/Choose a paper/g)?.length).toBe(2);
-    expect(email.body.match(/What size \(inches\)\?/g)?.length).toBe(2);
-    expect(email.body.indexOf("Print 1 of 2")).toBeGreaterThan(email.body.indexOf("20 Morris Rd"));
+    expect(email.html.match(/Choose a paper/g)?.length).toBe(2);
+    expect(email.html.match(/What size \(inches\)\?/g)?.length).toBe(2);
+    expect(email.html.indexOf("Print 1 of 2")).toBeGreaterThan(email.html.indexOf("Studio details"));
   });
 });

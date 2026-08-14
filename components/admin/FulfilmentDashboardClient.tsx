@@ -194,7 +194,7 @@ const pixelPerfectEmailItem = (item: FulfilmentDashboardItem) => ({
   frame_type: item.frame_type,
   print_dpi: item.print_dpi,
   quantity: item.quantity,
-  drive_folder_url: driveFolderUrl(item),
+  drive_file_url: driveFileUrl(item),
   filename: localPrintFileName(item),
   canvas_wrap_mm: item.canvas_wrap_mm,
   wrap_style: item.wrap_style,
@@ -230,14 +230,29 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     setPreviewFailed(false);
   }, [previewItem?.order_item_id]);
 
-  const copyToClipboard = async (value: string, label: string) => {
+  const copyToClipboard = async (value: string, label: string, html?: string) => {
     try {
-      await navigator.clipboard.writeText(value);
+      if (html && typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([value], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(value);
+      }
       setError(null);
       setMessage(`${label} copied.`);
     } catch {
-      setMessage(null);
-      setError(`Could not copy ${label.toLowerCase()}.`);
+      try {
+        await navigator.clipboard.writeText(value);
+        setError(null);
+        setMessage(`${label} copied.`);
+      } catch {
+        setMessage(null);
+        setError(`Could not copy ${label.toLowerCase()}.`);
+      }
     }
   };
 
@@ -380,12 +395,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                 className={styles.button}
                 type="button"
                 onClick={() =>
-                  copyToClipboard(
-                    [`To: ${studioLabEmail.to}`, `Subject: ${studioLabEmail.subject}`, "", studioLabEmail.body].join(
-                      "\n",
-                    ),
-                    "Studio Pixel Perfect email",
-                  )
+                  copyToClipboard(studioLabEmail.body, "Studio Pixel Perfect email", studioLabEmail.html)
                 }
               >
                 Copy studio order email
