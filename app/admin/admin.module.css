@@ -31,15 +31,17 @@
   width: 220px;
   background: #111111;
   color: #fff;
-  min-height: 100vh;
+  height: 100vh;
   position: fixed;
   inset: 0 auto 0 0;
   padding: 1.2rem 1rem;
   display: none;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebarOpen {
-  display: block;
+  display: flex;
   z-index: 40;
 }
 
@@ -48,11 +50,16 @@
   font-size: 0.9rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .nav {
   display: grid;
   gap: 0.35rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 0.65rem;
 }
 
 .nav a {
@@ -69,12 +76,12 @@
 }
 
 .sidebarBottom {
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
+  flex-shrink: 0;
   display: grid;
   gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #333;
 }
 
 .logoutBtn {
@@ -195,7 +202,7 @@
   }
 
   .sidebar {
-    display: block;
+    display: flex;
     position: fixed;
   }
 
