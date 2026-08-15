@@ -12,6 +12,7 @@ import {
 import { WELCOME_CAMPAIGN_NAME } from "../../lib/campaigns/welcome-shared";
 import type { EmailCampaign, EmailCampaignAudience } from "../../lib/supabase/types";
 import styles from "./CampaignEditorClient.module.css";
+import { ParagraphTextField } from "./ParagraphTextField";
 
 type ProductAsset = {
   id: string;
@@ -570,13 +571,21 @@ export function CampaignEditorClient({
                   </div>
                 </div>
 
-                {block.type === "heading" || block.type === "paragraph" ? (
+                {block.type === "heading" ? (
                   <textarea
                     className={styles.textarea}
-                    rows={block.type === "heading" ? 2 : 4}
+                    rows={2}
                     value={block.text}
                     disabled={readOnly}
                     onChange={(event) => updateBlock(block.id, { text: event.target.value })}
+                  />
+                ) : null}
+
+                {block.type === "paragraph" ? (
+                  <ParagraphTextField
+                    value={block.text}
+                    disabled={readOnly}
+                    onChange={(text) => updateBlock(block.id, { text })}
                   />
                 ) : null}
 

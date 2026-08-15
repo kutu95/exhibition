@@ -133,6 +133,32 @@
   resize: vertical;
 }
 
+.paragraphField {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.paragraphTools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.paragraphTools button {
+  border: 1px solid #111;
+  background: #fff;
+  color: #111;
+  padding: 0.35rem 0.55rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.paragraphTools button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .grid2 {
   display: grid;
   gap: 0.65rem;
