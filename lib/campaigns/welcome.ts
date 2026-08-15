@@ -1,3 +1,4 @@
+import { renderEmailTemplate } from "../emails/templates";
 import {
   isCampaignEmailConfigured,
   sendCampaignEmail,
@@ -46,6 +47,64 @@ export const sendWelcomeEmailIfConfigured = async (
 ): Promise<void> => {
   if (!isCampaignEmailConfigured()) {
     return;
+  }
+
+  try {
+    const unsubscribeUrl = await buildUnsubscribeUrl({
+      subscriberId: input.subscriberId,
+      email: input.email.trim(),
+    });
+    const fromTemplate = await renderEmailTemplate({
+      slug: "new_subscriber",
+      mergeVars: {
+        first_name: input.firstName?.trim().split(/\s+/)[0] || "",
+        customer_name: input.firstName?.trim() || "",
+      },
+      unsubscribeUrl,
+      recipientFirstName: input.firstName?.trim() || null,
+    });
+    if (fromTemplate) {
+      const campaign = await loadWelcomeCampaign();
+      const email = input.email.trim().toLowerCase();
+      if (campaign) {
+        const { data: existingSend } = await supabaseAdmin
+          .from("email_campaign_sends")
+          .select("id, status")
+          .eq("campaign_id", campaign.id)
+          .eq("email", email)
+          .maybeSingle();
+        if (existingSend?.status === "sent") {
+          return;
+        }
+      }
+
+      const result = await sendCampaignEmail({
+        to: input.email.trim(),
+        subject: fromTemplate.subject,
+        html: fromTemplate.html,
+        previewText: fromTemplate.previewText,
+        unsubscribeUrl,
+      });
+      if (result.sent && campaign) {
+        await supabaseAdmin.from("email_campaign_sends").upsert(
+          {
+            campaign_id: campaign.id,
+            subscriber_id: input.subscriberId,
+            email,
+            resend_id: result.resendId,
+            status: "sent",
+            error: null,
+            sent_at: new Date().toISOString(),
+          },
+          { onConflict: "campaign_id,email" },
+        );
+      } else if (!result.sent) {
+        console.error("Welcome email (template) failed", result.error);
+      }
+      return;
+    }
+  } catch (error) {
+    console.warn("Welcome template unavailable; falling back to named campaign.", error);
   }
 
   const campaign = await loadWelcomeCampaign();

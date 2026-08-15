@@ -206,6 +206,16 @@ export type EmailCampaignSend = {
   created_at: string;
 };
 
+export type EmailTemplate = {
+  slug: string;
+  name: string;
+  subject: string;
+  preview_text: string | null;
+  blocks: unknown;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ExhibitionEvent = {
   id: string;
   slug: string;

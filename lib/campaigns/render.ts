@@ -1,3 +1,4 @@
+import { interpolateMergeTokens, type EmailMergeVars } from "../emails/merge";
 import { siteConfig } from "../metadata";
 import type { CampaignBlock } from "./blocks";
 import { prepareCampaignBlocksForEmail } from "./email-image";
@@ -27,12 +28,19 @@ const escapeHtml = (value: string): string =>
 const nl2br = (value: string): string =>
   escapeHtml(value).replace(/\r\n|\r|\n/g, "<br />");
 
-const renderBlock = (block: CampaignBlock): string => {
+const applyVars = (text: string, vars?: EmailMergeVars): string =>
+  vars ? interpolateMergeTokens(text, vars) : text;
+
+const renderBlock = (
+  block: CampaignBlock,
+  vars?: EmailMergeVars,
+  mergeHtml?: Partial<Record<"order_summary" | "shipment_details", string>>,
+): string => {
   switch (block.type) {
     case "heading":
-      return `<h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.2;color:${NAVY};font-weight:400;">${escapeHtml(block.text)}</h1>`;
+      return `<h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.2;color:${NAVY};font-weight:400;">${escapeHtml(applyVars(block.text, vars))}</h1>`;
     case "paragraph":
-      return `<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:${INK};">${nl2br(block.text)}</p>`;
+      return `<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:${INK};">${nl2br(applyVars(block.text, vars))}</p>`;
     case "image": {
       const src = absoluteAssetUrl(block.url);
       const alt = escapeHtml(block.alt || "");
@@ -52,8 +60,14 @@ const renderBlock = (block: CampaignBlock): string => {
         </div>`;
     }
     case "button": {
-      const href = absoluteAssetUrl(block.url);
-      return `<div style="margin:0 0 20px;"><a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 18px;background:${NAVY};color:${CREAM};text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:15px;">${escapeHtml(block.label)}</a></div>`;
+      const href = absoluteAssetUrl(applyVars(block.url, vars));
+      return `<div style="margin:0 0 20px;"><a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 18px;background:${NAVY};color:${CREAM};text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:15px;">${escapeHtml(applyVars(block.label, vars))}</a></div>`;
+    }
+    case "merge": {
+      const html = mergeHtml?.[block.slot];
+      if (html) return html;
+      const label = block.slot === "order_summary" ? "Order details" : "Shipment details";
+      return `<div style="margin:0 0 16px;padding:14px;border:1px dashed #c4b89a;color:${MUTED};font-family:Arial,Helvetica,sans-serif;font-size:14px;">${escapeHtml(label)} will be filled in when the email is sent.</div>`;
     }
     default:
       return "";
@@ -64,10 +78,15 @@ export type RenderCampaignEmailInput = {
   subject: string;
   previewText?: string | null;
   blocks: CampaignBlock[];
-  unsubscribeUrl: string;
+  unsubscribeUrl?: string | null;
   recipientFirstName?: string | null;
   /** When true, skip derivative generation (caller already prepared blocks). */
   skipImagePrepare?: boolean;
+  /** Skip the automatic “Dear Name,” line when the template already greets the reader. */
+  autoGreeting?: boolean;
+  mergeVars?: EmailMergeVars;
+  mergeHtml?: Partial<Record<"order_summary" | "shipment_details", string>>;
+  footerNote?: string;
 };
 
 export const renderCampaignEmailHtml = async ({
@@ -77,23 +96,34 @@ export const renderCampaignEmailHtml = async ({
   unsubscribeUrl,
   recipientFirstName,
   skipImagePrepare = false,
+  autoGreeting = true,
+  mergeVars,
+  mergeHtml,
+  footerNote,
 }: RenderCampaignEmailInput): Promise<string> => {
   const readyBlocks = skipImagePrepare ? blocks : await prepareCampaignBlocksForEmail(blocks);
-  const greetingName = recipientFirstName?.trim().split(/\s+/)[0] || null;
+  const greetingName = autoGreeting ? recipientFirstName?.trim().split(/\s+/)[0] || null : null;
   const greeting = greetingName
     ? `<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:${INK};">Dear ${escapeHtml(greetingName)},</p>`
     : "";
 
-  const body = readyBlocks.map(renderBlock).join("\n");
-  const preview = escapeHtml((previewText || subject || "").trim());
+  const body = readyBlocks.map((block) => renderBlock(block, mergeVars, mergeHtml)).join("\n");
+  const preview = escapeHtml(applyVars((previewText || subject || "").trim(), mergeVars));
+  const title = escapeHtml(applyVars(subject || siteConfig.name, mergeVars));
   const year = new Date().getFullYear();
+  const unsub = unsubscribeUrl?.trim();
+  const legal = footerNote
+    ? escapeHtml(footerNote)
+    : unsub
+      ? `You are receiving this because you subscribed on the exhibition website.`
+      : `You received this email because you placed an order at ${siteConfig.url.replace(/^https?:\/\//, "")}.`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(subject || siteConfig.name)}</title>
+  <title>${title}</title>
 </head>
 <body style="margin:0;padding:0;background:${CREAM};">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preview}</div>
@@ -124,9 +154,9 @@ export const renderCampaignEmailHtml = async ({
               </p>
               <p style="margin:0 0 10px;">The Georgette 150th · John Bowskill · <a href="${escapeHtml(siteConfig.url)}" style="color:${MUTED};">${escapeHtml(siteConfig.url.replace(/^https?:\/\//, ""))}</a></p>
               <p style="margin:0;font-size:12px;">
-                You are receiving this because you subscribed on the exhibition website.
-                <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED};">Unsubscribe</a>
-                · © ${year}
+                ${legal}
+                ${unsub ? ` <a href="${escapeHtml(unsub)}" style="color:${MUTED};">Unsubscribe</a> ·` : ""}
+                © ${year}
               </p>
             </td>
           </tr>

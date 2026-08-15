@@ -5,7 +5,7 @@ import { siteConfig } from "../metadata";
 const resendApiKey = process.env.RESEND_API_KEY;
 const fromEmail = process.env.RESEND_FROM_EMAIL;
 const alertEmail =
-  process.env.REGISTRATION_ALERT_EMAIL?.trim() || "john@streamtime.com.au";
+  process.env.REGISTRATION_ALERT_EMAIL?.trim() || "john@margies.app";
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 

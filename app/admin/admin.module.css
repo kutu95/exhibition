@@ -62,6 +62,30 @@
   padding-bottom: 0.65rem;
 }
 
+.navSection {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.navSection + .navSection {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.navSectionLabel {
+  margin: 0 0 0.15rem;
+  padding: 0 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.navSubLink {
+  padding-left: 0.85rem !important;
+}
+
 .nav a {
   color: #fff;
   text-decoration: none;

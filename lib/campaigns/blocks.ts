@@ -32,6 +32,11 @@ export const campaignBlockSchema = z.discriminatedUnion("type", [
     label: z.string().min(1),
     url: z.string().min(1),
   }),
+  z.object({
+    id: z.string().min(1),
+    type: z.literal("merge"),
+    slot: z.enum(["order_summary", "shipment_details"]),
+  }),
 ]);
 
 export type CampaignBlock = z.infer<typeof campaignBlockSchema>;

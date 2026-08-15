@@ -3,11 +3,10 @@ import Link from "next/link";
 
 import type { InstallationPageContent } from "../lib/installation-pages";
 import { installationPageList } from "../lib/installation-pages";
+import { siteContact } from "../lib/contact";
 import { isManagedLocalMediaPath } from "../lib/utils/site-content-image";
 import { FadeInSection } from "./FadeInSection";
 import styles from "./InstallationDetail.module.css";
-
-const CONTACT_EMAIL = "john@streamtime.com.au";
 
 type InstallationDetailProps = {
   content: InstallationPageContent;
@@ -52,7 +51,7 @@ export function InstallationDetail({
             <p className={styles.pitchLine}>
               Available for galleries and museums to license, buy, or borrow.
             </p>
-            <a className={`button-solid ${styles.contactBtn}`} href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Enquiry: ${content.title} installation`)}`}>
+            <a className={`button-solid ${styles.contactBtn}`} href={`mailto:${siteContact.email}?subject=${encodeURIComponent(`Enquiry: ${content.title} installation`)}`}>
               Enquire about {content.title}
             </a>
           </div>
@@ -109,12 +108,12 @@ export function InstallationDetail({
           <p>
             To talk about presenting {content.title} at your venue — or adapting the system for another collection —
             email{" "}
-            <a className="text-link" href={`mailto:${CONTACT_EMAIL}`}>
-              {CONTACT_EMAIL}
+            <a className="text-link" href={`mailto:${siteContact.email}`}>
+              {siteContact.email}
             </a>
             .
           </p>
-          <a className="button-outline" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Enquiry: ${content.title} installation`)}`}>
+          <a className="button-outline" href={`mailto:${siteContact.email}?subject=${encodeURIComponent(`Enquiry: ${content.title} installation`)}`}>
             Email an enquiry
           </a>
         </FadeInSection>
