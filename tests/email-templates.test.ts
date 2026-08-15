@@ -38,4 +38,15 @@ describe("email template merge tokens", () => {
     const blocks = EMAIL_TEMPLATE_DEFINITIONS.order_confirmation.defaultBlocks();
     expect(blocks.some((block) => block.type === "merge" && block.slot === "order_summary")).toBe(true);
   });
+
+  it("includes talk confirmation tokens in the default design", () => {
+    const def = EMAIL_TEMPLATE_DEFINITIONS.talk_confirmation;
+    expect(def.kind).toBe("transactional");
+    const text = def
+      .defaultBlocks()
+      .map((block) => ("text" in block ? block.text : ""))
+      .join(" ");
+    expect(text).toContain("{{talk_title}}");
+    expect(text).toContain("{{party_label}}");
+  });
 });

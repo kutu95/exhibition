@@ -545,7 +545,11 @@ export function EmailTemplateEditorClient({
                 {busy === "test" ? "Sending test…" : "Send test"}
               </button>
             </div>
-            <p className={styles.hint}>Preview and tests use sample order GEO-0042.</p>
+            <p className={styles.hint}>
+              {initial.slug === "talk_confirmation"
+                ? "Preview and tests use sample guest Alex with 2 seats."
+                : "Preview and tests use sample order GEO-0042."}
+            </p>
           </div>
         </div>
 

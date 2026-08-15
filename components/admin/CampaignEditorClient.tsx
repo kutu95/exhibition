@@ -11,6 +11,7 @@ import {
   type CampaignImageSize,
 } from "../../lib/campaigns/blocks";
 import { WELCOME_CAMPAIGN_NAME } from "../../lib/campaigns/welcome-shared";
+import { TALK_CONFIRMATION_CAMPAIGN_NAME } from "../../lib/talk-details";
 import type { EmailCampaign, EmailCampaignAudience } from "../../lib/supabase/types";
 import styles from "./CampaignEditorClient.module.css";
 import { ParagraphTextField } from "./ParagraphTextField";
@@ -510,6 +511,12 @@ export function CampaignEditorClient({
             <p className={styles.hint}>
               This campaign is sent automatically to each new website subscriber (once per email). Keep it as a
               draft — do not use Send to all unless you intend a bulk resend.
+            </p>
+          ) : null}
+          {name.trim().toLowerCase() === TALK_CONFIRMATION_CAMPAIGN_NAME.toLowerCase() ? (
+            <p className={styles.hint}>
+              This campaign is sent automatically when someone registers for the author talk and a seat is still
+              available. Keep it as a draft — wait-list signups do not receive it.
             </p>
           ) : null}
           <label className={styles.field}>

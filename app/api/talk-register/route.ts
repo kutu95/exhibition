@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { handleRouteError } from "../../../lib/api-route-errors";
 import { sendTalkRegistrationAlertEmail } from "../../../lib/emails/registration-alert";
+import { sendTalkConfirmationEmail } from "../../../lib/emails/talk-confirmation";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 import {
   getTalkCapacity,
@@ -119,6 +120,14 @@ export async function POST(request: Request) {
       list,
       source,
     });
+
+    if (list === "confirmed") {
+      void sendTalkConfirmationEmail({
+        email,
+        name,
+        partySize,
+      });
+    }
 
     const nextRemaining =
       list === "confirmed" ? Math.max(0, capacity - seatsTaken - partySize) : seatsRemaining;

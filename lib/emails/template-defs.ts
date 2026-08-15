@@ -1,6 +1,12 @@
 import { createCampaignBlockId, type CampaignBlock } from "../campaigns/blocks";
+import { TALK_WHEN_LABEL } from "../talk-details";
 
-export const EMAIL_TEMPLATE_SLUGS = ["order_confirmation", "order_shipped", "new_subscriber"] as const;
+export const EMAIL_TEMPLATE_SLUGS = [
+  "order_confirmation",
+  "order_shipped",
+  "new_subscriber",
+  "talk_confirmation",
+] as const;
 
 export type EmailTemplateSlug = (typeof EMAIL_TEMPLATE_SLUGS)[number];
 
@@ -109,6 +115,36 @@ export const EMAIL_TEMPLATE_DEFINITIONS: Record<EmailTemplateSlug, EmailTemplate
     defaultBlocks: () => [
       h("Welcome"),
       p("Thank you for subscribing to The Georgette 150th. I will write when there are new prints, exhibition dates, or stories behind the photographs."),
+      p("John Bowskill"),
+    ],
+  },
+  talk_confirmation: {
+    slug: "talk_confirmation",
+    name: "Talk confirmation",
+    kind: "transactional",
+    description:
+      "Sent automatically when a visitor registers for the author talk and a seat is available. Wait-list signups do not receive this email.",
+    tokens: [
+      { token: "{{first_name}}", meaning: "First name from the registration form" },
+      { token: "{{name}}", meaning: "Full name" },
+      { token: "{{party_label}}", meaning: "1 seat or 2 seats" },
+      { token: "{{talk_title}}", meaning: "Author talk title" },
+      { token: "{{talk_when}}", meaning: "Date and time" },
+      { token: "{{talk_location}}", meaning: "Exhibition address" },
+      { token: "{{contact_email}}", meaning: "Reply-to contact address" },
+    ],
+    defaultSubject: "You're registered for the Georgette author talk",
+    defaultPreview: `${TALK_WHEN_LABEL} at the exhibition.`,
+    defaultBlocks: () => [
+      h("You're registered"),
+      p("Dear {{first_name}},"),
+      p("Your place is confirmed for {{talk_title}}. I've reserved {{party_label}} for you."),
+      p(`{{talk_when}}`),
+      p(`{{talk_location}}`),
+      p(
+        "Please arrive a few minutes early so we can start on time. If you can no longer come, reply to this email so we can offer the seat to someone on the wait list.",
+      ),
+      p("If you have any questions, contact us at {{contact_email}}."),
       p("John Bowskill"),
     ],
   },

@@ -1,4 +1,6 @@
 import { formatAUD } from "../utils/currency";
+import { siteConfig } from "../metadata";
+import { TALK_TITLE, TALK_WHEN_LABEL } from "../talk-details";
 
 export type EmailMergeVars = Record<string, string>;
 
@@ -80,6 +82,11 @@ export const sampleOrderMergeVars = (): EmailMergeVars => ({
   variant_label: "A3 · Hahnemühle Photo Rag",
   edition_line: "Edition 2 of 25",
   contact_email: "hello@margies.app",
+  name: "Alex Taylor",
+  party_label: "2 seats",
+  talk_title: TALK_TITLE,
+  talk_when: TALK_WHEN_LABEL,
+  talk_location: siteConfig.exhibition.location,
 });
 
 export const sampleOrderLines = (): OrderEmailLine[] => [

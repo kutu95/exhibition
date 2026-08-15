@@ -1,7 +1,11 @@
 import { supabaseAdmin } from "./supabase/admin";
 
-export const TALK_TITLE = "Marcia van Zeller — The Truth About the Georgette";
-export const TALK_WHEN_LABEL = "Sunday 20 September · 11am–12pm";
+export {
+  TALK_TITLE,
+  TALK_WHEN_LABEL,
+  TALK_CONFIRMATION_CAMPAIGN_NAME,
+} from "./talk-details";
+
 export const TALK_CAPACITY_CONTENT_KEY = "talk_capacity";
 export const DEFAULT_TALK_CAPACITY = 40;
 

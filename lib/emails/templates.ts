@@ -4,6 +4,7 @@ import { renderCampaignEmailHtml } from "../campaigns/render";
 import { WELCOME_CAMPAIGN_NAME } from "../campaigns/welcome-shared";
 import { supabaseAdmin } from "../supabase/admin";
 import type { EmailCampaign } from "../supabase/types";
+import { TALK_CONFIRMATION_CAMPAIGN_NAME } from "../talk-details";
 import {
   interpolateMergeTokens,
   renderOrderSummaryHtml,
@@ -34,7 +35,9 @@ const parseBlocks = (value: unknown): CampaignBlock[] => {
   return parsed.success ? parsed.data : [];
 };
 
-const copyWelcomeCampaignIfPresent = async (): Promise<{
+const copyNamedCampaignIfPresent = async (
+  name: string,
+): Promise<{
   subject: string;
   preview_text: string | null;
   blocks: CampaignBlock[];
@@ -42,7 +45,7 @@ const copyWelcomeCampaignIfPresent = async (): Promise<{
   const { data, error } = await supabaseAdmin
     .from("email_campaigns")
     .select("subject, preview_text, blocks")
-    .ilike("name", WELCOME_CAMPAIGN_NAME)
+    .ilike("name", name)
     .neq("status", "cancelled")
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -80,7 +83,16 @@ export const ensureEmailTemplates = async (): Promise<EmailTemplateRecord[]> => 
     let blocks = def.defaultBlocks();
 
     if (slug === "new_subscriber") {
-      const copied = await copyWelcomeCampaignIfPresent();
+      const copied = await copyNamedCampaignIfPresent(WELCOME_CAMPAIGN_NAME);
+      if (copied) {
+        subject = copied.subject;
+        preview_text = copied.preview_text;
+        blocks = copied.blocks;
+      }
+    }
+
+    if (slug === "talk_confirmation") {
+      const copied = await copyNamedCampaignIfPresent(TALK_CONFIRMATION_CAMPAIGN_NAME);
       if (copied) {
         subject = copied.subject;
         preview_text = copied.preview_text;
