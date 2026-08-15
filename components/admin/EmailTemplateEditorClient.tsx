@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createCampaignBlockId,
@@ -43,6 +43,110 @@ export function EmailTemplateEditorClient({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | "error">("saved");
+
+  const draftRef = useRef({ subject, previewText, blocks });
+  draftRef.current = { subject, previewText, blocks };
+  const dirtyRef = useRef(false);
+  const saveAgainRef = useRef(false);
+  const persistRunRef = useRef<Promise<boolean> | null>(null);
+  const lastSavedRef = useRef(
+    JSON.stringify({
+      subject: initial.subject,
+      previewText: initial.preview_text ?? "",
+      blocks: initial.blocks,
+    }),
+  );
+  const persistRef = useRef<() => Promise<boolean>>(async () => true);
+
+  const persist = (): Promise<boolean> => {
+    saveAgainRef.current = true;
+    if (persistRunRef.current) return persistRunRef.current;
+
+    const run = (async () => {
+      await Promise.resolve();
+      let ok = false;
+      try {
+        while (saveAgainRef.current) {
+          saveAgainRef.current = false;
+          const draft = draftRef.current;
+          const snapshot = JSON.stringify({
+            subject: draft.subject,
+            previewText: draft.previewText,
+            blocks: draft.blocks,
+          });
+          if (snapshot === lastSavedRef.current) {
+            dirtyRef.current = false;
+            setSaveStatus("saved");
+            ok = true;
+            continue;
+          }
+          setSaveStatus("saving");
+          const response = await fetch(`/api/admin/email-templates/${initial.slug}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              subject: draft.subject,
+              preview_text: draft.previewText.trim() || null,
+              blocks: draft.blocks,
+            }),
+            keepalive: true,
+          });
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          if (!response.ok) {
+            setSaveStatus("error");
+            setError(body?.error ?? "Could not save template.");
+            return false;
+          }
+          lastSavedRef.current = snapshot;
+          if (!saveAgainRef.current) {
+            dirtyRef.current = false;
+            setSaveStatus("saved");
+          }
+          ok = true;
+        }
+        return ok;
+      } catch {
+        setSaveStatus("error");
+        setError("Could not save template.");
+        return false;
+      } finally {
+        persistRunRef.current = null;
+      }
+    })();
+
+    persistRunRef.current = run;
+    return run;
+  };
+  persistRef.current = persist;
+
+  useEffect(() => {
+    const snapshot = JSON.stringify({ subject, previewText, blocks });
+    if (snapshot === lastSavedRef.current) return;
+    dirtyRef.current = true;
+    setSaveStatus("unsaved");
+    const timer = window.setTimeout(() => {
+      void persistRef.current();
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [subject, previewText, blocks]);
+
+  useEffect(() => {
+    const flush = () => {
+      if (!dirtyRef.current) return;
+      void persistRef.current();
+    };
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHidden);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onHidden);
+      flush();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,31 +175,11 @@ export function EmailTemplateEditorClient({
 
   const save = async (): Promise<boolean> => {
     setBusy("save");
-    setError(null);
     setMessage(null);
-    try {
-      const response = await fetch(`/api/admin/email-templates/${initial.slug}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject,
-          preview_text: previewText.trim() || null,
-          blocks,
-        }),
-      });
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (!response.ok) {
-        setError(body?.error ?? "Could not save template.");
-        return false;
-      }
-      setMessage("Saved.");
-      return true;
-    } catch {
-      setError("Could not save template.");
-      return false;
-    } finally {
-      setBusy(null);
-    }
+    const ok = await persist();
+    setBusy(null);
+    if (ok) setMessage("Saved.");
+    return ok;
   };
 
   const refreshPreview = async () => {
@@ -233,7 +317,17 @@ export function EmailTemplateEditorClient({
             <Link href="/admin/email-designs">← Email designs</Link>
           </p>
           <h1>{definition.name}</h1>
-          <p className={styles.meta}>{definition.description}</p>
+          <p className={styles.meta}>
+            {definition.description}
+            {" · "}
+            {saveStatus === "saving"
+              ? "Saving…"
+              : saveStatus === "unsaved"
+                ? "Unsaved changes"
+                : saveStatus === "error"
+                  ? "Save failed"
+                  : "Saved"}
+          </p>
         </div>
       </div>
 
@@ -409,7 +503,7 @@ export function EmailTemplateEditorClient({
 
           <div className={styles.actions}>
             <button type="button" className={styles.primaryBtn} disabled={busy !== null} onClick={() => void save()}>
-              {busy === "save" ? "Saving…" : "Save"}
+              {busy === "save" || saveStatus === "saving" ? "Saving…" : "Save"}
             </button>
             <button type="button" disabled={busy !== null} onClick={() => void refreshPreview()}>
               {busy === "preview" ? "Loading preview…" : "Refresh preview"}
