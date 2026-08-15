@@ -1,6 +1,7 @@
 import { interpolateMergeTokens, type EmailMergeVars } from "../emails/merge";
 import { siteConfig } from "../metadata";
 import type { CampaignBlock } from "./blocks";
+import { campaignImageDisplayWidth, type CampaignImageSize } from "./blocks";
 import { prepareCampaignBlocksForEmail } from "./email-image";
 
 const NAVY = "#0a1628";
@@ -81,7 +82,12 @@ const renderBlock = (
     case "image": {
       const src = absoluteAssetUrl(block.url);
       const alt = escapeHtml(block.alt || "");
-      return `<div style="margin:0 0 20px;"><img src="${escapeHtml(src)}" alt="${alt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" /></div>`;
+      const size: CampaignImageSize = block.size ?? "full";
+      const width = campaignImageDisplayWidth[size];
+      if (size === "full") {
+        return `<div style="margin:0 0 20px;"><img src="${escapeHtml(src)}" alt="${alt}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" /></div>`;
+      }
+      return `<div style="margin:0 0 20px;text-align:center;"><img src="${escapeHtml(src)}" alt="${alt}" width="${width}" style="display:inline-block;width:${width}px;max-width:100%;height:auto;border:0;" /></div>`;
     }
     case "product": {
       const href = absoluteAssetUrl(`/shop/${block.slug}`);

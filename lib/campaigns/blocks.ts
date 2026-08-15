@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const campaignImageSizes = ["full", "medium", "small"] as const;
+export type CampaignImageSize = (typeof campaignImageSizes)[number];
+
+export const campaignImageDisplayWidth: Record<CampaignImageSize, number> = {
+  full: 600,
+  medium: 360,
+  small: 220,
+};
+
 export const campaignBlockSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string().min(1),
@@ -16,6 +25,7 @@ export const campaignBlockSchema = z.discriminatedUnion("type", [
     type: z.literal("image"),
     url: z.string().min(1),
     alt: z.string().optional().default(""),
+    size: z.enum(campaignImageSizes).optional(),
   }),
   z.object({
     id: z.string().min(1),

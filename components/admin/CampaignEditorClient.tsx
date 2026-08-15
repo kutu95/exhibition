@@ -8,6 +8,7 @@ import {
   campaignBlocksSchema,
   createCampaignBlockId,
   type CampaignBlock,
+  type CampaignImageSize,
 } from "../../lib/campaigns/blocks";
 import { WELCOME_CAMPAIGN_NAME } from "../../lib/campaigns/welcome-shared";
 import type { EmailCampaign, EmailCampaignAudience } from "../../lib/supabase/types";
@@ -607,6 +608,20 @@ export function CampaignEditorClient({
                         disabled={readOnly}
                         onChange={(event) => updateBlock(block.id, { alt: event.target.value })}
                       />
+                    </label>
+                    <label>
+                      Display size
+                      <select
+                        value={block.size ?? "full"}
+                        disabled={readOnly}
+                        onChange={(event) =>
+                          updateBlock(block.id, { size: event.target.value as CampaignImageSize })
+                        }
+                      >
+                        <option value="full">Full width</option>
+                        <option value="medium">Medium</option>
+                        <option value="small">Small</option>
+                      </select>
                     </label>
                   </div>
                 ) : null}

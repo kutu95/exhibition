@@ -82,3 +82,29 @@ describe("campaign paragraph rendering", () => {
     expect(html).toContain("/shop");
   });
 });
+
+describe("campaign image display size", () => {
+  it("keeps existing images full width when size is omitted", async () => {
+    const html = await renderCampaignEmailHtml({
+      subject: "Hello",
+      blocks: [{ id: "i1", type: "image", url: "/images/hero.jpg", alt: "Hero" }],
+      skipImagePrepare: true,
+      autoGreeting: false,
+    });
+    expect(html).toContain('width="600"');
+    expect(html).toContain("max-width:600px");
+  });
+
+  it("renders medium images smaller and centred", async () => {
+    const html = await renderCampaignEmailHtml({
+      subject: "Hello",
+      blocks: [{ id: "i1", type: "image", url: "/images/hero.jpg", alt: "Hero", size: "medium" }],
+      skipImagePrepare: true,
+      autoGreeting: false,
+    });
+    expect(html).toContain('width="360"');
+    expect(html).toContain("width:360px");
+    expect(html).toContain("text-align:center");
+    expect(html).toContain('alt="Hero" width="360"');
+  });
+});

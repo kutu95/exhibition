@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createCampaignBlockId,
   type CampaignBlock,
+  type CampaignImageSize,
 } from "../../lib/campaigns/blocks";
 import type { EmailTemplateDefinition } from "../../lib/emails/template-defs";
 import type { EmailTemplateRecord } from "../../lib/emails/templates";
@@ -449,6 +450,19 @@ export function EmailTemplateEditorClient({
                         value={block.alt || ""}
                         onChange={(event) => updateBlock(block.id, { alt: event.target.value })}
                       />
+                    </label>
+                    <label>
+                      Display size
+                      <select
+                        value={block.size ?? "full"}
+                        onChange={(event) =>
+                          updateBlock(block.id, { size: event.target.value as CampaignImageSize })
+                        }
+                      >
+                        <option value="full">Full width</option>
+                        <option value="medium">Medium</option>
+                        <option value="small">Small</option>
+                      </select>
                     </label>
                   </div>
                 ) : null}
