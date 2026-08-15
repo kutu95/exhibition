@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   campaignBlocksSchema,
@@ -46,6 +46,12 @@ type CampaignEditorClientProps = {
 
 const readOnlyStatuses = new Set(["sending", "sent"]);
 
+type SaveExtra = {
+  status?: "draft" | "scheduled" | "cancelled";
+  scheduled_at?: string | null;
+  audience?: EmailCampaignAudience;
+};
+
 export function CampaignEditorClient({
   campaign: initial,
   stats: initialStats,
@@ -76,6 +82,7 @@ export function CampaignEditorClient({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | "error">("saved");
 
   const selectedAudienceCount =
     audience === "talk_registrations"
@@ -110,42 +117,134 @@ export function CampaignEditorClient({
     [products],
   );
 
-  const save = async (extra?: {
-    status?: "draft" | "scheduled" | "cancelled";
-    scheduled_at?: string | null;
-    audience?: EmailCampaignAudience;
-  }) => {
-    setBusy("save");
-    setError(null);
-    setMessage(null);
-    try {
-      const response = await fetch(`/api/admin/campaigns/${initial.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          subject,
-          preview_text: previewText || null,
-          blocks,
-          audience: extra?.audience ?? audience,
-          ...extra,
-        }),
-      });
-      const body = (await response.json().catch(() => null)) as EmailCampaign & {
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(body?.error ?? "Save failed.");
+  const draftRef = useRef({ name, subject, previewText, blocks, audience });
+  draftRef.current = { name, subject, previewText, blocks, audience };
+  const dirtyRef = useRef(false);
+  const saveAgainRef = useRef(false);
+  const extraRef = useRef<SaveExtra | undefined>(undefined);
+  const persistRunRef = useRef<Promise<EmailCampaign | null> | null>(null);
+  const lastSavedRef = useRef(
+    JSON.stringify({
+      name: initial.name,
+      subject: initial.subject,
+      previewText: initial.preview_text ?? "",
+      blocks,
+      audience: initial.audience === "talk_registrations" ? "talk_registrations" : "subscribers",
+    }),
+  );
+  const lastCampaignRef = useRef<EmailCampaign>(initial);
+  const persistRef = useRef<(extra?: SaveExtra) => Promise<EmailCampaign | null>>(async () => initial);
+
+  const persist = (extra?: SaveExtra): Promise<EmailCampaign | null> => {
+    if (readOnly) return Promise.resolve(lastCampaignRef.current);
+    if (extra) extraRef.current = extra;
+    saveAgainRef.current = true;
+    if (persistRunRef.current) return persistRunRef.current;
+
+    const run = (async () => {
+      await Promise.resolve();
+      let saved: EmailCampaign | null = lastCampaignRef.current;
+      try {
+        while (saveAgainRef.current || extraRef.current) {
+          saveAgainRef.current = false;
+          const pendingExtra = extraRef.current;
+          extraRef.current = undefined;
+          const draft = draftRef.current;
+          const snapshot = JSON.stringify({
+            name: draft.name,
+            subject: draft.subject,
+            previewText: draft.previewText,
+            blocks: draft.blocks,
+            audience: draft.audience,
+          });
+          if (!pendingExtra && snapshot === lastSavedRef.current) {
+            dirtyRef.current = false;
+            setSaveStatus("saved");
+            continue;
+          }
+          setSaveStatus("saving");
+          const response = await fetch(`/api/admin/campaigns/${initial.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: draft.name,
+              subject: draft.subject,
+              preview_text: draft.previewText || null,
+              blocks: draft.blocks,
+              audience: pendingExtra?.audience ?? draft.audience,
+              ...pendingExtra,
+            }),
+            keepalive: true,
+          });
+          const body = (await response.json().catch(() => null)) as EmailCampaign & {
+            error?: string;
+          };
+          if (!response.ok) {
+            setSaveStatus("error");
+            setError(body?.error ?? "Save failed.");
+            return null;
+          }
+          lastSavedRef.current = snapshot;
+          lastCampaignRef.current = body;
+          setStatus(body.status);
+          if (!saveAgainRef.current && !extraRef.current) {
+            dirtyRef.current = false;
+            setSaveStatus("saved");
+          }
+          saved = body;
+        }
+        return saved;
+      } catch {
+        setSaveStatus("error");
+        setError("Save failed.");
+        return null;
+      } finally {
+        persistRunRef.current = null;
       }
-      setStatus(body.status);
-      setMessage("Saved.");
-      return body;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed.");
-      return null;
-    } finally {
-      setBusy(null);
-    }
+    })();
+
+    persistRunRef.current = run;
+    return run;
+  };
+  persistRef.current = persist;
+
+  useEffect(() => {
+    if (readOnly) return;
+    const snapshot = JSON.stringify({ name, subject, previewText, blocks, audience });
+    if (snapshot === lastSavedRef.current) return;
+    dirtyRef.current = true;
+    setSaveStatus("unsaved");
+    const timer = window.setTimeout(() => {
+      void persistRef.current();
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [name, subject, previewText, blocks, audience, readOnly]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    const flush = () => {
+      if (!dirtyRef.current) return;
+      void persistRef.current();
+    };
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHidden);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onHidden);
+      flush();
+    };
+  }, [readOnly]);
+
+  const save = async (extra?: SaveExtra) => {
+    setBusy("save");
+    setMessage(null);
+    const body = await persist(extra);
+    setBusy(null);
+    if (body) setMessage("Saved.");
+    return body;
   };
 
   const refreshPreview = async () => {
@@ -373,6 +472,18 @@ export function CampaignEditorClient({
                 Stats: {stats.sent} sent, {stats.failed} failed
               </>
             )}
+            {!readOnly ? (
+              <>
+                {" · "}
+                {saveStatus === "saving"
+                  ? "Saving…"
+                  : saveStatus === "unsaved"
+                    ? "Unsaved changes"
+                    : saveStatus === "error"
+                      ? "Save failed"
+                      : "Saved"}
+              </>
+            ) : null}
           </p>
         </div>
       </div>
@@ -555,7 +666,7 @@ export function CampaignEditorClient({
 
           <div className={styles.actions}>
             <button type="button" className={styles.primaryBtn} disabled={readOnly || busy !== null} onClick={() => void save()}>
-              {busy === "save" ? "Saving…" : "Save draft"}
+              {busy === "save" || saveStatus === "saving" ? "Saving…" : "Save draft"}
             </button>
             <button type="button" disabled={busy !== null} onClick={() => void refreshPreview()}>
               {busy === "preview" ? "Loading preview…" : "Refresh preview"}
