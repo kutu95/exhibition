@@ -9,8 +9,6 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const CANONICAL_HOST = "exhibition.margies.app";
 const HOSTS_REDIRECT_TO_CANONICAL = new Set([
   "www.exhibition.margies.app",
-  "margies.app",
-  "www.margies.app",
 ]);
 
 function shouldForceHttps(request: NextRequest): boolean {
