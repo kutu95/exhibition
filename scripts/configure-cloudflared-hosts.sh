@@ -7,8 +7,6 @@ APP_PORT="${APP_PORT:-3007}"
 ORIGIN="http://127.0.0.1:${APP_PORT}"
 ALIASES=(
   "www.exhibition.margies.app"
-  "margies.app"
-  "www.margies.app"
 )
 
 resolve_config() {
