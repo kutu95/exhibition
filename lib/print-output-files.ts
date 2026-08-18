@@ -67,7 +67,9 @@ const expectedPrintFileName = (item: LocalPrintFileRef): string => {
   return `${item.order_number}_${item.slug}_${width}x${height}mm.tif`;
 };
 
-const expectedPrintFolderName = (item: LocalPrintFileRef): string =>
+const expectedPrintFolderName = (item: LocalPrintFileRef): string => item.order_number;
+
+const legacyPrintFolderName = (item: LocalPrintFileRef): string =>
   `${item.order_number}_${item.slug}`;
 
 const tryFile = async (candidate: string, root: string): Promise<LocalPrintFile | null> => {
@@ -104,8 +106,12 @@ export const findLocalPrintFile = async (item: LocalPrintFileRef): Promise<Local
   }
 
   const folderName = expectedPrintFolderName(item);
+  const legacyFolderName = legacyPrintFolderName(item);
   const fileName = expectedPrintFileName(item);
-  const candidates: string[] = [path.join(root, folderName, fileName)];
+  const candidates: string[] = [
+    path.join(root, folderName, fileName),
+    path.join(root, legacyFolderName, fileName),
+  ];
 
   const folderPath = item.cloud_folder_path?.trim() ?? "";
   if (folderPath && looksLikeFilesystemPath(folderPath)) {
@@ -117,17 +123,21 @@ export const findLocalPrintFile = async (item: LocalPrintFileRef): Promise<Local
     if (found) return found;
   }
 
-  // Scan order folder for any TIFF (handles odd renames / truncated dimensions).
-  try {
-    const folder = await assertInsideLocalOutput(path.join(root, folderName), root);
-    const entries = await fs.readdir(folder);
-    const tiffs = entries.filter((entry) => /\.tiff?$/i.test(entry)).sort();
-    if (tiffs.length > 0) {
-      const picked = tiffs[tiffs.length - 1];
-      return tryFile(path.join(folder, picked), root);
+  // Scan order folder, then the older per-print folder, for a matching TIFF.
+  for (const scanFolder of [folderName, legacyFolderName]) {
+    try {
+      const folder = await assertInsideLocalOutput(path.join(root, scanFolder), root);
+      const entries = await fs.readdir(folder);
+      const tiffs = entries.filter((entry) => /\.tiff?$/i.test(entry)).sort();
+      const slugMatch = tiffs.filter((entry) => entry.includes(item.slug));
+      const picked =
+        tiffs.find((entry) => entry === fileName) ??
+        (slugMatch.length === 1 ? slugMatch[0] : undefined) ??
+        (tiffs.length === 1 ? tiffs[0] : undefined);
+      if (picked) return tryFile(path.join(folder, picked), root);
+    } catch {
+      // No local folder yet.
     }
-  } catch {
-    // No local folder yet.
   }
 
   return null;

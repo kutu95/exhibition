@@ -195,6 +195,7 @@ const pixelPerfectEmailItem = (item: FulfilmentDashboardItem) => ({
   print_dpi: item.print_dpi,
   quantity: item.quantity,
   drive_file_url: driveFileUrl(item),
+  drive_folder_url: driveFolderUrl(item),
   filename: localPrintFileName(item),
   canvas_wrap_mm: item.canvas_wrap_mm,
   wrap_style: item.wrap_style,

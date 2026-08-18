@@ -24,6 +24,7 @@ export type PixelPerfectEmailItem = {
   print_dpi: number;
   quantity: number;
   drive_file_url: string | null;
+  drive_folder_url?: string | null;
   filename: string;
   canvas_wrap_mm: number | null;
   wrap_style: string | null;
@@ -139,20 +140,22 @@ const studioFields = (dpi: number): EmailField[] => [
   {
     label: "Are your image files already on cloud storage? (Dropbox, wetransfer, iCloud etc)",
     value:
-      "Yes, I can provide a link to my files for downloading. File links and filenames are in each print table below.",
+      "Yes, I can provide a link to my files for downloading. Each customer order is in one Google Drive folder; filenames are in each print table below.",
   },
   { label: "Studio address on file", value: siteConfig.exhibition.location },
 ];
 
 const printFields = (item: PixelPerfectEmailItem): EmailField[] => {
-  const fileUrl = item.drive_file_url?.trim() || "File link not available yet";
+  const folderUrl = item.drive_folder_url?.trim() || "";
+  const fileUrl = item.drive_file_url?.trim() || "";
+  const driveUrl = folderUrl || fileUrl || "File link not available yet";
   const filename = item.filename.trim() || "See Google Drive link";
   return [
     { label: "File Name", value: filename },
     {
       label: "Google Drive Link",
-      value: fileUrl,
-      href: fileUrl.startsWith("http") ? fileUrl : undefined,
+      value: driveUrl,
+      href: driveUrl.startsWith("http") ? driveUrl : undefined,
     },
     { label: "Which image options do you like?", value: imageOptions(item) },
     { label: "Choose a paper", value: pixelPerfectPaperLabel(item.paper_type) },

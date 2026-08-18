@@ -98,7 +98,7 @@ SECTIONS: list[tuple[str, list[str]]] = [
             "3. Convert colour from the TIFF’s embedded profile to Adobe RGB 1998 (perceptual intent with black-point compensation).",
             "4. Size the image to the variant’s width_mm × height_mm at print_dpi. Default fit_mode is cover_crop (fill the print area and crop overflow, with optional crop_offset pan). custom_size fills without letterboxing when mm already match the photo aspect.",
             "5. Save a flat 8-bit TIFF (ZIP compression) with the output ICC embedded and print DPI metadata.",
-            "6. Copy to LOCAL_OUTPUT_DIR and, when personal Drive OAuth is configured, upload to a per-order Google Drive folder with unlisted anyone-with-link reader access.",
+            "6. Copy to LOCAL_OUTPUT_DIR/<order>/ and, when personal Drive OAuth is configured, upload every TIFF for that order into one Google Drive folder named after the order number, with unlisted anyone-with-link reader access.",
             "7. PATCH the order item to fulfilment_status = file_ready, storing the public file link in cloud_file_url and the folder ID in cloud_folder_path.",
             "How size is known: the worker reads width/height/DPI from the ordered product_variants row (copied from templates at registration or set in the product editor). It does not look up variant_templates again.",
         ],

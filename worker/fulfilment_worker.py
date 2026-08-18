@@ -19,6 +19,7 @@ from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2.credentials import Credentials as UserCredentials
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from PIL import Image, ImageCms, ImageOps
 
@@ -186,6 +187,23 @@ class GoogleDriveClient:
             includeItemsFromAllDrives=True,
         ).execute()
 
+    def find_folder(self, name: str) -> str:
+        escaped = name.replace("\\", "\\\\").replace("'", "\\'")
+        result = self.service.files().list(
+            q=(
+                f"'{self.folder_id}' in parents and name = '{escaped}' "
+                "and mimeType = 'application/vnd.google-apps.folder' and trashed=false"
+            ),
+            pageSize=1,
+            fields="files(id,name)",
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+        ).execute()
+        files = result.get("files") or []
+        if not files:
+            return ""
+        return str(files[0]["id"])
+
     def create_folder(self, name: str) -> str:
         created = self.service.files().create(
             body={
@@ -197,6 +215,31 @@ class GoogleDriveClient:
             supportsAllDrives=True,
         ).execute()
         return str(created["id"])
+
+    def share_anyone_reader(self, file_id: str) -> None:
+        try:
+            self.service.permissions().create(
+                fileId=file_id,
+                body={
+                    "type": "anyone",
+                    "role": "reader",
+                    "allowFileDiscovery": False,
+                },
+                fields="id",
+                supportsAllDrives=True,
+            ).execute()
+        except HttpError as exc:
+            status = int(getattr(exc.resp, "status", 0) or 0)
+            if status in {400, 403, 409}:
+                return
+            raise
+
+    def ensure_order_folder(self, name: str) -> str:
+        folder_id = self.find_folder(name)
+        if not folder_id:
+            folder_id = self.create_folder(name)
+        self.share_anyone_reader(folder_id)
+        return folder_id
 
     def upload_file(self, folder_id: str, file_path: Path) -> tuple[str, str]:
         media = MediaFileUpload(str(file_path), mimetype="image/tiff", resumable=True)
@@ -210,16 +253,7 @@ class GoogleDriveClient:
             supportsAllDrives=True,
         ).execute()
         file_id = str(created["id"])
-        self.service.permissions().create(
-            fileId=file_id,
-            body={
-                "type": "anyone",
-                "role": "reader",
-                "allowFileDiscovery": False,
-            },
-            fields="id",
-            supportsAllDrives=True,
-        ).execute()
+        self.share_anyone_reader(file_id)
         public_url = str(created.get("webViewLink") or f"https://drive.google.com/file/d/{file_id}/view")
         return file_id, public_url
 
@@ -388,6 +422,7 @@ class FulfilmentWorker:
         self.drive = GoogleDriveClient(config) if drive_configured else None
         self.images = ImageProcessor(config)
         self.running = True
+        self.order_drive_folders: dict[str, str] = {}
 
     def stop(self, *_args: object) -> None:
         self.running = False
@@ -398,7 +433,25 @@ class FulfilmentWorker:
             raise RuntimeError(f"No master_filename on queue item {order_number(item)}")
         return self.config.master_files_dir / Path(str(master_filename)).name
 
-    def process_item(self, item: dict[str, Any]) -> None:
+    def sibling_drive_folder_id(self, item: dict[str, Any], queue_items: list[dict[str, Any]]) -> str:
+        order = order_number(item)
+        cached = self.order_drive_folders.get(order, "").strip()
+        if looks_like_drive_id(cached):
+            return cached
+
+        own = str(item.get("cloud_folder_path") or "").strip()
+        if looks_like_drive_id(own):
+            return own
+
+        for other in queue_items:
+            if order_number(other) != order:
+                continue
+            folder = str(other.get("cloud_folder_path") or "").strip()
+            if looks_like_drive_id(folder):
+                return folder
+        return ""
+
+    def process_item(self, item: dict[str, Any], queue_items: list[dict[str, Any]]) -> None:
         item_ref = order_number(item)
         item_ref_id = item_id(item)
         master_path = self.master_path_for_item(item)
@@ -417,23 +470,29 @@ class FulfilmentWorker:
         log(f"{item_ref}: generating print file")
         temp_file = self.images.generate_print_file(master_path, item)
         try:
-            slug = str(item.get("slug") or slugify(str(item.get("master_filename") or item_ref)))
-            order_folder = self.config.local_output_dir / f"{item_ref}_{slug}"
+            order_folder = self.config.local_output_dir / item_ref
             order_folder.mkdir(parents=True, exist_ok=True)
             destination = order_folder / temp_file.name
             shutil.copy2(temp_file, destination)
 
-            existing_folder = str(item.get("cloud_folder_path") or "").strip()
-            drive_folder_id = existing_folder if looks_like_drive_id(existing_folder) else ""
+            drive_folder_id = self.sibling_drive_folder_id(item, queue_items)
 
             if self.drive is not None and not drive_folder_id:
                 try:
-                    drive_folder_id = self.drive.create_folder(f"{item_ref}_{slug}")
-                    log(f"{item_ref}: created Drive folder {drive_folder_id}")
+                    drive_folder_id = self.drive.ensure_order_folder(item_ref)
+                    log(f"{item_ref}: using Drive order folder {drive_folder_id}")
                 except Exception as exc:
                     log(f"{item_ref}: Drive folder creation failed ({exc}); continuing with local file only")
-            elif drive_folder_id:
-                log(f"{item_ref}: reusing existing Drive folder {drive_folder_id}")
+            elif self.drive is not None and drive_folder_id:
+                try:
+                    self.drive.share_anyone_reader(drive_folder_id)
+                except Exception as exc:
+                    log(f"{item_ref}: Drive folder share failed ({exc}); continuing")
+                log(f"{item_ref}: reusing Drive order folder {drive_folder_id}")
+
+            if looks_like_drive_id(drive_folder_id):
+                self.order_drive_folders[item_ref] = drive_folder_id
+                item["cloud_folder_path"] = drive_folder_id
 
             cloud_file_url = destination.as_uri()
             uploaded_to_drive = False
@@ -441,7 +500,7 @@ class FulfilmentWorker:
                 try:
                     _drive_file_id, cloud_file_url = self.drive.upload_file(drive_folder_id, destination)
                     uploaded_to_drive = True
-                    log(f"{item_ref}: uploaded TIFF to Google Drive and enabled anyone-with-link access")
+                    log(f"{item_ref}: uploaded TIFF to Google Drive order folder and enabled anyone-with-link access")
                 except Exception as exc:
                     log(f"{item_ref}: Drive upload failed ({exc}); TIFF remains available locally")
 
@@ -452,7 +511,7 @@ class FulfilmentWorker:
                     "cloud_file_url": cloud_file_url,
                     "cloud_folder_path": drive_folder_id or str(order_folder),
                     "fulfilment_notes": (
-                        "Print TIFF saved locally and uploaded to Google Drive with anyone-with-link download access."
+                        "Print TIFF saved locally and uploaded to the order's Google Drive folder with anyone-with-link download access."
                         if uploaded_to_drive
                         else "Print TIFF saved locally. Drive upload was unavailable; "
                         "upload it manually before sharing with the print lab."
@@ -468,6 +527,7 @@ class FulfilmentWorker:
             temp_file.unlink(missing_ok=True)
 
     def run_once(self) -> None:
+        self.order_drive_folders = {}
         items = self.api.queue()
         pending = [item for item in items if item.get("fulfilment_status") == "awaiting_file"]
         if not pending:
@@ -476,7 +536,7 @@ class FulfilmentWorker:
 
         for item in pending:
             try:
-                self.process_item(item)
+                self.process_item(item, items)
             except Exception:
                 log(f"{order_number(item)}: processing failed\n{traceback.format_exc()}")
 
