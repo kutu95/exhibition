@@ -62,6 +62,8 @@ export default async function StoryPage() {
           path: "/story",
           image: siteConfig.ogImage.story,
           section: "Maritime history",
+          datePublished: "2026-07-31",
+          dateModified: "2026-08-20",
         })}
       />
       <JsonLd
