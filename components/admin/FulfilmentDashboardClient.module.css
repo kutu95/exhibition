@@ -28,6 +28,12 @@
   padding: 0.45rem 0.7rem;
 }
 
+.button:disabled,
+.buttonSecondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .buttonSecondary {
   border: 1px solid #111;
   background: transparent;
@@ -87,10 +93,6 @@
   margin: 0;
 }
 
-.summaryTitle {
-  font-weight: 500;
-}
-
 .summaryMeta {
   color: #666;
   display: flex;
@@ -102,6 +104,13 @@
 .summaryCustomer {
   color: #111;
   font-weight: 600;
+}
+
+.statusSummary {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.2rem 0 0;
+  text-transform: capitalize;
 }
 
 .status {
@@ -130,6 +139,82 @@
 
 .cardBody {
   margin-top: 0.85rem;
+}
+
+.groupBar {
+  align-items: center;
+  border: 1px solid #ececec;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.selectAll {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.checkbox {
+  margin: 0.25rem 0 0;
+}
+
+.selectAll .checkbox {
+  margin: 0;
+}
+
+.mixedHint {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.trackingField {
+  flex: 1 1 12rem;
+  min-width: 12rem;
+}
+
+.imageList {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.imageCard {
+  border: 1px solid #ececec;
+  padding: 0.55rem 0.65rem;
+}
+
+.imageSummary {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.imageSummary::-webkit-details-marker {
+  display: none;
+}
+
+.imageSummaryMain {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.imageSummary h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.imageBody {
+  margin-top: 0.75rem;
 }
 
 .timeline {
