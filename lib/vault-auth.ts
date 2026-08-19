@@ -5,6 +5,10 @@ import { jwtVerify, SignJWT } from "jose";
 export const VAULT_SESSION_COOKIE = "vault_session";
 export const VAULT_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
+export type VaultSessionPayload = {
+  inviteIds: string[];
+};
+
 const getSecretKey = (): Uint8Array => {
   const secret = process.env.VAULT_SESSION_SECRET?.trim() || process.env.ADMIN_SESSION_SECRET?.trim();
   if (!secret) {
@@ -21,15 +25,26 @@ const getCookieValue = (cookieHeader: string | null, name: string): string | nul
   return match ? decodeURIComponent(match.slice(target.length)) : null;
 };
 
+const uniqueInviteIds = (ids: string[]): string[] => [...new Set(ids.filter(Boolean))];
+
 export const hashVaultToken = (token: string): string =>
   createHash("sha256").update(token).digest("hex");
 
 export const createVaultInviteToken = (): string => randomBytes(32).toString("base64url");
 
-export const createVaultSessionToken = async (inviteId: string, expiresAt: Date | null): Promise<string> => {
+export const createVaultSessionToken = async (
+  inviteIds: string[],
+  expiresAt: Date | null,
+): Promise<string> => {
+  const ids = uniqueInviteIds(inviteIds);
+  if (ids.length === 0) {
+    throw new Error("Vault session requires at least one invite.");
+  }
+
   const builder = new SignJWT({
     vault: true,
-    inviteId,
+    inviteId: ids[ids.length - 1],
+    inviteIds: ids,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt();
@@ -45,17 +60,31 @@ export const createVaultSessionToken = async (inviteId: string, expiresAt: Date 
 
 export const verifyVaultSessionToken = async (
   token: string | undefined,
-): Promise<{ inviteId: string } | null> => {
+): Promise<VaultSessionPayload | null> => {
   if (!token) return null;
 
   try {
     const { payload } = await jwtVerify(token, getSecretKey(), {
       algorithms: ["HS256"],
     });
-    if (payload.vault !== true || typeof payload.inviteId !== "string") {
+    if (payload.vault !== true) {
       return null;
     }
-    return { inviteId: payload.inviteId };
+
+    const inviteIds: string[] = [];
+    if (Array.isArray(payload.inviteIds)) {
+      for (const id of payload.inviteIds) {
+        if (typeof id === "string" && id.trim()) {
+          inviteIds.push(id);
+        }
+      }
+    }
+    if (typeof payload.inviteId === "string" && payload.inviteId.trim()) {
+      inviteIds.push(payload.inviteId);
+    }
+
+    const unique = uniqueInviteIds(inviteIds);
+    return unique.length > 0 ? { inviteIds: unique } : null;
   } catch {
     return null;
   }
@@ -63,7 +92,7 @@ export const verifyVaultSessionToken = async (
 
 export const verifyVaultSessionFromRequest = async (
   request: Request,
-): Promise<{ inviteId: string } | null> => {
+): Promise<VaultSessionPayload | null> => {
   const token = getCookieValue(request.headers.get("cookie"), VAULT_SESSION_COOKIE) ?? undefined;
   return verifyVaultSessionToken(token);
 };

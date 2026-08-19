@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProductEditorForm } from "../../../../../components/admin/ProductEditorForm";
+import type { Gallery } from "../../../../../lib/galleries";
 import { getMasterFileDimensions } from "../../../../../lib/master-files";
 import type { Theme, VariantTemplate } from "../../../../../lib/supabase/types";
 import { fetchAdminJson } from "../../../_lib/fetch-admin";
@@ -17,6 +18,7 @@ type ProductDetailResponse = {
   is_available: boolean;
   is_featured: boolean;
   visibility?: "public" | "vault";
+  gallery_id?: string | null;
   product_variants: Array<{
     id: string;
     variant_label: string;
@@ -75,11 +77,13 @@ export default async function AdminEditProductPage({ params }: PageProps) {
   let product: ProductDetailResponse;
   let variantTemplates: VariantTemplate[];
   let themes: Theme[];
+  let galleries: Gallery[];
   try {
-    [product, variantTemplates, themes] = await Promise.all([
+    [product, variantTemplates, themes, galleries] = await Promise.all([
       fetchAdminJson<ProductDetailResponse>(`/api/admin/products/${id}`),
       fetchAdminJson<VariantTemplate[]>("/api/admin/variant-templates"),
       fetchAdminJson<Theme[]>("/api/admin/themes"),
+      fetchAdminJson<Gallery[]>("/api/admin/galleries"),
     ]);
   } catch {
     notFound();
@@ -108,7 +112,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
         photo_type_tag: product.photo_type_tag ?? "",
         is_available: product.is_available,
         is_featured: product.is_featured,
-        visibility: product.visibility ?? "public",
+        gallery_id: product.gallery_id ?? null,
         theme_ids: product.product_themes.map((assignment) => assignment.theme_id),
         variants: product.product_variants.map((variant) => ({
           id: variant.id,
@@ -163,6 +167,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
       }}
       variantTemplates={variantTemplates}
       themes={themes}
+      galleries={galleries}
     />
   );
 }

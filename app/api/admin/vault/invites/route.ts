@@ -13,6 +13,7 @@ import {
 
 const createInviteSchema = z.object({
   label: z.string().trim().min(1).max(160),
+  gallery_id: z.string().uuid(),
   email: z.string().trim().email().max(200).optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
   send_email: z.boolean().optional(),
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
   try {
     const { data, error } = await supabaseAdmin
       .from("vault_invites")
-      .select("id, label, email, access_request_id, expires_at, revoked_at, last_used_at, created_at")
+      .select("id, label, email, gallery_id, access_request_id, expires_at, revoked_at, last_used_at, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -57,16 +58,30 @@ export async function POST(request: Request) {
     const tokenHash = hashVaultToken(rawToken);
     const email = parsed.data.email?.trim().toLowerCase() || null;
 
+    const { data: gallery, error: galleryError } = await supabaseAdmin
+      .from("galleries")
+      .select("id, name")
+      .eq("id", parsed.data.gallery_id)
+      .maybeSingle();
+
+    if (galleryError) {
+      return NextResponse.json({ error: galleryError.message }, { status: 500 });
+    }
+    if (!gallery) {
+      return NextResponse.json({ error: "Gallery not found." }, { status: 400 });
+    }
+
     const { data: invite, error } = await supabaseAdmin
       .from("vault_invites")
       .insert({
         token_hash: tokenHash,
         label: parsed.data.label,
         email,
+        gallery_id: gallery.id,
         access_request_id: parsed.data.access_request_id ?? null,
         expires_at: parsed.data.expires_at ?? null,
       })
-      .select("id, label, email, access_request_id, expires_at, revoked_at, last_used_at, created_at")
+      .select("id, label, email, gallery_id, access_request_id, expires_at, revoked_at, last_used_at, created_at")
       .single();
 
     if (error || !invite) {
@@ -79,6 +94,7 @@ export async function POST(request: Request) {
         .update({
           status: "approved",
           invite_id: invite.id,
+          gallery_id: gallery.id,
           reviewed_at: new Date().toISOString(),
         })
         .eq("id", parsed.data.access_request_id);
@@ -93,6 +109,7 @@ export async function POST(request: Request) {
         to: email,
         name: parsed.data.label,
         accessUrl,
+        galleryName: gallery.name,
       });
       emailSent = result.sent;
       emailError = result.error;

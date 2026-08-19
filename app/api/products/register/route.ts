@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { resolveProductGallery } from "../../../../lib/galleries";
 import { verifyBearerApiKey } from "../../../../lib/api-key-auth";
 import {
   isDuplicateProductSlugError,
@@ -21,7 +22,8 @@ const registerProductSchema = z.object({
   installation_tag: z.enum(installationOptions).nullable(),
   photo_type_tag: z.enum(photoTypeOptions).nullable().default(null),
   is_featured: z.boolean(),
-  visibility: z.enum(["public", "vault"]).optional().default("public"),
+  visibility: z.enum(["public", "vault"]).optional(),
+  gallery_id: z.string().uuid().nullable().optional().default(null),
   edition_size: z.number().int().positive(),
   master_filename: z.string().min(1),
   web_image_url: z.string().url(),
@@ -41,9 +43,17 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
+  const gallery = await resolveProductGallery(payload.gallery_id, payload.visibility);
+  if ("error" in gallery) {
+    return NextResponse.json({ error: gallery.error }, { status: 400 });
+  }
 
   try {
-    const created = await registerPrintProduct(payload);
+    const created = await registerPrintProduct({
+      ...payload,
+      gallery_id: gallery.gallery_id,
+      visibility: gallery.visibility,
+    });
 
     return NextResponse.json(
       {

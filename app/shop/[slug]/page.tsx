@@ -26,7 +26,7 @@ import type {
   ProductVariant,
   ProductWithVariantsAndImages,
 } from "../../../lib/supabase/types";
-import { hasActiveVaultSession } from "../../../lib/vault-access";
+import { allowedGalleryIdSet, getVaultSessionAccess } from "../../../lib/vault-access";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -84,10 +84,11 @@ const toCandidate = (row: RelatedRow): RelatedPrintCandidate => {
 };
 
 const getProductBySlug = cache(async (slug: string): Promise<ProductWithVariantsAndImages | null> => {
-  const [supabase, includeVault] = await Promise.all([
+  const [supabase, access] = await Promise.all([
     createSupabaseServerClient(),
-    hasActiveVaultSession(),
+    getVaultSessionAccess(),
   ]);
+  const allowedGalleryIds = allowedGalleryIdSet(access);
 
   const { data, error } = await supabase
     .from("products")
@@ -101,7 +102,7 @@ const getProductBySlug = cache(async (slug: string): Promise<ProductWithVariants
   }
 
   const product = mapProductRow(data as ProductRow);
-  if (!isProductVisibleInCatalog(product, includeVault)) {
+  if (!isProductVisibleInCatalog(product, allowedGalleryIds)) {
     return null;
   }
 

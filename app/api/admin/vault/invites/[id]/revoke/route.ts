@@ -21,7 +21,7 @@ export async function POST(request: Request, context: RouteContext) {
       .update({ revoked_at: new Date().toISOString() })
       .eq("id", id)
       .is("revoked_at", null)
-      .select("id, label, email, access_request_id, expires_at, revoked_at, last_used_at, created_at")
+      .select("id, label, email, gallery_id, access_request_id, expires_at, revoked_at, last_used_at, created_at")
       .maybeSingle();
 
     if (error) {

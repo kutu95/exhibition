@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
+import { resolveProductGallery } from "../../../../../lib/galleries";
 import { resolveReadableMediaPath } from "../../../../../lib/media-storage";
 import { stripe } from "../../../../../lib/stripe";
 import { supabaseAdmin } from "../../../../../lib/supabase/admin";
@@ -68,7 +69,8 @@ const productUpdateSchema = z.object({
   photo_type_tag: z.enum(photoTypeOptions).nullable(),
   is_available: z.boolean(),
   is_featured: z.boolean(),
-  visibility: z.enum(["public", "vault"]).default("public"),
+  gallery_id: z.string().uuid().nullable().optional().default(null),
+  visibility: z.enum(["public", "vault"]).optional(),
   theme_ids: z.array(z.string().uuid()),
   variants: z.array(variantSchema).min(1),
   images: z.array(imageSchema),
@@ -267,6 +269,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const payload = parsed.data;
+  const gallery = await resolveProductGallery(payload.gallery_id, payload.visibility);
+  if ("error" in gallery) {
+    return NextResponse.json({ error: gallery.error }, { status: 400 });
+  }
 
   const { error: updateError } = await supabaseAdmin
     .from("products")
@@ -280,7 +286,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       photo_type_tag: payload.photo_type_tag,
       is_available: payload.is_available,
       is_featured: payload.is_featured,
-      visibility: payload.visibility,
+      visibility: gallery.visibility,
+      gallery_id: gallery.gallery_id,
     })
     .eq("id", id);
 

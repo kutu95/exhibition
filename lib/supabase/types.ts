@@ -25,6 +25,15 @@ export type Product = {
   is_available: boolean;
   is_featured: boolean;
   visibility: ProductVisibility;
+  gallery_id: string | null;
+  created_at: string;
+};
+
+export type Gallery = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
   created_at: string;
 };
 
@@ -37,6 +46,7 @@ export type VaultAccessRequest = {
   status: VaultAccessRequestStatus;
   admin_note: string | null;
   invite_id: string | null;
+  gallery_id: string | null;
   reviewed_at: string | null;
   created_at: string;
 };
@@ -46,6 +56,7 @@ export type VaultInvite = {
   token_hash: string;
   label: string;
   email: string | null;
+  gallery_id: string;
   access_request_id: string | null;
   expires_at: string | null;
   revoked_at: string | null;

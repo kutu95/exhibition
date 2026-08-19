@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { z } from "zod";
 
+import { isProductVisibleInCatalog } from "../../../lib/catalog-products";
 import { assignEditionsToOrder } from "../../../lib/edition-assignment";
 import {
   arePurchasesAllowedForRequest,
@@ -9,7 +10,7 @@ import {
 } from "../../../lib/purchases-access";
 import { stripe } from "../../../lib/stripe";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
-import { hasActiveVaultSessionFromRequest } from "../../../lib/vault-access";
+import { allowedGalleryIdSet, getVaultSessionAccessFromRequest } from "../../../lib/vault-access";
 
 export const runtime = "nodejs";
 
@@ -34,18 +35,20 @@ type VariantRecord = {
         title: string;
         is_available: boolean;
         visibility: "public" | "vault";
+        gallery_id: string | null;
       }
     | Array<{
         title: string;
         is_available: boolean;
         visibility: "public" | "vault";
+        gallery_id: string | null;
       }>
     | null;
 };
 
 const extractProduct = (
   products: VariantRecord["products"],
-): { title: string; is_available: boolean; visibility: "public" | "vault" } | null => {
+): { title: string; is_available: boolean; visibility: "public" | "vault"; gallery_id: string | null } | null => {
   if (!products) return null;
   return Array.isArray(products) ? products[0] ?? null : products;
 };
@@ -77,11 +80,11 @@ export async function POST(request: Request) {
     const checkoutSource = parsed.data.source ?? "";
     const variantIds = [...new Set(requestedItems.map((item) => item.variant_id))];
 
-    const includeVault = await hasActiveVaultSessionFromRequest(request);
+    const allowedGalleryIds = allowedGalleryIdSet(await getVaultSessionAccessFromRequest(request));
 
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")
-      .select("id, variant_label, price_aud, products!inner(title, is_available, visibility)")
+      .select("id, variant_label, price_aud, products!inner(title, is_available, visibility, gallery_id)")
       .in("id", variantIds)
       .eq("is_active", true)
       .eq("products.is_available", true);
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
 
     const variantRows = ((variants ?? []) as unknown as VariantRecord[]).filter((variant) => {
       const product = extractProduct(variant.products);
-      return product && (product.visibility !== "vault" || includeVault);
+      return product && isProductVisibleInCatalog(product, allowedGalleryIds);
     });
     const variantMap = new Map<string, VariantRecord>(
       variantRows.map((variant) => [variant.id, variant]),

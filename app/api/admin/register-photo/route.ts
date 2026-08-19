@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../lib/admin-auth";
+import { parseGalleryId, resolveProductGallery } from "../../../../lib/galleries";
 import { resolveMasterFilePath, safeMasterFilename } from "../../../../lib/master-files";
 import { resolveCanonicalMediaPath } from "../../../../lib/media-storage";
 import {
@@ -35,7 +36,8 @@ const formSchema = z.object({
   location_tag: z.string().nullable(),
   photo_type_tag: z.enum(photoTypeOptions).nullable(),
   is_featured: z.boolean(),
-  visibility: z.enum(["public", "vault"]).default("public"),
+  gallery_id: z.string().uuid().nullable().optional().default(null),
+  visibility: z.enum(["public", "vault"]).optional(),
   edition_size: z.number().int().positive(),
   master_filename: z.string().min(1),
   master_pixel_width: z.number().int().positive(),
@@ -304,7 +306,8 @@ export async function POST(request: Request) {
     location_tag: stringField(formData, "location_tag"),
     photo_type_tag: stringField(formData, "photo_type_tag"),
     is_featured: booleanField(formData, "is_featured"),
-    visibility: stringField(formData, "visibility") === "vault" ? "vault" : "public",
+    gallery_id: parseGalleryId(stringField(formData, "gallery_id")),
+    visibility: stringField(formData, "visibility") === "vault" ? "vault" : undefined,
     edition_size: Number.parseInt(stringField(formData, "edition_size") ?? "", 10),
     master_filename: stringField(formData, "master_filename"),
     master_pixel_width: Number.parseInt(stringField(formData, "master_pixel_width") ?? "", 10),
@@ -331,6 +334,11 @@ export async function POST(request: Request) {
 
   let savedImage: SavedWebImage | null = null;
   try {
+    const gallery = await resolveProductGallery(parsed.data.gallery_id, parsed.data.visibility);
+    if ("error" in gallery) {
+      return NextResponse.json({ error: gallery.error }, { status: 400 });
+    }
+
     savedImage = webImage instanceof File && webImage.size > 0
       ? await saveUploadedWebImage(webImage, parsed.data.slug, parsed.data.title)
       : await generateWebImage(parsed.data.master_filename, parsed.data.slug, parsed.data.title);
@@ -339,6 +347,8 @@ export async function POST(request: Request) {
       ...parsed.data,
       installation_tag: null,
       web_image_url: savedImage.urlPath,
+      gallery_id: gallery.gallery_id,
+      visibility: gallery.visibility,
     });
 
     return NextResponse.json(

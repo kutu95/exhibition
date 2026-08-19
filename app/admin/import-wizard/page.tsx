@@ -1,4 +1,5 @@
 import { ImportPhotoWizardClient } from "../../../components/admin/ImportPhotoWizardClient";
+import type { Gallery } from "../../../lib/galleries";
 import { getMasterFilesDir, type MasterFileCandidate } from "../../../lib/master-files";
 import {
   DEFAULT_PRINT_PRICE_BASE_AUD,
@@ -28,12 +29,14 @@ export default async function ImportWizardPage() {
   const results = await Promise.allSettled([
     fetchAdminJson<{ files: MasterFileCandidate[] }>("/api/admin/master-files"),
     fetchAdminJson<Theme[]>("/api/admin/themes"),
+    fetchAdminJson<Gallery[]>("/api/admin/galleries"),
     getOfferPricingBundle(),
   ]);
 
   const loadErrors: string[] = [];
   let masterFiles: MasterFileCandidate[] = [];
   let themes: Theme[] = [];
+  let galleries: Gallery[] = [];
   let markupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR;
   let basePriceAud = DEFAULT_PRINT_PRICE_BASE_AUD;
   let frameMarkupFactor = DEFAULT_PRINT_FRAME_MARKUP_FACTOR;
@@ -56,10 +59,17 @@ export default async function ImportWizardPage() {
   }
 
   if (results[2].status === "fulfilled") {
-    markupFactor = results[2].value.markupFactor;
-    basePriceAud = results[2].value.basePriceAud;
-    frameMarkupFactor = results[2].value.frameMarkupFactor;
-    frameBasePriceAud = results[2].value.frameBasePriceAud;
+    galleries = results[2].value;
+  } else {
+    const reason = results[2].reason;
+    loadErrors.push(reason instanceof Error ? reason.message : "Failed to load galleries.");
+  }
+
+  if (results[3].status === "fulfilled") {
+    markupFactor = results[3].value.markupFactor;
+    basePriceAud = results[3].value.basePriceAud;
+    frameMarkupFactor = results[3].value.frameMarkupFactor;
+    frameBasePriceAud = results[3].value.frameBasePriceAud;
   }
 
   return (
@@ -72,6 +82,7 @@ export default async function ImportWizardPage() {
       <ImportPhotoWizardClient
         initialMasterFiles={masterFiles}
         themes={themes}
+        galleries={galleries}
         masterFilesDirPath={resolveMasterFilesDirDisplay()}
         initialMarkupFactor={markupFactor}
         initialBasePriceAud={basePriceAud}

@@ -8,7 +8,7 @@ import type {
   ProductTheme,
   ProductVariant,
 } from "../../../../lib/supabase/types";
-import { hasActiveVaultSessionFromRequest } from "../../../../lib/vault-access";
+import { allowedGalleryIdSet, getVaultSessionAccessFromRequest } from "../../../../lib/vault-access";
 
 type ProductRow = Product & {
   product_variants: ProductVariant[] | null;
@@ -24,7 +24,7 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { slug } = await context.params;
-  const includeVault = await hasActiveVaultSessionFromRequest(request);
+  const allowedGalleryIds = allowedGalleryIdSet(await getVaultSessionAccessFromRequest(request));
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
@@ -44,7 +44,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const product = mapProductRow(data as ProductRow);
-  if (!isProductVisibleInCatalog(product, includeVault)) {
+  if (!isProductVisibleInCatalog(product, allowedGalleryIds)) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
 

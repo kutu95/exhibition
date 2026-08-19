@@ -13,6 +13,7 @@ import {
 
 const reviewSchema = z.object({
   action: z.enum(["approve", "decline"]),
+  gallery_id: z.string().uuid().optional().nullable(),
   admin_note: z.string().trim().max(1000).optional().nullable(),
   send_email: z.boolean().optional(),
   expires_at: z.string().datetime().optional().nullable(),
@@ -71,16 +72,35 @@ export async function POST(request: Request, context: RouteContext) {
 
     const rawToken = createVaultInviteToken();
     const tokenHash = hashVaultToken(rawToken);
+    const galleryId = parsed.data.gallery_id ?? existing.gallery_id;
+    if (!galleryId) {
+      return NextResponse.json({ error: "Choose a gallery before approving access." }, { status: 400 });
+    }
+
+    const { data: gallery, error: galleryError } = await supabaseAdmin
+      .from("galleries")
+      .select("id, name")
+      .eq("id", galleryId)
+      .maybeSingle();
+
+    if (galleryError) {
+      return NextResponse.json({ error: galleryError.message }, { status: 500 });
+    }
+    if (!gallery) {
+      return NextResponse.json({ error: "Gallery not found." }, { status: 400 });
+    }
+
     const { data: invite, error: inviteError } = await supabaseAdmin
       .from("vault_invites")
       .insert({
         token_hash: tokenHash,
         label: existing.name,
         email: existing.email,
+        gallery_id: gallery.id,
         access_request_id: existing.id,
         expires_at: parsed.data.expires_at ?? null,
       })
-      .select("id, label, email, access_request_id, expires_at, revoked_at, last_used_at, created_at")
+      .select("id, label, email, gallery_id, access_request_id, expires_at, revoked_at, last_used_at, created_at")
       .single();
 
     if (inviteError || !invite) {
@@ -93,6 +113,7 @@ export async function POST(request: Request, context: RouteContext) {
         status: "approved",
         admin_note: parsed.data.admin_note ?? null,
         invite_id: invite.id,
+        gallery_id: gallery.id,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -112,6 +133,7 @@ export async function POST(request: Request, context: RouteContext) {
         to: existing.email,
         name: existing.name,
         accessUrl,
+        galleryName: gallery.name,
       });
       emailSent = result.sent;
       emailError = result.error;

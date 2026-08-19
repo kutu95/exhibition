@@ -12,11 +12,13 @@ import {
   formatVariantLabel,
   PAPER_OPTIONS,
 } from "../../lib/print-catalogue";
+import type { Gallery } from "../../lib/galleries";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import type { OpenStudioOrder } from "../../lib/studio-orders";
 import { isValidProductImageUrl } from "../../lib/utils/site-content-image";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ProductEditorForm.module.css";
+import { GalleryPicker } from "./GalleryPicker";
 import { ProductVariantPanel, type VariantInput } from "./ProductVariantPanel";
 import { ProductWallQrCodes } from "./ProductWallQrCodes";
 import { ThemeSelector } from "./ThemeSelector";
@@ -41,7 +43,7 @@ type ProductEditorInitialData = {
   photo_type_tag: string;
   is_available: boolean;
   is_featured: boolean;
-  visibility: "public" | "vault";
+  gallery_id: string | null;
   theme_ids: string[];
   variants: VariantInput[];
   images: ImageInput[];
@@ -52,6 +54,7 @@ type ProductEditorFormProps = {
   initialData?: ProductEditorInitialData;
   variantTemplates: VariantTemplate[];
   themes: Theme[];
+  galleries: Gallery[];
   masterPixelWidth?: number | null;
   masterPixelHeight?: number | null;
   masterFilename?: string | null;
@@ -168,6 +171,7 @@ export function ProductEditorForm({
   initialData,
   variantTemplates,
   themes,
+  galleries,
   masterPixelWidth = null,
   masterPixelHeight = null,
   masterFilename = null,
@@ -182,7 +186,7 @@ export function ProductEditorForm({
   const [photoTypeTag, setPhotoTypeTag] = useState(initialData?.photo_type_tag ?? "");
   const [isAvailable, setIsAvailable] = useState(initialData?.is_available ?? true);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? false);
-  const [visibility, setVisibility] = useState<"public" | "vault">(initialData?.visibility ?? "public");
+  const [galleryId, setGalleryId] = useState<string | null>(initialData?.gallery_id ?? null);
   const [selectedThemeIds, setSelectedThemeIds] = useState(initialData?.theme_ids ?? []);
   const [themeOptions, setThemeOptions] = useState(themes);
   const [variants, setVariants] = useState<VariantInput[]>(
@@ -321,7 +325,7 @@ export function ProductEditorForm({
       photo_type_tag: photoTypeTag ? photoTypeTag : null,
       is_available: isAvailable,
       is_featured: isFeatured,
-      visibility,
+      gallery_id: galleryId,
       theme_ids: selectedThemeIds,
       variants: normalizedVariants,
       images: normalizedImages.filter((image) => image.image_url),
@@ -698,16 +702,7 @@ export function ProductEditorForm({
               </label>
             </div>
 
-            <label>
-              Visibility
-              <select
-                value={visibility}
-                onChange={(event) => setVisibility(event.target.value as "public" | "vault")}
-              >
-                <option value="public">Public gallery</option>
-                <option value="vault">Private collections only</option>
-              </select>
-            </label>
+            <GalleryPicker galleries={galleries} value={galleryId} onChange={setGalleryId} />
           </div>
           <h3>Themes</h3>
           <p className={styles.muted}>A photograph can belong to any number of themes.</p>

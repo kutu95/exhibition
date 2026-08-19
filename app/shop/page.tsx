@@ -4,7 +4,7 @@ import Link from "next/link";
 import { JsonLd } from "../../components/JsonLd";
 import { ShopProductBrowser } from "../../components/ShopProductBrowser";
 import { VaultCollectionsBanner } from "../../components/VaultCollectionsBanner";
-import { isProductVisibleInCatalog, mapProductRow } from "../../lib/catalog-products";
+import { applyCatalogVisibilityFilter, isProductVisibleInCatalog, mapProductRow } from "../../lib/catalog-products";
 import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import { buildBreadcrumb, buildPrintsItemList } from "../../lib/structured-data";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
@@ -15,7 +15,7 @@ import type {
   ProductVariant,
   ProductWithVariantsAndImages,
 } from "../../lib/supabase/types";
-import { hasActiveVaultSession } from "../../lib/vault-access";
+import { allowedGalleryIdSet, getVaultSessionAccess } from "../../lib/vault-access";
 import styles from "./page.module.css";
 
 type ProductRow = Product & {
@@ -28,20 +28,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("shop");
 }
 
-async function getProducts(): Promise<ProductWithVariantsAndImages[]> {
-  const [supabase, includeVault] = await Promise.all([
-    createSupabaseServerClient(),
-    hasActiveVaultSession(),
-  ]);
+async function getProducts(allowedGalleryIds: ReadonlySet<string>): Promise<ProductWithVariantsAndImages[]> {
+  const supabase = await createSupabaseServerClient();
 
   let query = supabase
     .from("products")
     .select("*, product_variants(*), product_images(*), product_themes(*, theme:themes(*))")
     .eq("is_available", true);
 
-  if (!includeVault) {
-    query = query.eq("visibility", "public");
-  }
+  query = applyCatalogVisibilityFilter(query, allowedGalleryIds);
 
   const { data, error } = await query
     .order("is_featured", { ascending: false })
@@ -54,14 +49,15 @@ async function getProducts(): Promise<ProductWithVariantsAndImages[]> {
 
   return (data as ProductRow[])
     .map((row) => mapProductRow(row, { primaryImagesOnly: true }))
-    .filter((product) => isProductVisibleInCatalog(product, includeVault));
+    .filter((product) => isProductVisibleInCatalog(product, allowedGalleryIds));
 }
 
 export default async function ShopPage() {
-  const [, products, vaultOpen] = await Promise.all([
+  const access = await getVaultSessionAccess();
+  const allowedGalleryIds = allowedGalleryIdSet(access);
+  const [, products] = await Promise.all([
     awaitPageMetadata("shop"),
-    getProducts(),
-    hasActiveVaultSession(),
+    getProducts(allowedGalleryIds),
   ]);
 
   // Vault products are excluded from structured data even when a vault session is open.
@@ -87,7 +83,7 @@ export default async function ShopPage() {
         </p>
       </header>
 
-      {vaultOpen ? <VaultCollectionsBanner /> : null}
+      {access.galleries.length > 0 ? <VaultCollectionsBanner galleries={access.galleries} /> : null}
 
       <ShopProductBrowser products={products} />
 

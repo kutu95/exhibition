@@ -1,3 +1,4 @@
+import { productGalleryFields } from "./galleries";
 import { withTransaction } from "./postgres";
 import { getOfferPricingBundle } from "./print-offer-bundle";
 import { buildOfferVariantsForProduct } from "./print-offer";
@@ -30,6 +31,7 @@ export type RegisterPrintProductPayload = {
   master_filename: string;
   web_image_url: string;
   visibility?: "public" | "vault";
+  gallery_id?: string | null;
   theme_ids?: string[];
   /** @deprecated Ignored — offer matrix is always used. */
   variant_template_ids?: string[];
@@ -138,6 +140,7 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
   });
 
   return withTransaction(async (client) => {
+    const gallery = productGalleryFields(payload.gallery_id);
     const { rows: productRows } = await client.query<ProductRow>(
       `
         insert into exhibition.products (
@@ -150,9 +153,10 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
           photo_type_tag,
           is_available,
           is_featured,
-          visibility
+          visibility,
+          gallery_id
         )
-        values ($1, $2, $3, 'print', $4, $5, $6, true, $7, $8)
+        values ($1, $2, $3, 'print', $4, $5, $6, true, $7, $8, $9)
         returning *
       `,
       [
@@ -163,7 +167,8 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
         payload.installation_tag,
         payload.photo_type_tag,
         payload.is_featured,
-        payload.visibility ?? "public",
+        gallery.visibility,
+        gallery.gallery_id,
       ],
     );
 

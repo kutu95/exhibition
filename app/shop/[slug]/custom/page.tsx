@@ -11,7 +11,7 @@ import { SHOW_CUSTOM_PRINT_PAGE } from "../../../../lib/print-custom";
 import { getOfferPricingBundle } from "../../../../lib/print-offer-bundle";
 import { createSupabaseServerClient } from "../../../../lib/supabase/server";
 import type { Product, ProductImage, ProductTheme, ProductVariant } from "../../../../lib/supabase/types";
-import { hasActiveVaultSession } from "../../../../lib/vault-access";
+import { allowedGalleryIdSet, getVaultSessionAccess } from "../../../../lib/vault-access";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -41,11 +41,12 @@ export default async function CustomPrintPage({ params }: PageProps) {
   }
 
   const { slug } = await params;
-  const [supabase, includeVault, pricing] = await Promise.all([
+  const [supabase, access, pricing] = await Promise.all([
     createSupabaseServerClient(),
-    hasActiveVaultSession(),
+    getVaultSessionAccess(),
     getOfferPricingBundle(),
   ]);
+  const allowedGalleryIds = allowedGalleryIdSet(access);
 
   const { data, error } = await supabase
     .from("products")
@@ -61,7 +62,7 @@ export default async function CustomPrintPage({ params }: PageProps) {
   // Include inactive variants so we can still resolve master_filename / aspect sample.
   const raw = data as ProductRow;
   const product = mapProductRow(raw);
-  if (!isProductVisibleInCatalog(product, includeVault) || product.product_type !== "print") {
+  if (!isProductVisibleInCatalog(product, allowedGalleryIds) || product.product_type !== "print") {
     notFound();
   }
 

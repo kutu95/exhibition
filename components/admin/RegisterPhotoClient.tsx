@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import type { Gallery } from "../../lib/galleries";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./RegisterPhotoClient.module.css";
+import { GalleryPicker } from "./GalleryPicker";
 import { ThemeSelector } from "./ThemeSelector";
 
 type MasterFileCandidate = {
@@ -24,6 +26,7 @@ type RegisterPhotoClientProps = {
   masterFiles: MasterFileCandidate[];
   variantTemplates: VariantTemplate[];
   themes: Theme[];
+  galleries?: Gallery[];
 };
 
 const photoTypeOptions = ["", "Still camera", "Drone", "Underwater"];
@@ -64,7 +67,7 @@ function MasterThumbnail({ filename }: { filename: string }) {
     />
   );
 }
-export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: RegisterPhotoClientProps) {
+export function RegisterPhotoClient({ masterFiles, variantTemplates, themes, galleries = [] }: RegisterPhotoClientProps) {
   const router = useRouter();
   const [files, setFiles] = useState(masterFiles);
   const [title, setTitle] = useState("");
@@ -76,7 +79,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
   const [editionSize, setEditionSize] = useState("10");
   const [masterFilename, setMasterFilename] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
-  const [visibility, setVisibility] = useState<"public" | "vault">("public");
+  const [galleryId, setGalleryId] = useState<string | null>(null);
   const [webImage, setWebImage] = useState<File | null>(null);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
@@ -125,7 +128,9 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
     formData.set("edition_size", editionSize);
     formData.set("master_filename", masterFilename.trim());
     formData.set("is_featured", String(isFeatured));
-    formData.set("visibility", visibility);
+    if (galleryId) {
+      formData.set("gallery_id", galleryId);
+    }
     formData.set("variant_template_ids", JSON.stringify(selectedTemplateIds));
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
     formData.set(
@@ -362,16 +367,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes }: R
             <span className={styles.muted}>Optional. Leave blank to auto-generate from the selected TIFF.</span>
           </label>
 
-          <label>
-            Visibility
-            <select
-              value={visibility}
-              onChange={(event) => setVisibility(event.target.value as "public" | "vault")}
-            >
-              <option value="public">Public gallery</option>
-              <option value="vault">Private collections only</option>
-            </select>
-          </label>
+          <GalleryPicker galleries={galleries} value={galleryId} onChange={setGalleryId} />
 
           <label>
             <input

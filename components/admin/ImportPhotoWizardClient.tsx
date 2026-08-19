@@ -12,9 +12,11 @@ import {
 import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
 import { DEFAULT_PRINT_FRAME_BASE_AUD, DEFAULT_PRINT_FRAME_MARKUP_FACTOR } from "../../lib/print-frame-pricing";
 import { formatDualSize } from "../../lib/print-size";
+import type { Gallery } from "../../lib/galleries";
 import type { Theme } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ImportPhotoWizardClient.module.css";
+import { GalleryPicker } from "./GalleryPicker";
 import { ThemeSelector } from "./ThemeSelector";
 
 type MasterFileCandidate = {
@@ -31,6 +33,7 @@ type MasterFileCandidate = {
 type ImportPhotoWizardClientProps = {
   initialMasterFiles: MasterFileCandidate[];
   themes: Theme[];
+  galleries: Gallery[];
   masterFilesDirPath: string;
   initialMarkupFactor?: number;
   initialBasePriceAud?: number;
@@ -108,6 +111,7 @@ function MasterThumbnail({
 export function ImportPhotoWizardClient({
   initialMasterFiles,
   themes,
+  galleries,
   masterFilesDirPath,
   initialMarkupFactor = DEFAULT_PRINT_PRICE_MARKUP_FACTOR,
   initialBasePriceAud = DEFAULT_PRINT_PRICE_BASE_AUD,
@@ -128,7 +132,7 @@ export function ImportPhotoWizardClient({
   const [photoTypeTag, setPhotoTypeTag] = useState("");
   const [editionSize, setEditionSize] = useState("10");
   const [isFeatured, setIsFeatured] = useState(false);
-  const [visibility, setVisibility] = useState<"public" | "vault">("public");
+  const [galleryId, setGalleryId] = useState<string | null>(null);
   const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
   const [themeOptions, setThemeOptions] = useState(themes);
   const [markupFactor, setMarkupFactor] = useState(initialMarkupFactor);
@@ -329,7 +333,7 @@ export function ImportPhotoWizardClient({
     setPhotoTypeTag("");
     setEditionSize("10");
     setIsFeatured(false);
-    setVisibility("public");
+    setGalleryId(null);
     setSelectedThemeIds([]);
     setThemeOptions(themes);
     setWebImageMode("generate");
@@ -365,7 +369,9 @@ export function ImportPhotoWizardClient({
       formData.set("master_pixel_height", String(selectedMaster.pixel_height));
     }
     formData.set("is_featured", String(isFeatured));
-    formData.set("visibility", visibility);
+    if (galleryId) {
+      formData.set("gallery_id", galleryId);
+    }
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
     if (webImageMode === "upload" && webImage) {
       formData.set("web_image", webImage);
@@ -600,16 +606,7 @@ export function ImportPhotoWizardClient({
               />
               <span>Feature on shop / home surfaces</span>
             </label>
-            <label>
-              Visibility
-              <select
-                value={visibility}
-                onChange={(event) => setVisibility(event.target.value as "public" | "vault")}
-              >
-                <option value="public">Public gallery</option>
-                <option value="vault">Private collections only</option>
-              </select>
-            </label>
+            <GalleryPicker galleries={galleries} value={galleryId} onChange={setGalleryId} />
           </div>
         </section>
       ) : null}
@@ -764,8 +761,12 @@ export function ImportPhotoWizardClient({
                 <td>{isFeatured ? "Yes" : "No"}</td>
               </tr>
               <tr>
-                <th>Visibility</th>
-                <td>{visibility === "vault" ? "Private collections" : "Public gallery"}</td>
+                <th>Gallery</th>
+                <td>
+                  {galleryId
+                    ? galleries.find((gallery) => gallery.id === galleryId)?.name ?? "Private gallery"
+                    : "Public gallery"}
+                </td>
               </tr>
               <tr>
                 <th>Web image</th>

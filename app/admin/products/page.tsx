@@ -1,5 +1,6 @@
 import { fetchAdminJson } from "../_lib/fetch-admin";
 import { ProductsTableClient } from "../../../components/admin/ProductsTableClient";
+import type { Gallery } from "../../../lib/galleries";
 
 type ProductListItem = {
   id: string;
@@ -9,9 +10,14 @@ type ProductListItem = {
   variants_count: number;
   is_featured: boolean;
   is_available: boolean;
+  gallery_id: string | null;
+  visibility?: "public" | "vault";
 };
 
 export default async function AdminProductsPage() {
-  const products = await fetchAdminJson<ProductListItem[]>("/api/admin/products");
-  return <ProductsTableClient products={products} />;
+  const [products, galleries] = await Promise.all([
+    fetchAdminJson<ProductListItem[]>("/api/admin/products"),
+    fetchAdminJson<Gallery[]>("/api/admin/galleries"),
+  ]);
+  return <ProductsTableClient products={products} galleries={galleries} />;
 }

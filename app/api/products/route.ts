@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { isProductVisibleInCatalog, mapProductRow } from "../../../lib/catalog-products";
+import { applyCatalogVisibilityFilter, isProductVisibleInCatalog, mapProductRow } from "../../../lib/catalog-products";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type {
   Product,
@@ -11,7 +11,7 @@ import type {
   ProductWithVariantsAndImages,
 } from "../../../lib/supabase/types";
 import { slugify } from "../../../lib/utils/slugify";
-import { hasActiveVaultSessionFromRequest } from "../../../lib/vault-access";
+import { allowedGalleryIdSet, getVaultSessionAccessFromRequest } from "../../../lib/vault-access";
 
 const productsQuerySchema = z.object({
   type: z.enum(["print", "merchandise"]).optional(),
@@ -49,7 +49,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid query params." }, { status: 400 });
   }
 
-  const includeVault = await hasActiveVaultSessionFromRequest(request);
+  const access = await getVaultSessionAccessFromRequest(request);
+  const allowedGalleryIds = allowedGalleryIdSet(access);
   const supabase = await createSupabaseServerClient();
 
   let query = supabase
@@ -65,9 +66,7 @@ export async function GET(request: Request) {
     query = query.eq("is_featured", true);
   }
 
-  if (!includeVault) {
-    query = query.eq("visibility", "public");
-  }
+  query = applyCatalogVisibilityFilter(query, allowedGalleryIds);
 
   const { data, error } = await query
     .order("is_featured", { ascending: false })
@@ -80,7 +79,7 @@ export async function GET(request: Request) {
 
   let products: ProductWithVariantsAndImages[] = ((data ?? []) as unknown as ProductRow[])
     .map((product) => mapProductRow(product, { primaryImagesOnly: true }))
-    .filter((product) => isProductVisibleInCatalog(product, includeVault));
+    .filter((product) => isProductVisibleInCatalog(product, allowedGalleryIds));
 
   if (parsedQuery.data.location) {
     const location = parsedQuery.data.location;
