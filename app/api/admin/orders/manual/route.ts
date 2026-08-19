@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { assignEditionsToOrder } from "../../../../../lib/edition-assignment";
 import { sendOrderConfirmationEmail } from "../../../../../lib/emails/order-confirmation";
+import { requireOpenStudioOrder } from "../../../../../lib/open-studio-orders";
 import {
   STUDIO_CUSTOMER,
   STUDIO_FULFILMENT_NOTE,
@@ -35,6 +36,7 @@ const manualOrderSchema = z.object({
   square_payment_id: z.string().trim().max(200).optional(),
   notes: z.string().trim().max(1000).optional(),
   send_confirmation_email: z.boolean().optional(),
+  existing_order_id: z.string().uuid().optional(),
 });
 
 type VariantRow = {
@@ -222,6 +224,71 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Customer name and email are required." }, { status: 400 });
   }
 
+  const fulfilmentStatus =
+    isStudio || payload.fulfilment !== "taken_today"
+      ? ("awaiting_file" as const)
+      : ("delivered" as const);
+
+  const fulfilmentNotes = isStudio
+    ? STUDIO_FULFILMENT_NOTE
+    : payload.mode === "on_site"
+      ? `On-site sale (${paymentMethod ?? "manual"}).`
+      : "Created via admin fulfilment test (no Stripe).";
+
+  if (payload.existing_order_id) {
+    if (!isStudio) {
+      return NextResponse.json(
+        { error: "Only studio prints can be added to an existing studio order." },
+        { status: 400 },
+      );
+    }
+
+    let existing;
+    try {
+      existing = await requireOpenStudioOrder(payload.existing_order_id);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "";
+      if (code === "STUDIO_ORDER_NOT_FOUND") {
+        return NextResponse.json({ error: "Studio order not found." }, { status: 404 });
+      }
+      if (code === "NOT_A_STUDIO_ORDER") {
+        return NextResponse.json({ error: "That order is not a studio order." }, { status: 400 });
+      }
+      if (code === "STUDIO_ORDER_CLOSED") {
+        return NextResponse.json({ error: "That studio order is cancelled or refunded." }, { status: 400 });
+      }
+      throw error;
+    }
+
+    const { data: createdItems, error: itemError } = await supabaseAdmin
+      .from("order_items")
+      .insert({
+        order_id: existing.id,
+        variant_id: payload.variant_id,
+        quantity: payload.quantity,
+        unit_price_aud: unitPrice,
+        edition_number_assigned: null,
+        fulfilment_status: fulfilmentStatus,
+        fulfilment_notes: fulfilmentNotes,
+      })
+      .select("id, variant_id, quantity, unit_price_aud, edition_number_assigned");
+
+    if (itemError || !createdItems?.[0]) {
+      console.error("Studio order item add failed", itemError);
+      return NextResponse.json({ error: "Could not add print to studio order." }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      order_id: existing.id,
+      order_number: existing.order_number,
+      status: "paid",
+      fulfilment_status: fulfilmentStatus,
+      total_aud: 0,
+      is_studio: true,
+      added_to_existing: true,
+    });
+  }
+
   const shippingAddress = normalizeAddress(payload);
   const squarePaymentId = payload.square_payment_id?.trim() || null;
 
@@ -265,17 +332,6 @@ export async function POST(request: Request) {
     console.error("Manual order creation failed", orderError);
     return NextResponse.json({ error: "Could not create manual order." }, { status: 500 });
   }
-
-  const fulfilmentStatus =
-    isStudio || payload.fulfilment !== "taken_today"
-      ? ("awaiting_file" as const)
-      : ("delivered" as const);
-
-  const fulfilmentNotes = isStudio
-    ? STUDIO_FULFILMENT_NOTE
-    : payload.mode === "on_site"
-      ? `On-site sale (${paymentMethod ?? "manual"}).`
-      : "Created via admin fulfilment test (no Stripe).";
 
   const { data: createdItems, error: itemError } = await supabaseAdmin
     .from("order_items")

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   STUDIO_ORDER_MARKER,
   buildStudioOrderNotes,
+  formatStudioOrderOption,
   isRevenueOrder,
   isStudioOrderNotes,
   pixelPerfectEditionLine,
@@ -26,6 +27,11 @@ describe("studio orders", () => {
     expect(isRevenueOrder({ status: "paid", notes: buildStudioOrderNotes() })).toBe(false);
     expect(isRevenueOrder({ status: "paid", notes: "source=wall" })).toBe(true);
     expect(isRevenueOrder({ status: "cancelled", notes: null })).toBe(false);
+  });
+
+  it("formats open studio order labels for pickers", () => {
+    expect(formatStudioOrderOption({ order_number: "EXH-142", print_count: 1 })).toBe("EXH-142 — 1 print");
+    expect(formatStudioOrderOption({ order_number: "EXH-142", print_count: 3 })).toBe("EXH-142 — 3 prints");
   });
 
   it("omits edition numbers from Pixel Perfect copy for studio orders", () => {

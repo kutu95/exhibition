@@ -13,12 +13,14 @@ import {
   PAPER_OPTIONS,
 } from "../../lib/print-catalogue";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
+import type { OpenStudioOrder } from "../../lib/studio-orders";
 import { isValidProductImageUrl } from "../../lib/utils/site-content-image";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ProductEditorForm.module.css";
 import { ProductVariantPanel, type VariantInput } from "./ProductVariantPanel";
 import { ProductWallQrCodes } from "./ProductWallQrCodes";
 import { ThemeSelector } from "./ThemeSelector";
+import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "../StudioOrderDestinationDialog";
 
 type ImageInput = {
   id?: string;
@@ -194,6 +196,10 @@ export function ProductEditorForm({
   const [deleting, setDeleting] = useState(false);
   const [creatingTestOrderVariantId, setCreatingTestOrderVariantId] = useState<string | null>(null);
   const [creatingStudioOrderVariantId, setCreatingStudioOrderVariantId] = useState<string | null>(null);
+  const [studioOrderDialog, setStudioOrderDialog] = useState<{
+    variant: VariantInput;
+    orders: OpenStudioOrder[];
+  } | null>(null);
   const [testOrderMessage, setTestOrderMessage] = useState<string | null>(null);
   const [preparingPrintVariantId, setPreparingPrintVariantId] = useState<string | null>(null);
   const [printPrepareMessages, setPrintPrepareMessages] = useState<Record<string, string>>({});
@@ -437,22 +443,37 @@ export function ProductEditorForm({
     router.refresh();
   };
 
-  const createStudioOrder = async (variant: VariantInput) => {
+  const openStudioOrderDialog = async (variant: VariantInput) => {
     if (!variant.id) {
       setError("Save the product before creating a studio order.");
       return;
     }
 
-    const confirmed = window.confirm(
-      `Create a studio print order for "${variant.variant_label}"? No payment and no edition number. The fulfilment worker will prepare the lab TIFF.`,
-    );
-    if (!confirmed) return;
+    setCreatingStudioOrderVariantId(variant.id);
+    setError(null);
+    setTestOrderMessage(null);
+
+    try {
+      const orders = await loadOpenStudioOrders();
+      setStudioOrderDialog({ variant, orders });
+    } catch (studioError) {
+      setError(adminClientFetchError(studioError));
+    } finally {
+      setCreatingStudioOrderVariantId(null);
+    }
+  };
+
+  const createStudioOrder = async (variant: VariantInput, existingOrderId: string | null) => {
+    if (!variant.id) {
+      setError("Save the product before creating a studio order.");
+      return;
+    }
 
     setCreatingStudioOrderVariantId(variant.id);
     setError(null);
     setTestOrderMessage(null);
 
-    const response = await fetch("/api/admin/orders/manual", {
+    const response = await adminClientFetch("/api/admin/orders/manual", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -461,11 +482,12 @@ export function ProductEditorForm({
         mode: "studio",
         variant_id: variant.id,
         quantity: 1,
+        ...(existingOrderId ? { existing_order_id: existingOrderId } : {}),
       }),
     });
 
     const body = (await response.json().catch(() => null)) as
-      | { error?: string; order_number?: string }
+      | { error?: string; order_number?: string; added_to_existing?: boolean }
       | null;
 
     if (!response.ok) {
@@ -474,8 +496,11 @@ export function ProductEditorForm({
       return;
     }
 
+    setStudioOrderDialog(null);
     setTestOrderMessage(
-      `Created studio order ${body?.order_number ?? ""}. Open Fulfilment for specs and the print file.`,
+      body?.added_to_existing
+        ? `Added to studio order ${body?.order_number ?? ""}. Open Fulfilment for specs and the print file.`
+        : `Created studio order ${body?.order_number ?? ""}. Open Fulfilment for specs and the print file.`,
     );
     setCreatingStudioOrderVariantId(null);
     router.refresh();
@@ -843,7 +868,7 @@ export function ProductEditorForm({
                     )
                   }
                   onCreateTestOrder={() => createTestOrder(variant)}
-                  onCreateStudioOrder={() => createStudioOrder(variant)}
+                  onCreateStudioOrder={() => void openStudioOrderDialog(variant)}
                   onPreparePrintFile={() => void preparePrintFile(variant)}
                   onDownloadPrintFile={() => downloadPrintFile(variant)}
                 />
@@ -954,6 +979,20 @@ export function ProductEditorForm({
           ) : null}
         </div>
       </div>
+      <StudioOrderDestinationDialog
+        open={Boolean(studioOrderDialog)}
+        title="Order for studio"
+        description={`No payment and no edition number. Add "${studioOrderDialog?.variant.variant_label ?? "this print"}" to an open studio order, or start a new one.`}
+        orders={studioOrderDialog?.orders ?? []}
+        confirmLabel="Create"
+        busy={Boolean(creatingStudioOrderVariantId)}
+        onCancel={() => {
+          if (!creatingStudioOrderVariantId) setStudioOrderDialog(null);
+        }}
+        onConfirm={(orderId) => {
+          if (studioOrderDialog) void createStudioOrder(studioOrderDialog.variant, orderId);
+        }}
+      />
     </div>
   );
 }

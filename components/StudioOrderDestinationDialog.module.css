@@ -1,0 +1,79 @@
+.backdrop {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 50;
+}
+
+.dialog {
+  background: #fff;
+  border: 1px solid #111;
+  display: grid;
+  gap: 0.75rem;
+  max-width: 28rem;
+  padding: 1rem;
+  width: min(28rem, 100%);
+}
+
+.dialog h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.dialog p {
+  margin: 0;
+}
+
+.options {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.options label {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.primary,
+.secondary {
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+}
+
+.primary {
+  background: #111;
+  border: 1px solid #111;
+  color: #fff;
+}
+
+.secondary {
+  background: transparent;
+  border: 1px solid #111;
+  color: #111;
+}
+
+.primary:disabled,
+.secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.empty {
+  color: #666;
+}

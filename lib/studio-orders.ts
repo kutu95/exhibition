@@ -23,6 +23,18 @@ export const buildStudioOrderNotes = (extra?: string): string => {
 export const isStudioOrderNotes = (notes: string | null | undefined): boolean =>
   Boolean(notes?.includes(STUDIO_ORDER_MARKER));
 
+export type OpenStudioOrder = {
+  order_id: string;
+  order_number: string;
+  print_count: number;
+  created_at: string;
+};
+
+export const formatStudioOrderOption = (order: {
+  order_number: string;
+  print_count: number;
+}): string => `${order.order_number} — ${order.print_count} print${order.print_count === 1 ? "" : "s"}`;
+
 export const isRevenueOrder = (order: { status: string; notes?: string | null }): boolean =>
   REVENUE_STATUSES.has(order.status) && !isStudioOrderNotes(order.notes);
 

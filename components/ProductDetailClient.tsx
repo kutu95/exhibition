@@ -7,6 +7,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
 import { FavouriteButton } from "./FavouriteButton";
+import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "./StudioOrderDestinationDialog";
 import {
   type FrameColourId,
   FramedPreview,
@@ -37,6 +38,7 @@ import {
 import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
+import type { OpenStudioOrder } from "../lib/studio-orders";
 import { formatAUD } from "../lib/utils/currency";
 import styles from "./ProductDetailClient.module.css";
 
@@ -108,6 +110,8 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
   const [imageRatio, setImageRatio] = useState<number | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isStudioOrdering, setIsStudioOrdering] = useState(false);
+  const [studioOrderDialogOpen, setStudioOrderDialogOpen] = useState(false);
+  const [openStudioOrders, setOpenStudioOrders] = useState<OpenStudioOrder[]>([]);
   const [studioOrderMessage, setStudioOrderMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { addItem, itemCount } = useCart();
@@ -272,15 +276,26 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
   const handleStudioOrder = async () => {
     if (!isAdmin || !selectedVariant || product.product_type !== "print") return;
 
-    const confirmed = window.confirm(
-      `Create a studio print order for "${selectedVariant.variant_label}"? No payment and no edition number. The fulfilment worker will prepare the lab TIFF.`,
-    );
-    if (!confirmed) return;
-
     try {
       setIsStudioOrdering(true);
       setError(null);
       setStudioOrderMessage(null);
+      const orders = await loadOpenStudioOrders();
+      setOpenStudioOrders(orders);
+      setStudioOrderDialogOpen(true);
+    } catch (studioError) {
+      setError(adminClientFetchError(studioError));
+    } finally {
+      setIsStudioOrdering(false);
+    }
+  };
+
+  const confirmStudioOrder = async (existingOrderId: string | null) => {
+    if (!selectedVariant) return;
+
+    try {
+      setIsStudioOrdering(true);
+      setError(null);
 
       const response = await adminClientFetch("/api/admin/orders/manual", {
         method: "POST",
@@ -289,11 +304,12 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
           mode: "studio",
           variant_id: selectedVariant.id,
           quantity: 1,
+          ...(existingOrderId ? { existing_order_id: existingOrderId } : {}),
         }),
       });
 
       const body = (await response.json().catch(() => null)) as
-        | { error?: string; order_number?: string; order_id?: string }
+        | { error?: string; order_number?: string; added_to_existing?: boolean }
         | null;
 
       if (response.status === 401) {
@@ -306,7 +322,12 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         return;
       }
 
-      setStudioOrderMessage(body?.order_number ?? "created");
+      setStudioOrderDialogOpen(false);
+      setStudioOrderMessage(
+        body?.added_to_existing
+          ? `Added to studio order ${body.order_number ?? ""}.`
+          : `Studio order ${body?.order_number ?? ""} created.`,
+      );
     } catch (studioError) {
       setError(adminClientFetchError(studioError));
     } finally {
@@ -667,13 +688,13 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
               className={`button-outline ${styles.buyButton}`}
               type="button"
               onClick={() => void handleStudioOrder()}
-              disabled={!selectedVariant || isStudioOrdering}
+              disabled={!selectedVariant || isStudioOrdering || studioOrderDialogOpen}
             >
               {isStudioOrdering ? "Creating studio order…" : "Order for studio"}
             </button>
             {studioOrderMessage ? (
               <p className={styles.studioOrderSuccess}>
-                Studio order {studioOrderMessage} created.{" "}
+                {studioOrderMessage}{" "}
                 <Link href="/admin/fulfilment">Open fulfilment</Link> for specs and the print file.
               </p>
             ) : (
@@ -687,6 +708,16 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
         <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
       </aside>
+      <StudioOrderDestinationDialog
+        open={studioOrderDialogOpen}
+        title="Order for studio"
+        description={`No payment and no edition number. Add "${selectedVariant?.variant_label ?? "this print"}" to an open studio order, or start a new one.`}
+        orders={openStudioOrders}
+        confirmLabel="Create"
+        busy={isStudioOrdering}
+        onCancel={() => { if (!isStudioOrdering) setStudioOrderDialogOpen(false); }}
+        onConfirm={(orderId) => void confirmStudioOrder(orderId)}
+      />
     </section>
   );
 }

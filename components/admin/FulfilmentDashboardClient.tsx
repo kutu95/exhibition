@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import { PIXEL_PERFECT_ORDER_EMAIL, buildPixelPerfectOrderEmail } from "../../lib/pixel-perfect-email";
 import { formatLabDimensions } from "../../lib/print-size";
-import { isStudioOrderNotes } from "../../lib/studio-orders";
+import { formatStudioOrderOption, isStudioOrderNotes, type OpenStudioOrder } from "../../lib/studio-orders";
 import { formatAUD } from "../../lib/utils/currency";
+import { loadOpenStudioOrders } from "../StudioOrderDestinationDialog";
 import styles from "./FulfilmentDashboardClient.module.css";
 
 type FulfilmentEvent = {
@@ -19,6 +20,7 @@ type FulfilmentEvent = {
 
 export type FulfilmentDashboardItem = {
   order_item_id: string;
+  order_id?: string;
   order_number: string;
   customer_name: string | null;
   customer_email: string;
@@ -260,6 +262,8 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
   );
   const [orderTracking, setOrderTracking] = useState<Record<string, string>>({});
   const [orderStatus, setOrderStatus] = useState<Record<string, string>>({});
+  const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
+  const [openStudioOrders, setOpenStudioOrders] = useState<OpenStudioOrder[]>([]);
   const [applyingOrder, setApplyingOrder] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -280,6 +284,9 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     });
     knownItemIdsRef.current = new Set(items.map((item) => item.order_item_id));
     setRefs(Object.fromEntries(items.map((item) => [item.order_item_id, item.pixel_perfect_order_ref ?? ""])));
+    void loadOpenStudioOrders()
+      .then(setOpenStudioOrders)
+      .catch(() => setOpenStudioOrders([]));
   }, [items]);
 
   useEffect(() => {
@@ -415,6 +422,49 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     }
   };
 
+  const moveSelectedToOrder = async (group: OrderGroup) => {
+    const selected = group.items.filter((item) => selectedIds.has(item.order_item_id));
+    const targetOrderId = moveTargets[group.order_number];
+    if (selected.length === 0 || !targetOrderId) return;
+
+    setError(null);
+    setMessage(null);
+    setApplyingOrder(group.order_number);
+
+    try {
+      const response = await adminClientFetch("/api/admin/fulfilment/move-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_item_ids: selected.map((item) => item.order_item_id),
+          target_order_id: targetOrderId,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; moved?: number; target_order_number?: string; cancelled_order_numbers?: string[] }
+        | null;
+
+      if (!response.ok) {
+        setError(payload?.error ?? "Could not move prints onto that studio order.");
+        return;
+      }
+
+      const cancelled = payload?.cancelled_order_numbers?.length
+        ? ` Closed ${payload.cancelled_order_numbers.join(", ")}.`
+        : "";
+      setMessage(
+        `Moved ${payload?.moved ?? selected.length} print${(payload?.moved ?? selected.length) === 1 ? "" : "s"} onto ${payload?.target_order_number ?? "studio order"}.${cancelled}`,
+      );
+      setMoveTargets((prev) => ({ ...prev, [group.order_number]: "" }));
+      router.refresh();
+    } catch (moveError) {
+      setError(adminClientFetchError(moveError));
+    } finally {
+      setApplyingOrder(null);
+    }
+  };
+
   const saveLabReference = async (item: FulfilmentDashboardItem) => {
     setError(null);
     setMessage(null);
@@ -522,6 +572,10 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
         {orderGroups.length === 0 ? <p className={styles.muted}>No orders match this filter.</p> : null}
         {orderGroups.map((group) => {
           const first = group.items[0];
+          const currentOrderId =
+            first.order_id ??
+            openStudioOrders.find((order) => order.order_number === group.order_number)?.order_id;
+          const moveCandidates = openStudioOrders.filter((order) => order.order_id !== currentOrderId);
           const isOrderExpanded = expandedOrderIds.has(group.order_number);
           const isStudioOrder = group.items.some(isStudioItem);
           const selectedInGroup = group.items.filter((item) => selectedIds.has(item.order_item_id));
@@ -618,6 +672,33 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   >
                     Mark delivered
                   </button>
+                  {isStudioOrder ? (
+                    <>
+                      <select
+                        className={styles.field}
+                        value={moveTargets[group.order_number] ?? ""}
+                        disabled={isApplying}
+                        onChange={(event) =>
+                          setMoveTargets((prev) => ({ ...prev, [group.order_number]: event.target.value }))
+                        }
+                      >
+                        <option value="">Move to order…</option>
+                        {moveCandidates.map((order) => (
+                            <option key={order.order_id} value={order.order_id}>
+                              {formatStudioOrderOption(order)}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        className={styles.buttonSecondary}
+                        type="button"
+                        disabled={applyDisabled || !moveTargets[group.order_number] || moveCandidates.length === 0}
+                        onClick={() => void moveSelectedToOrder(group)}
+                      >
+                        Move selected
+                      </button>
+                    </>
+                  ) : null}
                 </div>
 
                 <div className={styles.imageList}>
