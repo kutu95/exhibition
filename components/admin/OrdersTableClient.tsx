@@ -34,9 +34,11 @@ export function OrdersTableClient({ orders }: OrdersTableClientProps) {
       const statusMatch =
         statusFilter === "all"
           ? true
-          : statusFilter === "studio"
-            ? Boolean(order.is_studio)
-            : order.status === statusFilter && !order.is_studio;
+          : statusFilter === "active"
+            ? order.status !== "cancelled" && order.status !== "delivered"
+            : statusFilter === "studio"
+              ? Boolean(order.is_studio)
+              : order.status === statusFilter && !order.is_studio;
       const searchMatch =
         term.length === 0
           ? true
@@ -51,6 +53,7 @@ export function OrdersTableClient({ orders }: OrdersTableClientProps) {
       <div className={styles.controls}>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
           <option value="all">All</option>
+          <option value="active">Active</option>
           <option value="pending">Pending</option>
           <option value="paid">Paid</option>
           <option value="processing">Processing</option>
