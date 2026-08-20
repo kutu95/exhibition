@@ -7,11 +7,13 @@ import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { useCart } from "./CartProvider";
 import { useFavourites } from "./FavouritesProvider";
 import { ProductGrid } from "./ProductGrid";
-import { LocationFilter, ProductTypeFilter, ShopFilters, ThemeFilter } from "./ShopFilters";
+import { LocationFilter, ProductTypeFilter, ShopFilters, ThemeFilter, type GalleryFilter } from "./ShopFilters";
 import styles from "./ShopProductBrowser.module.css";
 
 type ShopProductBrowserProps = {
   products: ProductWithVariantsAndImages[];
+  isAdmin?: boolean;
+  galleries?: Array<{ id: string; name: string }>;
 };
 
 const pickDefaultVariant = (product: ProductWithVariantsAndImages) => {
@@ -21,32 +23,45 @@ const pickDefaultVariant = (product: ProductWithVariantsAndImages) => {
   return pool.reduce((best, variant) => (variant.price_aud < best.price_aud ? variant : best));
 };
 
-export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
+export function ShopProductBrowser({ products, isAdmin = false, galleries = [] }: ShopProductBrowserProps) {
   const router = useRouter();
   const { addItem } = useCart();
   const { favouriteIds, favouriteCount, isFavourite } = useFavourites();
   const [typeFilter, setTypeFilter] = useState<ProductTypeFilter>("all");
   const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
   const [themeFilter, setThemeFilter] = useState<ThemeFilter>("all");
+  const [galleryFilter, setGalleryFilter] = useState<GalleryFilter>("all");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
+
+  const galleryOptions = useMemo(
+    () => galleries.map((gallery) => ({ value: gallery.id, label: gallery.name })),
+    [galleries],
+  );
+  const showGalleryFilter = isAdmin && galleries.length > 0;
+
+  const galleryScopedProducts = useMemo(() => {
+    if (!showGalleryFilter || galleryFilter === "all") return products;
+    if (galleryFilter === "public") return products.filter((product) => !product.gallery_id);
+    return products.filter((product) => product.gallery_id === galleryFilter);
+  }, [galleryFilter, products, showGalleryFilter]);
 
   const locationOptions = useMemo(
     () =>
       Array.from(
         new Set(
-          products
+          galleryScopedProducts
             .filter((product) => product.product_type === "print")
             .flatMap((product) => (product.location_tag ? [product.location_tag] : [])),
         ),
       )
         .sort((a, b) => a.localeCompare(b))
         .map((location) => ({ value: location, label: location })),
-    [products],
+    [galleryScopedProducts],
   );
 
   const themeOptions = useMemo(() => {
     const themes = new Map<string, string>();
-    products
+    galleryScopedProducts
       .filter(
         (product) =>
           product.product_type === "print" &&
@@ -60,7 +75,7 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
     return Array.from(themes, ([value, label]) => ({ value, label })).sort((a, b) =>
       a.label.localeCompare(b.label),
     );
-  }, [locationFilter, products]);
+  }, [galleryScopedProducts, locationFilter]);
 
   useEffect(() => {
     if (themeFilter === "all") return;
@@ -81,10 +96,14 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
         themeFilter === "all" ||
         product.product_themes.some((assignment) => assignment.theme.slug === themeFilter);
       const favouriteMatch = !favouritesOnly || isFavourite(product.id);
+      const galleryMatch =
+        !showGalleryFilter ||
+        galleryFilter === "all" ||
+        (galleryFilter === "public" ? !product.gallery_id : product.gallery_id === galleryFilter);
 
-      return typeMatch && locationMatch && themeMatch && favouriteMatch;
+      return typeMatch && locationMatch && themeMatch && favouriteMatch && galleryMatch;
     });
-  }, [favouritesOnly, isFavourite, locationFilter, products, themeFilter, typeFilter]);
+  }, [favouritesOnly, galleryFilter, isFavourite, locationFilter, products, showGalleryFilter, themeFilter, typeFilter]);
 
   const handleTypeChange = (next: ProductTypeFilter) => {
     setTypeFilter(next);
@@ -96,6 +115,12 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
 
   const handleLocationChange = (next: LocationFilter) => {
     setLocationFilter(next);
+    setThemeFilter("all");
+  };
+
+  const handleGalleryChange = (next: GalleryFilter) => {
+    setGalleryFilter(next);
+    setLocationFilter("all");
     setThemeFilter("all");
   };
 
@@ -128,6 +153,9 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
         typeFilter={typeFilter}
         locationFilter={locationFilter}
         themeFilter={themeFilter}
+        galleryFilter={galleryFilter}
+        galleryOptions={galleryOptions}
+        showGalleryFilter={showGalleryFilter}
         favouritesOnly={favouritesOnly}
         favouriteCount={favouriteCount}
         locationOptions={locationOptions}
@@ -135,6 +163,7 @@ export function ShopProductBrowser({ products }: ShopProductBrowserProps) {
         onTypeChange={handleTypeChange}
         onLocationChange={handleLocationChange}
         onThemeChange={setThemeFilter}
+        onGalleryChange={handleGalleryChange}
         onFavouritesOnlyChange={setFavouritesOnly}
       />
 

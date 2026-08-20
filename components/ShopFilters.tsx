@@ -7,6 +7,7 @@ import styles from "./ShopFilters.module.css";
 export type ProductTypeFilter = "all" | "print" | "merchandise";
 export type LocationFilter = "all" | string;
 export type ThemeFilter = "all" | string;
+export type GalleryFilter = "all" | "public" | string;
 
 type FilterOption = { value: string; label: string };
 
@@ -14,6 +15,9 @@ type ShopFiltersProps = {
   typeFilter: ProductTypeFilter;
   locationFilter: LocationFilter;
   themeFilter: ThemeFilter;
+  galleryFilter: GalleryFilter;
+  galleryOptions: FilterOption[];
+  showGalleryFilter: boolean;
   favouritesOnly: boolean;
   favouriteCount: number;
   locationOptions: FilterOption[];
@@ -21,6 +25,7 @@ type ShopFiltersProps = {
   onTypeChange: (next: ProductTypeFilter) => void;
   onLocationChange: (next: LocationFilter) => void;
   onThemeChange: (next: ThemeFilter) => void;
+  onGalleryChange: (next: GalleryFilter) => void;
   onFavouritesOnlyChange: (next: boolean) => void;
 };
 
@@ -34,6 +39,9 @@ export function ShopFilters({
   typeFilter,
   locationFilter,
   themeFilter,
+  galleryFilter,
+  galleryOptions,
+  showGalleryFilter,
   favouritesOnly,
   favouriteCount,
   locationOptions,
@@ -41,10 +49,11 @@ export function ShopFilters({
   onTypeChange,
   onLocationChange,
   onThemeChange,
+  onGalleryChange,
   onFavouritesOnlyChange,
 }: ShopFiltersProps) {
   const handleFilterClick = (
-    filterType: "product_type" | "location" | "theme" | "favourites",
+    filterType: "product_type" | "location" | "theme" | "gallery" | "favourites",
     filterValue: string,
     onClick: () => void,
   ) => {
@@ -82,6 +91,38 @@ export function ShopFilters({
           Favourites{favouriteCount > 0 ? ` (${favouriteCount})` : ""}
         </button>
       </div>
+
+      {showGalleryFilter ? (
+        <div>
+          <p className={styles.groupLabel}>Gallery</p>
+          <div className={styles.group}>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${galleryFilter === "all" ? styles.active : ""}`}
+              onClick={() => handleFilterClick("gallery", "all", () => onGalleryChange("all"))}
+            >
+              All galleries
+            </button>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${galleryFilter === "public" ? styles.active : ""}`}
+              onClick={() => handleFilterClick("gallery", "public", () => onGalleryChange("public"))}
+            >
+              Public gallery
+            </button>
+            {galleryOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`${styles.filterBtn} ${galleryFilter === option.value ? styles.active : ""}`}
+                onClick={() => handleFilterClick("gallery", option.value, () => onGalleryChange(option.value))}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {locationOptions.length > 0 ? (
         <div>

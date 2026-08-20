@@ -87,7 +87,7 @@ export default async function ShopPage() {
         <VaultCollectionsBanner galleries={access.galleries} isAdmin={access.isAdmin} />
       ) : null}
 
-      <ShopProductBrowser products={products} />
+      <ShopProductBrowser products={products} isAdmin={access.isAdmin} galleries={access.galleries} />
 
       <div className={styles.collectionNotes}>
         <h2>About this collection</h2>
