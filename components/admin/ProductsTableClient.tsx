@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { Gallery } from "../../lib/galleries";
@@ -17,6 +17,8 @@ type ProductListItem = {
   is_available: boolean;
   gallery_id: string | null;
   visibility?: "public" | "vault";
+  image_url: string | null;
+  image_alt: string | null;
 };
 
 type ProductsTableClientProps = {
@@ -26,6 +28,7 @@ type ProductsTableClientProps = {
 
 const PUBLIC_FILTER = "public";
 const ALL_FILTER = "all";
+const THUMBNAILS_STORAGE_KEY = "admin-products-show-thumbnails";
 
 type GalleryGroup = {
   key: string;
@@ -36,10 +39,30 @@ type GalleryGroup = {
 export function ProductsTableClient({ products, galleries }: ProductsTableClientProps) {
   const router = useRouter();
   const [filter, setFilter] = useState(ALL_FILTER);
+  const [showThumbnails, setShowThumbnails] = useState(true);
   const galleryNameById = useMemo(
     () => new Map(galleries.map((gallery) => [gallery.id, gallery.name])),
     [galleries],
   );
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(THUMBNAILS_STORAGE_KEY);
+      if (stored === "0") setShowThumbnails(false);
+      if (stored === "1") setShowThumbnails(true);
+    } catch {
+      // Ignore storage failures in private browsing.
+    }
+  }, []);
+
+  const setThumbnailsVisible = (visible: boolean) => {
+    setShowThumbnails(visible);
+    try {
+      window.localStorage.setItem(THUMBNAILS_STORAGE_KEY, visible ? "1" : "0");
+    } catch {
+      // Ignore storage failures in private browsing.
+    }
+  };
 
   const filteredProducts = useMemo(() => {
     if (filter === ALL_FILTER) return products;
@@ -113,6 +136,14 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
             ))}
           </select>
         </label>
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={showThumbnails}
+            onChange={(event) => setThumbnailsVisible(event.target.checked)}
+          />
+          Show thumbnails
+        </label>
         <p className={styles.filterCount}>
           {filteredProducts.length} product{filteredProducts.length === 1 ? "" : "s"}
         </p>
@@ -128,9 +159,10 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
               <span className={styles.groupCount}>{group.products.length}</span>
             </h2>
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <table className={showThumbnails ? `${styles.table} ${styles.tableWithThumbs}` : styles.table}>
                 <thead>
                   <tr>
+                    {showThumbnails ? <th className={styles.imageCol}>Image</th> : null}
                     <th>Title</th>
                     <th>Type</th>
                     <th>Location</th>
@@ -144,6 +176,22 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
                 <tbody>
                   {group.products.map((product) => (
                     <tr key={product.id}>
+                      {showThumbnails ? (
+                        <td className={styles.imageCol}>
+                          {product.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail of local or remote product image
+                            <img
+                              className={styles.thumb}
+                              src={product.image_url}
+                              alt={product.image_alt || product.title}
+                            />
+                          ) : (
+                            <div className={styles.thumbPlaceholder} aria-hidden="true">
+                              No image
+                            </div>
+                          )}
+                        </td>
+                      ) : null}
                       <td>{product.title}</td>
                       <td>{product.product_type}</td>
                       <td>{product.location_tag ?? "—"}</td>

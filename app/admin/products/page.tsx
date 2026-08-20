@@ -12,6 +12,8 @@ type ProductListItem = {
   is_available: boolean;
   gallery_id: string | null;
   visibility?: "public" | "vault";
+  image_url: string | null;
+  image_alt: string | null;
 };
 
 export default async function AdminProductsPage() {

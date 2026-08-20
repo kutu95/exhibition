@@ -91,28 +91,51 @@ export async function GET(request: Request) {
 
     const productIds = (products ?? []).map((product) => product.id);
     const variantsCountMap = new Map<string, number>();
+    const imageByProduct = new Map<string, { image_url: string; image_alt: string | null }>();
 
     if (productIds.length > 0) {
-      const { data: variants, error: variantsError } = await supabaseAdmin
-        .from("product_variants")
-        .select("product_id")
-        .in("product_id", productIds);
+      const [{ data: variants, error: variantsError }, { data: images, error: imagesError }] = await Promise.all([
+        supabaseAdmin.from("product_variants").select("product_id").in("product_id", productIds),
+        supabaseAdmin
+          .from("product_images")
+          .select("product_id, image_url, alt_text, is_primary, sort_order")
+          .in("product_id", productIds)
+          .order("sort_order", { ascending: true }),
+      ]);
 
       if (variantsError) {
         return NextResponse.json({ error: variantsError.message }, { status: 500 });
+      }
+      if (imagesError) {
+        return NextResponse.json({ error: imagesError.message }, { status: 500 });
       }
 
       (variants ?? []).forEach((variant) => {
         const current = variantsCountMap.get(variant.product_id) ?? 0;
         variantsCountMap.set(variant.product_id, current + 1);
       });
+
+      (images ?? []).forEach((image) => {
+        const current = imageByProduct.get(image.product_id);
+        if (!current || image.is_primary) {
+          imageByProduct.set(image.product_id, {
+            image_url: image.image_url,
+            image_alt: image.alt_text,
+          });
+        }
+      });
     }
 
     return NextResponse.json(
-      (products ?? []).map((product) => ({
-        ...product,
-        variants_count: variantsCountMap.get(product.id) ?? 0,
-      })),
+      (products ?? []).map((product) => {
+        const image = imageByProduct.get(product.id);
+        return {
+          ...product,
+          variants_count: variantsCountMap.get(product.id) ?? 0,
+          image_url: image?.image_url ?? null,
+          image_alt: image?.image_alt ?? null,
+        };
+      }),
     );
   } catch (error) {
     return handleRouteError(error, "Admin products list failed");
