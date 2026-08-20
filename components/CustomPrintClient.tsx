@@ -12,6 +12,8 @@ import {
   mapCustomFrameToPreview,
 } from "./FramedPreview";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
+import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "./StudioOrderDestinationDialog";
+import { adminClientFetch, adminClientFetchError } from "../lib/admin-client-fetch";
 import { readCart } from "../lib/cart";
 import {
   computeCustomPrintPricing,
@@ -30,6 +32,7 @@ import type { FrameRateBand, RthCanvasRateBand } from "../lib/print-frame-pricin
 import type { ManagedPaper } from "../lib/print-catalogue";
 import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
+import type { OpenStudioOrder } from "../lib/studio-orders";
 import { formatAUD } from "../lib/utils/currency";
 import styles from "./CustomPrintClient.module.css";
 
@@ -52,7 +55,7 @@ type CustomPrintClientProps = {
   frameRates: FrameRateBand[];
   rthCanvasRates: RthCanvasRateBand[];
   papers: ManagedPaper[];
-  /** When true (admin session cookie), show prepare/download TIFF control. */
+  /** When true (admin session cookie), show studio order and prepare/download TIFF. */
   isAdmin?: boolean;
 };
 
@@ -97,8 +100,11 @@ export function CustomPrintClient({
   const [mediaId, setMediaId] = useState(defaultMedia?.id ?? "");
   const [frameStyle, setFrameStyle] = useState<CustomFrameStyleId>("none");
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
-  const [busy, setBusy] = useState<"cart" | "buy" | "print" | null>(null);
+  const [busy, setBusy] = useState<"cart" | "buy" | "print" | "studio" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [studioOrderDialogOpen, setStudioOrderDialogOpen] = useState(false);
+  const [openStudioOrders, setOpenStudioOrders] = useState<OpenStudioOrder[]>([]);
+  const [studioOrderMessage, setStudioOrderMessage] = useState<string | null>(null);
 
   const maxLongEdgeMm = useMemo(
     () => maxCustomLongEdgeMm(pixelWidth, pixelHeight),
@@ -257,6 +263,64 @@ export function CustomPrintClient({
       setBusy(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to prepare print file.");
+      setBusy(null);
+    }
+  };
+
+  const handleStudioOrder = async () => {
+    if (!isAdmin || !pricing) return;
+    setBusy("studio");
+    setError(null);
+    setStudioOrderMessage(null);
+    try {
+      const orders = await loadOpenStudioOrders();
+      setOpenStudioOrders(orders);
+      setStudioOrderDialogOpen(true);
+    } catch (studioError) {
+      setError(adminClientFetchError(studioError));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const confirmStudioOrder = async (existingOrderId: string | null) => {
+    if (!pricing) return;
+    setBusy("studio");
+    setError(null);
+    try {
+      const created = await createVariant();
+      const response = await adminClientFetch("/api/admin/orders/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "studio",
+          variant_id: created.variant_id,
+          quantity: 1,
+          ...(existingOrderId ? { existing_order_id: existingOrderId } : {}),
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { error?: string; order_number?: string; added_to_existing?: boolean }
+        | null;
+
+      if (response.status === 401) {
+        setError("Admin session expired. Sign in at /admin/login, then try again.");
+        return;
+      }
+      if (!response.ok) {
+        setError(body?.error ?? "Could not create studio order.");
+        return;
+      }
+
+      setStudioOrderDialogOpen(false);
+      setStudioOrderMessage(
+        body?.added_to_existing
+          ? `Added to studio order ${body.order_number ?? ""}.`
+          : `Studio order ${body?.order_number ?? ""} created.`,
+      );
+    } catch (studioError) {
+      setError(adminClientFetchError(studioError));
+    } finally {
       setBusy(null);
     }
   };
@@ -488,6 +552,24 @@ export function CustomPrintClient({
                 <button
                   className={`button-outline ${styles.button}`}
                   type="button"
+                  disabled={!pricing || busy !== null || studioOrderDialogOpen}
+                  onClick={() => void handleStudioOrder()}
+                >
+                  {busy === "studio" ? "Creating studio order…" : "Order for studio"}
+                </button>
+                {studioOrderMessage ? (
+                  <p className={styles.studioOrderSuccess}>
+                    {studioOrderMessage}{" "}
+                    <Link href="/admin/fulfilment">Open fulfilment</Link> for specs and the print file.
+                  </p>
+                ) : (
+                  <p className={styles.adminHint}>
+                    Admin only · No payment, no edition number. Queues a lab TIFF for Pixel Perfect.
+                  </p>
+                )}
+                <button
+                  className={`button-outline ${styles.button}`}
+                  type="button"
                   disabled={busy !== null}
                   onClick={() => void handlePreparePrintDownload()}
                 >
@@ -506,6 +588,18 @@ export function CustomPrintClient({
           </p>
         </aside>
       </div>
+      <StudioOrderDestinationDialog
+        open={studioOrderDialogOpen}
+        title="Order for studio"
+        description={`No payment and no edition number. Add this custom print (${formatShopDimensions(size.width_mm, size.height_mm)}${selectedMedia ? ` · ${selectedMedia.label}` : ""}) to an open studio order, or start a new one.`}
+        orders={openStudioOrders}
+        confirmLabel="Create"
+        busy={busy === "studio"}
+        onCancel={() => {
+          if (busy !== "studio") setStudioOrderDialogOpen(false);
+        }}
+        onConfirm={(orderId) => void confirmStudioOrder(orderId)}
+      />
     </section>
   );
 }

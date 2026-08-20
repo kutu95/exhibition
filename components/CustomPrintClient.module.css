@@ -303,6 +303,17 @@
   line-height: 1.35;
 }
 
+.studioOrderSuccess {
+  margin: 0;
+  color: #4a4a4a;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.studioOrderSuccess a {
+  text-decoration: underline;
+}
+
 .button {
   width: 100%;
 }
