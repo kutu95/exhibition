@@ -10,7 +10,7 @@ import {
 } from "../../../lib/purchases-access";
 import { stripe } from "../../../lib/stripe";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
-import { allowedGalleryIdSet, getVaultSessionAccessFromRequest } from "../../../lib/vault-access";
+import { allowedGalleryIdSet, getCatalogAccessFromRequest } from "../../../lib/vault-access";
 
 export const runtime = "nodejs";
 
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const checkoutSource = parsed.data.source ?? "";
     const variantIds = [...new Set(requestedItems.map((item) => item.variant_id))];
 
-    const allowedGalleryIds = allowedGalleryIdSet(await getVaultSessionAccessFromRequest(request));
+    const allowedGalleryIds = allowedGalleryIdSet(await getCatalogAccessFromRequest(request));
 
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")

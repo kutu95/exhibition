@@ -4,6 +4,7 @@ import styles from "./VaultCollectionsBanner.module.css";
 
 type VaultCollectionsBannerProps = {
   galleries: Array<{ id: string; name: string }>;
+  isAdmin?: boolean;
 };
 
 const formatGalleryNames = (names: string[]): string => {
@@ -13,7 +14,20 @@ const formatGalleryNames = (names: string[]): string => {
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 };
 
-export function VaultCollectionsBanner({ galleries }: VaultCollectionsBannerProps) {
+export function VaultCollectionsBanner({ galleries, isAdmin = false }: VaultCollectionsBannerProps) {
+  if (isAdmin) {
+    const names = galleries.map((gallery) => gallery.name);
+    const label = names.length > 0 ? formatGalleryNames(names) : "private collections";
+    return (
+      <div className={styles.banner} role="status">
+        <p>
+          Signed in as admin — {label} are visible here. Open a print and use{" "}
+          <strong>Order for studio</strong> to add it to a studio order.
+        </p>
+      </div>
+    );
+  }
+
   const names = galleries.map((gallery) => gallery.name);
   const label = formatGalleryNames(names);
 

@@ -8,7 +8,7 @@ import {
   PURCHASES_DISABLED_MESSAGE,
 } from "../../../../lib/purchases-access";
 import { stripe } from "../../../../lib/stripe";
-import { allowedGalleryIdSet, getVaultSessionAccessFromRequest } from "../../../../lib/vault-access";
+import { allowedGalleryIdSet, getCatalogAccessFromRequest } from "../../../../lib/vault-access";
 
 export const runtime = "nodejs";
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     const { variant_id, quantity, customer_email } = parsed.data;
-    const allowedGalleryIds = allowedGalleryIdSet(await getVaultSessionAccessFromRequest(request));
+    const allowedGalleryIds = allowedGalleryIdSet(await getCatalogAccessFromRequest(request));
 
     const { rows } = await queryPostgres<VariantCheckoutRow>(
       `

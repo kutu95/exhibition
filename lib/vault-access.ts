@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 
+import { ADMIN_SESSION_COOKIE, verifyAdminSession, verifyAdminSessionToken } from "./admin-auth";
 import { areCollectionsAllowedForHost, areCollectionsAllowedForRequest } from "./purchases-access";
 import { supabaseAdmin } from "./supabase/admin";
 import {
@@ -100,3 +101,42 @@ export const hasActiveVaultSessionFromRequest = async (request: Request): Promis
 };
 
 export const allowedGalleryIdSet = (access: VaultSessionAccess): Set<string> => new Set(access.galleryIds);
+
+export type CatalogAccess = VaultSessionAccess & {
+  isAdmin: boolean;
+};
+
+const loadAllGalleries = async (): Promise<VaultSessionGallery[]> => {
+  const { data } = await supabaseAdmin.from("galleries").select("id, name").order("name");
+  return (data ?? []).map((gallery) => ({ id: gallery.id, name: gallery.name }));
+};
+
+const catalogAccessForAdmin = async (): Promise<CatalogAccess> => {
+  const galleries = await loadAllGalleries();
+  return {
+    isAdmin: true,
+    inviteIds: [],
+    galleryIds: galleries.map((gallery) => gallery.id),
+    galleries,
+  };
+};
+
+export const getCatalogAccess = async (): Promise<CatalogAccess> => {
+  const cookieStore = await cookies();
+  const isAdmin = await verifyAdminSessionToken(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  if (isAdmin) {
+    return catalogAccessForAdmin();
+  }
+
+  const vault = await getVaultSessionAccess();
+  return { ...vault, isAdmin: false };
+};
+
+export const getCatalogAccessFromRequest = async (request: Request): Promise<CatalogAccess> => {
+  if (await verifyAdminSession(request)) {
+    return catalogAccessForAdmin();
+  }
+
+  const vault = await getVaultSessionAccessFromRequest(request);
+  return { ...vault, isAdmin: false };
+};

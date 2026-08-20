@@ -11,7 +11,7 @@ import { SHOW_CUSTOM_PRINT_PAGE } from "../../../../lib/print-custom";
 import { getOfferPricingBundle } from "../../../../lib/print-offer-bundle";
 import { createSupabaseServerClient } from "../../../../lib/supabase/server";
 import type { Product, ProductImage, ProductTheme, ProductVariant } from "../../../../lib/supabase/types";
-import { allowedGalleryIdSet, getVaultSessionAccess } from "../../../../lib/vault-access";
+import { allowedGalleryIdSet, getCatalogAccess } from "../../../../lib/vault-access";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -43,7 +43,7 @@ export default async function CustomPrintPage({ params }: PageProps) {
   const { slug } = await params;
   const [supabase, access, pricing] = await Promise.all([
     createSupabaseServerClient(),
-    getVaultSessionAccess(),
+    getCatalogAccess(),
     getOfferPricingBundle(),
   ]);
   const allowedGalleryIds = allowedGalleryIdSet(access);

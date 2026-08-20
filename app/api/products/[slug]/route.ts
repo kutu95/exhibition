@@ -8,7 +8,7 @@ import type {
   ProductTheme,
   ProductVariant,
 } from "../../../../lib/supabase/types";
-import { allowedGalleryIdSet, getVaultSessionAccessFromRequest } from "../../../../lib/vault-access";
+import { allowedGalleryIdSet, getCatalogAccessFromRequest } from "../../../../lib/vault-access";
 
 type ProductRow = Product & {
   product_variants: ProductVariant[] | null;
@@ -24,7 +24,7 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { slug } = await context.params;
-  const allowedGalleryIds = allowedGalleryIdSet(await getVaultSessionAccessFromRequest(request));
+  const allowedGalleryIds = allowedGalleryIdSet(await getCatalogAccessFromRequest(request));
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase

@@ -11,7 +11,7 @@ import type {
   ProductWithVariantsAndImages,
 } from "../../../lib/supabase/types";
 import { slugify } from "../../../lib/utils/slugify";
-import { allowedGalleryIdSet, getVaultSessionAccessFromRequest } from "../../../lib/vault-access";
+import { allowedGalleryIdSet, getCatalogAccessFromRequest } from "../../../lib/vault-access";
 
 const productsQuerySchema = z.object({
   type: z.enum(["print", "merchandise"]).optional(),
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid query params." }, { status: 400 });
   }
 
-  const access = await getVaultSessionAccessFromRequest(request);
+  const access = await getCatalogAccessFromRequest(request);
   const allowedGalleryIds = allowedGalleryIdSet(access);
   const supabase = await createSupabaseServerClient();
 

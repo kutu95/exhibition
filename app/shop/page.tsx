@@ -15,7 +15,7 @@ import type {
   ProductVariant,
   ProductWithVariantsAndImages,
 } from "../../lib/supabase/types";
-import { allowedGalleryIdSet, getVaultSessionAccess } from "../../lib/vault-access";
+import { allowedGalleryIdSet, getCatalogAccess } from "../../lib/vault-access";
 import styles from "./page.module.css";
 
 type ProductRow = Product & {
@@ -53,7 +53,7 @@ async function getProducts(allowedGalleryIds: ReadonlySet<string>): Promise<Prod
 }
 
 export default async function ShopPage() {
-  const access = await getVaultSessionAccess();
+  const access = await getCatalogAccess();
   const allowedGalleryIds = allowedGalleryIdSet(access);
   const [, products] = await Promise.all([
     awaitPageMetadata("shop"),
@@ -83,7 +83,9 @@ export default async function ShopPage() {
         </p>
       </header>
 
-      {access.galleries.length > 0 ? <VaultCollectionsBanner galleries={access.galleries} /> : null}
+      {access.isAdmin || access.galleries.length > 0 ? (
+        <VaultCollectionsBanner galleries={access.galleries} isAdmin={access.isAdmin} />
+      ) : null}
 
       <ShopProductBrowser products={products} />
 
