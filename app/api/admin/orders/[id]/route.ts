@@ -45,13 +45,37 @@ export async function GET(request: Request, context: RouteContext) {
       variant_label: string;
       edition_size: number | null;
       product_title: string;
+      image_url: string | null;
+      image_alt: string | null;
     }
   >();
+
+  type ProductImageRow = {
+    image_url: string;
+    alt_text: string | null;
+    is_primary: boolean | null;
+    sort_order: number | null;
+  };
+
+  type ProductRow = {
+    title: string | null;
+    product_images: ProductImageRow[] | ProductImageRow | null;
+  };
+
+  const pickPrimaryImage = (
+    images: ProductImageRow[] | ProductImageRow | null | undefined,
+  ): { image_url: string; image_alt: string | null } | null => {
+    const list = Array.isArray(images) ? images : images ? [images] : [];
+    if (list.length === 0) return null;
+    const sorted = [...list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const primary = sorted.find((image) => image.is_primary) ?? sorted[0];
+    return primary ? { image_url: primary.image_url, image_alt: primary.alt_text } : null;
+  };
 
   if (variantIds.length > 0) {
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")
-      .select("id,variant_label,edition_size,products(title)")
+      .select("id,variant_label,edition_size,products(title,product_images(image_url,alt_text,is_primary,sort_order))")
       .in("id", variantIds);
 
     if (variantsError) {
@@ -59,11 +83,16 @@ export async function GET(request: Request, context: RouteContext) {
     }
 
     (variants ?? []).forEach((variant) => {
-      const products = Array.isArray(variant.products) ? variant.products[0] : variant.products;
+      const products = (Array.isArray(variant.products) ? variant.products[0] : variant.products) as
+        | ProductRow
+        | null;
+      const image = pickPrimaryImage(products?.product_images);
       variantsById.set(variant.id, {
         variant_label: variant.variant_label,
         edition_size: variant.edition_size,
         product_title: products?.title ?? "Unknown product",
+        image_url: image?.image_url ?? null,
+        image_alt: image?.image_alt ?? null,
       });
     });
   }
@@ -75,6 +104,8 @@ export async function GET(request: Request, context: RouteContext) {
       variant_label: variant?.variant_label ?? "Unknown variant",
       edition_size: variant?.edition_size ?? null,
       product_title: variant?.product_title ?? "Unknown product",
+      image_url: variant?.image_url ?? null,
+      image_alt: variant?.image_alt ?? null,
     };
   });
 

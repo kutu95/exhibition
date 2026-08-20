@@ -25,6 +25,8 @@ type OrderDetailPayload = {
     edition_size: number | null;
     product_title: string;
     variant_label: string;
+    image_url: string | null;
+    image_alt: string | null;
   }>;
 };
 

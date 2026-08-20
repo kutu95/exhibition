@@ -30,6 +30,8 @@ type OrderItemRecord = {
   edition_size: number | null;
   product_title: string;
   variant_label: string;
+  image_url: string | null;
+  image_alt: string | null;
 };
 
 type OrderDetailClientProps = {
@@ -131,6 +133,7 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
           <table className={styles.table}>
             <thead>
               <tr>
+                <th className={styles.imageCol}>Image</th>
                 <th>Product</th>
                 <th>Variant</th>
                 <th>Qty</th>
@@ -141,6 +144,20 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id}>
+                  <td className={styles.imageCol}>
+                    {item.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail of local or remote product image
+                      <img
+                        className={styles.thumb}
+                        src={item.image_url}
+                        alt={item.image_alt || item.product_title}
+                      />
+                    ) : (
+                      <div className={styles.thumbPlaceholder} aria-hidden="true">
+                        No image
+                      </div>
+                    )}
+                  </td>
                   <td>{item.product_title}</td>
                   <td>{item.variant_label}</td>
                   <td>{item.quantity}</td>

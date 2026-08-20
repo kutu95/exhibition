@@ -52,7 +52,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 760px;
+  min-width: 840px;
 }
 
 .table th,
@@ -61,4 +61,27 @@
   text-align: left;
   padding: 0.55rem 0.65rem;
   font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.imageCol {
+  width: 88px;
+}
+
+.thumb,
+.thumbPlaceholder {
+  background: #f3f1ec;
+  display: block;
+  height: 72px;
+  object-fit: cover;
+  width: 72px;
+}
+
+.thumbPlaceholder {
+  align-items: center;
+  color: #8899aa;
+  display: flex;
+  font-size: 0.7rem;
+  justify-content: center;
+  text-align: center;
 }
