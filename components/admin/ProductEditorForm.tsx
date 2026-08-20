@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import {
@@ -13,12 +13,21 @@ import {
   PAPER_OPTIONS,
 } from "../../lib/print-catalogue";
 import type { Gallery } from "../../lib/galleries";
+import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
+import {
+  DEFAULT_PRINT_FRAME_BASE_AUD,
+  DEFAULT_PRINT_FRAME_MARKUP_FACTOR,
+  type FrameRateBand,
+  type RthCanvasRateBand,
+} from "../../lib/print-frame-pricing";
+import { buildOfferVariantsForProduct, type OfferVariantDraft } from "../../lib/print-offer";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import type { OpenStudioOrder } from "../../lib/studio-orders";
 import { isValidProductImageUrl } from "../../lib/utils/site-content-image";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ProductEditorForm.module.css";
 import { GalleryPicker } from "./GalleryPicker";
+import { OfferVariantMatrix, useOfferSelection } from "./OfferVariantMatrix";
 import { ProductVariantPanel, type VariantInput } from "./ProductVariantPanel";
 import { ProductWallQrCodes } from "./ProductWallQrCodes";
 import { ThemeSelector } from "./ThemeSelector";
@@ -106,6 +115,30 @@ const createBlankImage = (): ImageInput => ({
   is_primary: false,
 });
 
+const offerDraftToVariantInput = (draft: OfferVariantDraft, editionSize: string): VariantInput => ({
+  ...createBlankVariant(),
+  variant_label: draft.variant_label,
+  price_dollars: (draft.price_aud / 100).toFixed(2),
+  edition_size: editionSize || String(draft.edition_size),
+  width_mm: String(draft.width_mm),
+  height_mm: String(draft.height_mm),
+  border_mm: String(draft.border_mm),
+  paper_type: draft.paper_type,
+  print_type: draft.print_type,
+  print_dpi: String(draft.print_dpi),
+  tier_label: draft.tier_label,
+  finish: draft.finish,
+  is_framed: draft.is_framed,
+  frame_type: draft.frame_type ?? "",
+  lab_cost_dollars: (draft.lab_cost_aud / 100).toFixed(2),
+  fulfilment_notes: draft.fulfilment_notes,
+  aspect_ratio: draft.aspect_ratio ?? "",
+  fit_mode: "custom_size",
+  crop_offset: "0",
+  size_lock: "long_edge",
+  is_active: true,
+});
+
 const centsToDollars = (value: number | null): string => (value === null ? "" : (value / 100).toFixed(2));
 
 const applyTemplateToVariant = (
@@ -190,7 +223,11 @@ export function ProductEditorForm({
   const [selectedThemeIds, setSelectedThemeIds] = useState(initialData?.theme_ids ?? []);
   const [themeOptions, setThemeOptions] = useState(themes);
   const [variants, setVariants] = useState<VariantInput[]>(
-    initialData?.variants.length ? initialData.variants : [createBlankVariant()],
+    initialData?.variants.length
+      ? initialData.variants
+      : mode === "new" && (initialData?.product_type ?? "print") === "print"
+        ? []
+        : [createBlankVariant()],
   );
   const [expandedVariantIndexes, setExpandedVariantIndexes] = useState<Set<number>>(() => new Set());
   const [productDetailsExpanded, setProductDetailsExpanded] = useState(mode === "new");
@@ -208,6 +245,86 @@ export function ProductEditorForm({
   const [preparingPrintVariantId, setPreparingPrintVariantId] = useState<string | null>(null);
   const [printPrepareMessages, setPrintPrepareMessages] = useState<Record<string, string>>({});
   const [rebuildingOffer, setRebuildingOffer] = useState(false);
+  const [offerPixelWidth, setOfferPixelWidth] = useState(
+    masterPixelWidth && masterPixelWidth > 0 ? String(masterPixelWidth) : "",
+  );
+  const [offerPixelHeight, setOfferPixelHeight] = useState(
+    masterPixelHeight && masterPixelHeight > 0 ? String(masterPixelHeight) : "",
+  );
+  const [offerEditionSize, setOfferEditionSize] = useState("10");
+  const [markupFactor, setMarkupFactor] = useState(DEFAULT_PRINT_PRICE_MARKUP_FACTOR);
+  const [basePriceAud, setBasePriceAud] = useState(DEFAULT_PRINT_PRICE_BASE_AUD);
+  const [frameMarkupFactor, setFrameMarkupFactor] = useState(DEFAULT_PRINT_FRAME_MARKUP_FACTOR);
+  const [frameBasePriceAud, setFrameBasePriceAud] = useState(DEFAULT_PRINT_FRAME_BASE_AUD);
+  const [frameRates, setFrameRates] = useState<FrameRateBand[] | undefined>(undefined);
+  const [rthCanvasRates, setRthCanvasRates] = useState<RthCanvasRateBand[] | undefined>(undefined);
+  const isNewPrint = mode === "new" && productType === "print";
+  const offerPixelW = Number.parseInt(offerPixelWidth, 10);
+  const offerPixelH = Number.parseInt(offerPixelHeight, 10);
+  const offerDrafts = useMemo((): OfferVariantDraft[] => {
+    if (!isNewPrint || !Number.isInteger(offerPixelW) || !Number.isInteger(offerPixelH) || offerPixelW <= 0 || offerPixelH <= 0) {
+      return [];
+    }
+    try {
+      return buildOfferVariantsForProduct({
+        pixelWidth: offerPixelW,
+        pixelHeight: offerPixelH,
+        editionSize: Number.parseInt(offerEditionSize, 10) || 10,
+        mediaMarkupFactor: markupFactor,
+        mediaBasePriceAud: basePriceAud,
+        frameMarkupFactor,
+        frameBasePriceAud,
+        frameRates,
+        rthCanvasRates,
+      });
+    } catch {
+      return [];
+    }
+  }, [
+    basePriceAud,
+    frameBasePriceAud,
+    frameMarkupFactor,
+    frameRates,
+    isNewPrint,
+    markupFactor,
+    offerEditionSize,
+    offerPixelH,
+    offerPixelW,
+    rthCanvasRates,
+  ]);
+  const offerSelection = useOfferSelection(offerDrafts);
+
+  useEffect(() => {
+    if (mode !== "new") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await adminClientFetch("/api/admin/print-pricing/offer");
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as {
+          markup_factor?: number;
+          base_price_aud?: number;
+          frame_markup_factor?: number;
+          frame_base_price_aud?: number;
+          frame_rates?: FrameRateBand[];
+          rth_canvas_rates?: RthCanvasRateBand[];
+        };
+        if (cancelled) return;
+        if (typeof body.markup_factor === "number") setMarkupFactor(body.markup_factor);
+        if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud);
+        if (typeof body.frame_markup_factor === "number") setFrameMarkupFactor(body.frame_markup_factor);
+        if (typeof body.frame_base_price_aud === "number") setFrameBasePriceAud(body.frame_base_price_aud);
+        if (Array.isArray(body.frame_rates)) setFrameRates(body.frame_rates);
+        if (Array.isArray(body.rth_canvas_rates)) setRthCanvasRates(body.rth_canvas_rates);
+      } catch {
+        // Keep defaults; formula prices still work from seed rates.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
+
   const activeVariantTemplates = useMemo(
     () => variantTemplates.filter((template) => template.is_active),
     [variantTemplates],
@@ -230,12 +347,25 @@ export function ProductEditorForm({
       setError("Title and slug are required.");
       return;
     }
-    if (variants.length === 0) {
-      setError("At least one variant is required.");
+    const offerInputs = isNewPrint
+      ? offerSelection.selectedDrafts.map((draft) => offerDraftToVariantInput(draft, offerEditionSize))
+      : [];
+    const variantsForSave = isNewPrint ? [...offerInputs, ...variants] : variants;
+
+    if (variantsForSave.length === 0) {
+      setError(
+        isNewPrint
+          ? "Select at least one standard print option, or add a variant."
+          : "At least one variant is required.",
+      );
+      return;
+    }
+    if (isNewPrint && offerDrafts.length > 0 && !offerSelection.pricesValid) {
+      setError("Check retail prices on the selected print options.");
       return;
     }
 
-    const normalizedVariants = variants.map((variant) => ({
+    const normalizedVariants = variantsForSave.map((variant) => ({
       id: variant.id,
       variant_label: variant.variant_label.trim(),
       price_aud: Math.round((Number.parseFloat(variant.price_dollars || "0") || 0) * 100),
@@ -657,7 +787,19 @@ export function ProductEditorForm({
               Product Type
               <select
                 value={productType}
-                onChange={(event) => setProductType(event.target.value as "print" | "merchandise")}
+                onChange={(event) => {
+                  const nextType = event.target.value as "print" | "merchandise";
+                  setProductType(nextType);
+                  if (mode !== "new") return;
+                  if (nextType === "merchandise" && variants.length === 0) {
+                    setVariants([createBlankVariant()]);
+                  }
+                  if (nextType === "print") {
+                    const onlyBlank =
+                      variants.length === 1 && !variants[0]?.id && !variants[0]?.variant_label.trim();
+                    if (onlyBlank) setVariants([]);
+                  }
+                }}
               >
                 <option value="print">print</option>
                 <option value="merchandise">merchandise</option>
@@ -762,10 +904,60 @@ export function ProductEditorForm({
                   setExpandedVariantIndexes((expanded) => new Set(expanded).add(nextIndex));
                 }}
               >
-                Add Variant
+                {isNewPrint ? "Add extra variant" : "Add Variant"}
               </button>
             </div>
           </div>
+
+          {isNewPrint ? (
+            <div className={styles.offerSetup}>
+              <p className={styles.muted}>
+                Standard Size × Finish × Frame options. Uncheck any this print should not offer, or override retail.
+                Formula prices use markups from <Link href="/admin/print-profiles">Print Templates</Link>. Enter the
+                master pixel size so millimetres stay aspect-true.
+              </p>
+              <div className={styles.grid}>
+                <label>
+                  Pixel width
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={offerPixelWidth}
+                    onChange={(event) => setOfferPixelWidth(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Pixel height
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={offerPixelHeight}
+                    onChange={(event) => setOfferPixelHeight(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Edition size
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={offerEditionSize}
+                    onChange={(event) => setOfferEditionSize(event.target.value)}
+                  />
+                </label>
+              </div>
+              {offerDrafts.length > 0 ? (
+                <OfferVariantMatrix drafts={offerDrafts} selection={offerSelection} />
+              ) : (
+                <p className={styles.muted}>
+                  Enter master pixel width and height to load the standard offer, or add an extra variant below.
+                </p>
+              )}
+              {variants.length > 0 ? <h3>Additional variants</h3> : null}
+            </div>
+          ) : null}
 
           {variants.map((variant, index) => {
             const isExpanded = expandedVariantIndexes.has(index);

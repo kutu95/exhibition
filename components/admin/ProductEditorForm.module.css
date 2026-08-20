@@ -243,6 +243,15 @@
   display: none;
 }
 
+.offerSetup {
+  margin-bottom: 1rem;
+}
+
+.offerSetup h3 {
+  font-size: 1rem;
+  margin: 1.1rem 0 0.4rem;
+}
+
 .pageHeader {
   align-items: center;
   display: flex;

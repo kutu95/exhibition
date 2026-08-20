@@ -9,6 +9,7 @@ import { verifyAdminSession } from "../../../../lib/admin-auth";
 import { parseGalleryId, resolveProductGallery } from "../../../../lib/galleries";
 import { resolveMasterFilePath, safeMasterFilename } from "../../../../lib/master-files";
 import { resolveCanonicalMediaPath } from "../../../../lib/media-storage";
+import type { OfferSelectionItem } from "../../../../lib/print-offer";
 import {
   isDuplicateProductSlugError,
   isStripeConfigurationError,
@@ -44,6 +45,31 @@ const formSchema = z.object({
   master_pixel_height: z.number().int().positive(),
   theme_ids: z.array(z.string().uuid()),
 });
+
+const offerSelectionItemSchema = z.object({
+  sizeId: z.enum(["small", "medium", "large"]),
+  finishId: z.enum(["archival_matte", "rth_canvas"]),
+  presentationId: z.enum(["unframed", "framed"]),
+  price_aud: z.number().int().nonnegative().optional(),
+});
+
+const offerSelectionField = (formData: FormData): OfferSelectionItem[] | null => {
+  const value = formData.get("offer_selection");
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    throw new Error("INVALID_OFFER_SELECTION");
+  }
+
+  const result = z.array(offerSelectionItemSchema).min(1).safeParse(parsed);
+  if (!result.success) {
+    throw new Error("INVALID_OFFER_SELECTION");
+  }
+  return result.data;
+};
 
 const stringField = (formData: FormData, key: string): string | null => {
   const value = formData.get(key);
@@ -299,6 +325,16 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const webImage = formData.get("web_image");
 
+  let offerSelection: OfferSelectionItem[] | null = null;
+  try {
+    offerSelection = offerSelectionField(formData);
+  } catch {
+    return NextResponse.json(
+      { error: "Choose at least one print option, and check any price overrides." },
+      { status: 400 },
+    );
+  }
+
   const parsed = formSchema.safeParse({
     title: stringField(formData, "title"),
     slug: stringField(formData, "slug"),
@@ -349,6 +385,7 @@ export async function POST(request: Request) {
       web_image_url: savedImage.urlPath,
       gallery_id: gallery.gallery_id,
       visibility: gallery.visibility,
+      offer_selection: offerSelection,
     });
 
     return NextResponse.json(
@@ -379,6 +416,18 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "MASTER_PIXELS_REQUIRED_FOR_CUSTOM_SIZE") {
       return NextResponse.json(
         { error: "Master TIFF pixel dimensions are required for custom-size variants." },
+        { status: 400 },
+      );
+    }
+    if (
+      error instanceof Error &&
+      (error.message === "EMPTY_OFFER_SELECTION" ||
+        error.message === "UNKNOWN_OFFER_COMBO" ||
+        error.message === "INVALID_OFFER_PRICE" ||
+        error.message === "NO_OFFER_PRICING")
+    ) {
+      return NextResponse.json(
+        { error: "Could not create those print options. Select at least one priced Size × Finish × Frame." },
         { status: 400 },
       );
     }

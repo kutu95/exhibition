@@ -76,8 +76,8 @@ export default async function ImportWizardPage() {
     <div>
       <h1>Import Photo Wizard</h1>
       <p style={{ maxWidth: "48rem", color: "#555", marginTop: 0 }}>
-        Guided steps from master TIFF on the server share to a shop product. Each print gets the fixed Size × Finish ×
-        Framed offer (nine variants).
+        Guided steps from master TIFF on the server share to a shop product. Choose which Size × Finish × Frame
+        options to offer, then publish.
       </p>
       <ImportPhotoWizardClient
         initialMasterFiles={masterFiles}

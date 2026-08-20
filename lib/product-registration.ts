@@ -1,7 +1,7 @@
 import { productGalleryFields } from "./galleries";
 import { withTransaction } from "./postgres";
 import { getOfferPricingBundle } from "./print-offer-bundle";
-import { buildOfferVariantsForProduct } from "./print-offer";
+import { applyOfferSelection, buildOfferVariantsForProduct, type OfferSelectionItem } from "./print-offer";
 import { insertOfferDrafts } from "./print-rebuild";
 import type { VariantFramingInput } from "./print-framing";
 import type { PrintTypeCode } from "./print-catalogue";
@@ -43,6 +43,8 @@ export type RegisterPrintProductPayload = {
   custom_size_variants?: CustomSizeVariantSpec[];
   master_pixel_width?: number | null;
   master_pixel_height?: number | null;
+  /** Subset of the standard offer. Omit to create all priced SKUs. */
+  offer_selection?: OfferSelectionItem[] | null;
 };
 
 type ProductRow = {
@@ -127,17 +129,20 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
   }
 
   const pricing = await getOfferPricingBundle();
-  const drafts = buildOfferVariantsForProduct({
-    pixelWidth: masterPixelWidth,
-    pixelHeight: masterPixelHeight,
-    editionSize: payload.edition_size,
-    mediaMarkupFactor: pricing.markupFactor,
-    mediaBasePriceAud: pricing.basePriceAud,
-    frameMarkupFactor: pricing.frameMarkupFactor,
-    frameBasePriceAud: pricing.frameBasePriceAud,
-    frameRates: pricing.frameRates,
-    rthCanvasRates: pricing.rthCanvasRates,
-  });
+  const drafts = applyOfferSelection(
+    buildOfferVariantsForProduct({
+      pixelWidth: masterPixelWidth,
+      pixelHeight: masterPixelHeight,
+      editionSize: payload.edition_size,
+      mediaMarkupFactor: pricing.markupFactor,
+      mediaBasePriceAud: pricing.basePriceAud,
+      frameMarkupFactor: pricing.frameMarkupFactor,
+      frameBasePriceAud: pricing.frameBasePriceAud,
+      frameRates: pricing.frameRates,
+      rthCanvasRates: pricing.rthCanvasRates,
+    }),
+    payload.offer_selection,
+  );
 
   return withTransaction(async (client) => {
     const gallery = productGalleryFields(payload.gallery_id);

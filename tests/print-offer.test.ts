@@ -8,6 +8,7 @@ import {
   frameLabCostAud,
 } from "../lib/print-frame-pricing";
 import {
+  applyOfferSelection,
   buildOfferVariantsForProduct,
   computeOfferVariantPricing,
   findVariantForOfferCombo,
@@ -113,6 +114,27 @@ describe("print offer matrix", () => {
       presentationId: "unframed",
     });
     expect(match?.variant_label).toBe("Small · Ready-to-hang canvas");
+  });
+
+  it("applies a subset and optional retail override", () => {
+    const drafts = buildOfferVariantsForProduct({
+      pixelWidth: 6000,
+      pixelHeight: 4000,
+      editionSize: 10,
+      mediaMarkupFactor: 3,
+      mediaBasePriceAud: 0,
+      frameMarkupFactor: 3,
+      frameBasePriceAud: 0,
+    });
+    const selected = applyOfferSelection(drafts, [
+      { sizeId: "medium", finishId: "archival_matte", presentationId: "unframed" },
+      { sizeId: "medium", finishId: "rth_canvas", presentationId: "unframed", price_aud: 25000 },
+    ]);
+    expect(selected).toHaveLength(2);
+    expect(selected[0]?.variant_label).toBe("Medium · Archival matte · Unframed");
+    expect(selected[1]?.price_aud).toBe(25000);
+    expect(applyOfferSelection(drafts, undefined)).toHaveLength(9);
+    expect(() => applyOfferSelection(drafts, [])).toThrow("EMPTY_OFFER_SELECTION");
   });
 });
 

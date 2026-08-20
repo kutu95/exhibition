@@ -1,0 +1,80 @@
+.wrap {
+  margin-top: 1.25rem;
+}
+
+.toolbar {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  justify-content: space-between;
+}
+
+.toolbar h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.actions button {
+  background: #fff;
+  border: 1px solid #cfcfcf;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ececec;
+  padding: 0.45rem 0.35rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table th {
+  color: #555;
+  font-weight: 500;
+}
+
+.includeCol {
+  width: 4.5rem;
+}
+
+.rowOff {
+  color: #888;
+  opacity: 0.7;
+}
+
+.priceInput {
+  border: 1px solid #cfcfcf;
+  border-radius: 0;
+  font: inherit;
+  max-width: 7.5rem;
+  padding: 0.35rem 0.45rem;
+  width: 100%;
+}
+
+.priceInput:disabled {
+  background: #f6f6f6;
+  color: #888;
+}
+
+.hint {
+  color: #8b1e1e;
+  font-size: 0.88rem;
+  margin: 0.65rem 0 0;
+}

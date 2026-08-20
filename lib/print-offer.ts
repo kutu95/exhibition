@@ -65,6 +65,20 @@ export const OFFER_COMBOS: OfferCombo[] = OFFER_SIZES.flatMap((size) => [
   { sizeId: size.id, finishId: "rth_canvas", presentationId: "unframed" },
 ]);
 
+export const offerComboKey = (combo: OfferCombo): string =>
+  `${combo.sizeId}:${combo.finishId}:${combo.presentationId}`;
+
+export const isOfferComboEqual = (a: OfferCombo, b: OfferCombo): boolean =>
+  a.sizeId === b.sizeId && a.finishId === b.finishId && a.presentationId === b.presentationId;
+
+export const findOfferCombo = (combo: OfferCombo): OfferCombo | null =>
+  OFFER_COMBOS.find((row) => isOfferComboEqual(row, combo)) ?? null;
+
+/** Selected SKUs at product create time. `price_aud` is an optional retail override in cents. */
+export type OfferSelectionItem = OfferCombo & {
+  price_aud?: number;
+};
+
 export const formatOfferVariantLabel = (combo: OfferCombo): string => {
   const size = OFFER_SIZE_LABEL[combo.sizeId];
   const finish = OFFER_FINISH_LABEL[combo.finishId];
@@ -219,9 +233,7 @@ export const buildOfferVariantsForProduct = (args: {
     });
 
     if (!pricing) {
-      throw new Error(
-        `NO_OFFER_PRICING:${combo.sizeId}:${combo.finishId}:${combo.presentationId}`,
-      );
+      continue;
     }
 
     const isCanvas = combo.finishId === "rth_canvas";
@@ -262,7 +274,42 @@ export const buildOfferVariantsForProduct = (args: {
     });
   }
 
+  if (drafts.length === 0) {
+    throw new Error("NO_OFFER_PRICING");
+  }
+
   return drafts;
+};
+
+export const applyOfferSelection = (
+  drafts: OfferVariantDraft[],
+  selection: OfferSelectionItem[] | null | undefined,
+): OfferVariantDraft[] => {
+  if (selection === null || selection === undefined) {
+    return drafts;
+  }
+  if (selection.length === 0) {
+    throw new Error("EMPTY_OFFER_SELECTION");
+  }
+
+  const byKey = new Map(drafts.map((draft) => [offerComboKey(draft.combo), draft]));
+  return selection.map((item) => {
+    const combo = findOfferCombo(item);
+    if (!combo) {
+      throw new Error("UNKNOWN_OFFER_COMBO");
+    }
+    const draft = byKey.get(offerComboKey(combo));
+    if (!draft) {
+      throw new Error("UNKNOWN_OFFER_COMBO");
+    }
+    if (item.price_aud === undefined) {
+      return draft;
+    }
+    if (!Number.isInteger(item.price_aud) || item.price_aud < 0) {
+      throw new Error("INVALID_OFFER_PRICE");
+    }
+    return { ...draft, price_aud: item.price_aud };
+  });
 };
 
 /** Match an active variant to offer axes (for storefront chooser). */

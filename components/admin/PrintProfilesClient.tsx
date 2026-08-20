@@ -383,9 +383,10 @@ export function PrintProfilesClient({
       <section className={styles.panel}>
         <h2>Buyer print offer</h2>
         <p className={styles.muted}>
-          Fixed catalogue: {OFFER_SIZES.map((s) => s.label).join(" / ")} × Archival matte (unframed or framed) ×
+          Fixed catalogue recipe: {OFFER_SIZES.map((s) => s.label).join(" / ")} × Archival matte (unframed or framed) ×
           Ready-to-hang canvas ({OFFER_COMBOS.length} SKUs). Matte paper: {OFFER_MATTE_PAPER_LABEL}. Framed =
-          Standard moulding (20–42mm face) + Perspex for shipping.
+          Standard moulding (20–42mm face) + Perspex for shipping. Import Wizard and new products start from this set —
+          you can uncheck options or override retail per print.
         </p>
 
         <h3 className={styles.papersHeading}>Media markup</h3>

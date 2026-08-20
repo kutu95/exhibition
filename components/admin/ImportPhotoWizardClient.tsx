@@ -6,17 +6,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminClientFetch, adminClientFetchError, ADMIN_CLIENT_FETCH_LONG_TIMEOUT_MS } from "../../lib/admin-client-fetch";
 import {
   buildOfferVariantsForProduct,
-  OFFER_COMBOS,
   type OfferVariantDraft,
 } from "../../lib/print-offer";
 import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
-import { DEFAULT_PRINT_FRAME_BASE_AUD, DEFAULT_PRINT_FRAME_MARKUP_FACTOR } from "../../lib/print-frame-pricing";
-import { formatDualSize } from "../../lib/print-size";
+import {
+  DEFAULT_PRINT_FRAME_BASE_AUD,
+  DEFAULT_PRINT_FRAME_MARKUP_FACTOR,
+  type FrameRateBand,
+  type RthCanvasRateBand,
+} from "../../lib/print-frame-pricing";
 import type { Gallery } from "../../lib/galleries";
 import type { Theme } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ImportPhotoWizardClient.module.css";
 import { GalleryPicker } from "./GalleryPicker";
+import { OfferVariantMatrix, useOfferSelection } from "./OfferVariantMatrix";
 import { ThemeSelector } from "./ThemeSelector";
 
 type MasterFileCandidate = {
@@ -139,6 +143,8 @@ export function ImportPhotoWizardClient({
   const [basePriceAud, setBasePriceAud] = useState(initialBasePriceAud);
   const [frameMarkupFactor, setFrameMarkupFactor] = useState(initialFrameMarkupFactor);
   const [frameBasePriceAud, setFrameBasePriceAud] = useState(initialFrameBasePriceAud);
+  const [frameRates, setFrameRates] = useState<FrameRateBand[] | undefined>(undefined);
+  const [rthCanvasRates, setRthCanvasRates] = useState<RthCanvasRateBand[] | undefined>(undefined);
   const [webImageMode, setWebImageMode] = useState<WebImageMode>("generate");
   const [webImage, setWebImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -169,6 +175,8 @@ export function ImportPhotoWizardClient({
         mediaBasePriceAud: basePriceAud,
         frameMarkupFactor,
         frameBasePriceAud,
+        frameRates,
+        rthCanvasRates,
       });
     } catch {
       return [];
@@ -178,10 +186,14 @@ export function ImportPhotoWizardClient({
     editionSize,
     frameBasePriceAud,
     frameMarkupFactor,
+    frameRates,
     hasMasterPixels,
     markupFactor,
+    rthCanvasRates,
     selectedMaster,
   ]);
+
+  const offerSelection = useOfferSelection(offerDrafts);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,12 +206,16 @@ export function ImportPhotoWizardClient({
           base_price_aud?: number;
           frame_markup_factor?: number;
           frame_base_price_aud?: number;
+          frame_rates?: FrameRateBand[];
+          rth_canvas_rates?: RthCanvasRateBand[];
         };
         if (!cancelled) {
           if (typeof body.markup_factor === "number") setMarkupFactor(body.markup_factor);
           if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud);
           if (typeof body.frame_markup_factor === "number") setFrameMarkupFactor(body.frame_markup_factor);
           if (typeof body.frame_base_price_aud === "number") setFrameBasePriceAud(body.frame_base_price_aud);
+          if (Array.isArray(body.frame_rates)) setFrameRates(body.frame_rates);
+          if (Array.isArray(body.rth_canvas_rates)) setRthCanvasRates(body.rth_canvas_rates);
         }
       } catch {
         // Keep server-provided default.
@@ -262,12 +278,13 @@ export function ImportPhotoWizardClient({
       setCreatedProductId(null);
       setVariantsCreated(0);
       setError(null);
+      offerSelection.reset();
     }
   };
 
   const editionNumber = Number.parseInt(editionSize, 10);
   const detailsValid = Boolean(title.trim() && slug.trim() && Number.isInteger(editionNumber) && editionNumber >= 1);
-  const sizesValid = hasMasterPixels && offerDrafts.length === OFFER_COMBOS.length;
+  const sizesValid = hasMasterPixels && offerSelection.selectedDrafts.length > 0 && offerSelection.pricesValid;
   const webImageValid = webImageMode === "generate" || webImage instanceof File;
 
   const stepComplete = (index: number): boolean => {
@@ -302,8 +319,11 @@ export function ImportPhotoWizardClient({
     if (step === 3 && !hasMasterPixels) {
       return "Master TIFF pixel dimensions are required to build the print offer.";
     }
-    if (step === 3 && !sizesValid) {
+    if (step === 3 && offerDrafts.length === 0) {
       return "Could not price the standard Size × Finish × Framed offer. Check Print Templates pricing.";
+    }
+    if (step === 3 && !sizesValid) {
+      return "Select at least one print option, and check any price overrides.";
     }
     if (step === 4 && !webImageValid) {
       return "Choose auto-generate, or upload a JPEG/PNG/WebP override.";
@@ -342,6 +362,7 @@ export function ImportPhotoWizardClient({
     setError(null);
     setCreatedProductId(null);
     setVariantsCreated(0);
+    offerSelection.reset();
     void refreshMasterFiles();
   };
 
@@ -373,6 +394,7 @@ export function ImportPhotoWizardClient({
       formData.set("gallery_id", galleryId);
     }
     formData.set("theme_ids", JSON.stringify(selectedThemeIds));
+    formData.set("offer_selection", JSON.stringify(offerSelection.selectionPayload));
     if (webImageMode === "upload" && webImage) {
       formData.set("web_image", webImage);
     }
@@ -455,10 +477,11 @@ export function ImportPhotoWizardClient({
                 (with an embedded ICC profile).
               </li>
               <li>
-                You add title, slug, edition size, then choose papers and long-edge sizes. Each combo becomes an
-                aspect-true custom-size variant priced as roundUp(base + markup × sq-in cost) — currently base $
-                {basePriceAud.toFixed(2)} and {markupFactor}× markup (editable on{" "}
-                <Link href="/admin/print-profiles">Print Templates</Link>).
+                You add title, slug, edition size, then choose which Size × Finish × Frame options to offer. Each
+                selected combo becomes an aspect-true custom-size variant priced as roundUp(base + markup × lab cost) —
+                currently base ${basePriceAud.toFixed(2)} and {markupFactor}× markup (editable on{" "}
+                <Link href="/admin/print-profiles">Print Templates</Link>). You can uncheck options or override retail
+                before publish.
               </li>
               <li>The app creates a public web JPEG (or uses your override), product, variants, and Stripe prices.</li>
               <li>The product is marked available and appears on <code>/shop</code>.</li>
@@ -615,10 +638,10 @@ export function ImportPhotoWizardClient({
         <section className={styles.panel}>
           <h2>4. Print offer</h2>
           <p className={styles.explain}>
-            Every print gets the same nine options: Small / Medium / Large × Archival matte (unframed or framed) ×
-            Ready-to-hang canvas. Framed uses Pixel Perfect Standard moulding (20–42mm face) + Perspex for
-            shipping. Pricing uses current media and frame
-            markups from <Link href="/admin/print-profiles">Print Templates</Link>.
+            Defaults are Small / Medium / Large × Archival matte (unframed or framed) × Ready-to-hang canvas. Uncheck
+            anything this print should not offer, and override retail if you need a different price. Framed uses Pixel
+            Perfect Standard moulding (20–42mm face) + Perspex for shipping. Formula pricing uses current media and
+            frame markups from <Link href="/admin/print-profiles">Print Templates</Link>.
           </p>
           <p className={styles.muted}>
             Media: base ${basePriceAud.toFixed(2)} + {markupFactor}× lab · Frame: base $
@@ -632,29 +655,7 @@ export function ImportPhotoWizardClient({
           ) : null}
 
           {offerDrafts.length > 0 ? (
-            <div className={styles.variantMatrix}>
-              <h3>Variants to create ({offerDrafts.length})</h3>
-              <table className={styles.matrixTable}>
-                <thead>
-                  <tr>
-                    <th>Option</th>
-                    <th>Size</th>
-                    <th>Lab cost</th>
-                    <th>Retail</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {offerDrafts.map((draft) => (
-                    <tr key={draft.variant_label}>
-                      <td>{draft.variant_label}</td>
-                      <td>{formatDualSize(draft.width_mm, draft.height_mm)}</td>
-                      <td>{formatMoney(draft.lab_cost_aud / 100)}</td>
-                      <td>{formatMoney(draft.price_aud / 100)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <OfferVariantMatrix drafts={offerDrafts} selection={offerSelection} />
           ) : null}
         </section>
       ) : null}
@@ -780,7 +781,7 @@ export function ImportPhotoWizardClient({
                 <th>Variants</th>
                 <td>
                   <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
-                    {offerDrafts.map((draft) => (
+                    {offerSelection.selectedDrafts.map((draft) => (
                       <li key={draft.variant_label}>
                         {draft.variant_label} — {formatMoney(draft.price_aud / 100)}
                       </li>
