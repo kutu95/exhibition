@@ -31,7 +31,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const { data: items, error: itemsError } = await supabaseAdmin
     .from("order_items")
-    .select("id,order_id,variant_id,quantity,unit_price_aud,edition_number_assigned")
+    .select("id,order_id,variant_id,quantity,unit_price_aud,edition_number_assigned,fulfilment_status")
     .eq("order_id", id);
 
   if (itemsError) {
@@ -48,6 +48,7 @@ export async function GET(request: Request, context: RouteContext) {
       height_mm: number | null;
       lab_cost_aud: number | null;
       product_title: string;
+      product_slug: string | null;
       image_url: string | null;
       image_alt: string | null;
     }
@@ -62,6 +63,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   type ProductRow = {
     title: string | null;
+    slug: string | null;
     product_images: ProductImageRow[] | ProductImageRow | null;
   };
 
@@ -78,7 +80,7 @@ export async function GET(request: Request, context: RouteContext) {
   if (variantIds.length > 0) {
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")
-      .select("id,variant_label,edition_size,width_mm,height_mm,lab_cost_aud,products(title,product_images(image_url,alt_text,is_primary,sort_order))")
+      .select("id,variant_label,edition_size,width_mm,height_mm,lab_cost_aud,products(title,slug,product_images(image_url,alt_text,is_primary,sort_order))")
       .in("id", variantIds);
 
     if (variantsError) {
@@ -97,6 +99,7 @@ export async function GET(request: Request, context: RouteContext) {
         height_mm: variant.height_mm,
         lab_cost_aud: variant.lab_cost_aud,
         product_title: products?.title ?? "Unknown product",
+        product_slug: products?.slug ?? null,
         image_url: image?.image_url ?? null,
         image_alt: image?.image_alt ?? null,
       });
@@ -113,6 +116,7 @@ export async function GET(request: Request, context: RouteContext) {
       height_mm: variant?.height_mm ?? null,
       lab_cost_aud: variant?.lab_cost_aud ?? null,
       product_title: variant?.product_title ?? "Unknown product",
+      product_slug: variant?.product_slug ?? null,
       image_url: variant?.image_url ?? null,
       image_alt: variant?.image_alt ?? null,
     };

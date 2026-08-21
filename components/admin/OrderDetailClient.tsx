@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { formatAUD } from "../../lib/utils/currency";
 import { formatLabDimensions } from "../../lib/print-size";
+import { buildOrderItemEditQuery } from "../../lib/order-item-edit-params";
 import { isStudioOrderNotes } from "../../lib/studio-orders";
 import { StatusBadge } from "./StatusBadge";
 import styles from "./OrderDetailClient.module.css";
@@ -34,6 +36,8 @@ type OrderItemRecord = {
   width_mm: number | null;
   height_mm: number | null;
   lab_cost_aud: number | null;
+  product_slug: string | null;
+  fulfilment_status?: string;
   image_url: string | null;
   image_alt: string | null;
 };
@@ -68,10 +72,20 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
   }, [order.shipping_address]);
 
   const isStudio = isStudioOrderNotes(order.notes);
+  const canEditItems =
+    order.status !== "cancelled" &&
+    order.status !== "refunded" &&
+    (order.status === "pending" || isStudio);
   const labCostTotal = items.reduce(
     (sum, item) => sum + (item.lab_cost_aud ?? 0) * item.quantity,
     0,
   );
+
+  const itemIsEditable = (item: OrderItemRecord): boolean => {
+    if (!canEditItems || !item.product_slug) return false;
+    const fulfilmentStatus = item.fulfilment_status ?? "awaiting_file";
+    return fulfilmentStatus === "awaiting_file" || fulfilmentStatus === "file_ready";
+  };
 
   const updateStatus = async () => {
     await fetch(`/api/admin/orders/${order.id}/status`, {
@@ -151,6 +165,7 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
                 {isStudio ? <th>Lab cost</th> : null}
                 <th>Unit Price</th>
                 <th>Edition</th>
+                {canEditItems ? <th></th> : null}
               </tr>
             </thead>
             <tbody>
@@ -208,6 +223,22 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
                       "—"
                     )}
                   </td>
+                  {canEditItems ? (
+                    <td>
+                      {itemIsEditable(item) ? (
+                        <Link
+                          className={styles.button}
+                          href={`/shop/${item.product_slug}?${buildOrderItemEditQuery(order.id, item.id, {
+                            variant: item.variant_id,
+                          })}`}
+                        >
+                          Edit
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

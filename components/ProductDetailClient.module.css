@@ -310,6 +310,9 @@
 
 .buyButton {
   width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
 }
 
 .buyActions {

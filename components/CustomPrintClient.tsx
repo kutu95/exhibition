@@ -15,6 +15,7 @@ import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "./StudioOrderDestinationDialog";
 import { adminClientFetch, adminClientFetchError } from "../lib/admin-client-fetch";
 import { readCart } from "../lib/cart";
+import { buildOrderItemEditQuery } from "../lib/order-item-edit-params";
 import {
   computeCustomPrintPricing,
   CUSTOM_FRAME_OPTIONS,
@@ -57,6 +58,8 @@ type CustomPrintClientProps = {
   papers: ManagedPaper[];
   /** When true (admin session cookie), show studio order and prepare/download TIFF. */
   isAdmin?: boolean;
+  editOrderId?: string | null;
+  editItemId?: string | null;
 };
 
 const FRAME_COLOUR_OPTIONS: { id: FrameColourId; label: string }[] = [
@@ -86,11 +89,14 @@ export function CustomPrintClient({
   isAdmin = false,
   rthCanvasRates,
   papers,
+  editOrderId = null,
+  editItemId = null,
 }: CustomPrintClientProps) {
   const router = useRouter();
   const { addItem, itemCount } = useCart();
   const purchasesAllowed = usePurchasesAllowed();
   const mediaOptions = useMemo(() => listCustomMediaOptions(papers), [papers]);
+  const isEditingOrderItem = Boolean(isAdmin && editOrderId && editItemId);
 
   const defaultMedia =
     mediaOptions.find((item) => item.id === "hm-photo-rag") ?? mediaOptions[0] ?? null;
@@ -100,7 +106,7 @@ export function CustomPrintClient({
   const [mediaId, setMediaId] = useState(defaultMedia?.id ?? "");
   const [frameStyle, setFrameStyle] = useState<CustomFrameStyleId>("none");
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
-  const [busy, setBusy] = useState<"cart" | "buy" | "print" | "studio" | null>(null);
+  const [busy, setBusy] = useState<"cart" | "buy" | "print" | "studio" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [studioOrderDialogOpen, setStudioOrderDialogOpen] = useState(false);
   const [openStudioOrders, setOpenStudioOrders] = useState<OpenStudioOrder[]>([]);
@@ -325,6 +331,37 @@ export function CustomPrintClient({
     }
   };
 
+  const saveEditedOrderItem = async () => {
+    if (!editOrderId || !editItemId || !pricing) return;
+    setBusy("save");
+    setError(null);
+    try {
+      const created = await createVariant();
+      const response = await adminClientFetch(
+        `/api/admin/orders/${editOrderId}/items/${editItemId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ variant_id: created.variant_id }),
+        },
+      );
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (response.status === 401) {
+        setError("Admin session expired. Sign in at /admin/login, then try again.");
+        return;
+      }
+      if (!response.ok) {
+        setError(body?.error ?? "Could not update this order item.");
+        return;
+      }
+      router.push(`/admin/orders/${editOrderId}`);
+    } catch (saveError) {
+      setError(adminClientFetchError(saveError));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const fineArt = mediaOptions.filter((item) => item.kind === "paper" && item.printType === "fine_art");
   const photo = mediaOptions.filter((item) => item.kind === "paper" && item.printType === "photo");
   const canvasPapers = mediaOptions.filter(
@@ -335,7 +372,15 @@ export function CustomPrintClient({
   return (
     <section className={`section container ${styles.wrap}`}>
       <p className={styles.back}>
-        <Link href={`/shop/${product.slug}`}>← Back to standard options</Link>
+        <Link
+          href={
+            isEditingOrderItem && editOrderId && editItemId
+              ? `/shop/${product.slug}?${buildOrderItemEditQuery(editOrderId, editItemId)}`
+              : `/shop/${product.slug}`
+          }
+        >
+          ← Back to standard options
+        </Link>
       </p>
 
       <div className={styles.layout}>
@@ -519,67 +564,90 @@ export function CustomPrintClient({
           </fieldset>
 
           <div className={styles.actions}>
-            {purchasesAllowed ? (
-              <>
+            {isEditingOrderItem ? (
+              <div className={styles.adminPrint}>
+                <p className={styles.adminHint}>
+                  Updating this print on the existing order. Choose size, paper, and frame, then save.
+                </p>
                 <button
                   className={`button-solid ${styles.button}`}
                   type="button"
                   disabled={!pricing || busy !== null}
-                  onClick={() => void handleAddToCart()}
+                  onClick={() => void saveEditedOrderItem()}
                 >
-                  {busy === "cart" ? "Adding…" : "Add to cart"}
+                  {busy === "save" ? "Saving…" : "Save to order"}
                 </button>
-                <button
-                  className={`button-outline ${styles.button}`}
-                  type="button"
-                  disabled={!pricing || busy !== null}
-                  onClick={() => void handleBuyNow()}
-                >
-                  {busy === "buy"
-                    ? "Redirecting…"
-                    : itemCount > 0
-                      ? "Buy now (includes cart)"
-                      : "Buy now"}
-                </button>
-              </>
+                {editOrderId ? (
+                  <Link className={`button-outline ${styles.button}`} href={`/admin/orders/${editOrderId}`}>
+                    Cancel
+                  </Link>
+                ) : null}
+              </div>
             ) : (
-              <p className={styles.muted}>
-                {PURCHASES_DISABLED_MESSAGE} <Link href="/contact">Contact</Link>
-              </p>
-            )}
-            {isAdmin ? (
-              <div className={styles.adminPrint}>
-                <button
-                  className={`button-outline ${styles.button}`}
-                  type="button"
-                  disabled={!pricing || busy !== null || studioOrderDialogOpen}
-                  onClick={() => void handleStudioOrder()}
-                >
-                  {busy === "studio" ? "Creating studio order…" : "Order for studio"}
-                </button>
-                {studioOrderMessage ? (
-                  <p className={styles.studioOrderSuccess}>
-                    {studioOrderMessage}{" "}
-                    <Link href="/admin/fulfilment">Open fulfilment</Link> for specs and the print file.
-                  </p>
+              <>
+                {purchasesAllowed ? (
+                  <>
+                    <button
+                      className={`button-solid ${styles.button}`}
+                      type="button"
+                      disabled={!pricing || busy !== null}
+                      onClick={() => void handleAddToCart()}
+                    >
+                      {busy === "cart" ? "Adding…" : "Add to cart"}
+                    </button>
+                    <button
+                      className={`button-outline ${styles.button}`}
+                      type="button"
+                      disabled={!pricing || busy !== null}
+                      onClick={() => void handleBuyNow()}
+                    >
+                      {busy === "buy"
+                        ? "Redirecting…"
+                        : itemCount > 0
+                          ? "Buy now (includes cart)"
+                          : "Buy now"}
+                    </button>
+                  </>
                 ) : (
-                  <p className={styles.adminHint}>
-                    Admin only · No payment, no edition number. Queues a lab TIFF for Pixel Perfect.
+                  <p className={styles.muted}>
+                    {PURCHASES_DISABLED_MESSAGE} <Link href="/contact">Contact</Link>
                   </p>
                 )}
-                <button
-                  className={`button-outline ${styles.button}`}
-                  type="button"
-                  disabled={busy !== null}
-                  onClick={() => void handlePreparePrintDownload()}
-                >
-                  {busy === "print" ? "Preparing print TIFF…" : "Prepare & download print TIFF"}
-                </button>
-                <p className={styles.adminHint}>
-                  Admin only · Lab TIFF at the size above (Adobe RGB, 300 DPI). Generation can take a few minutes.
-                </p>
-              </div>
-            ) : null}
+                {isAdmin ? (
+                  <div className={styles.adminPrint}>
+                    <button
+                      className={`button-outline ${styles.button}`}
+                      type="button"
+                      disabled={!pricing || busy !== null || studioOrderDialogOpen}
+                      onClick={() => void handleStudioOrder()}
+                    >
+                      {busy === "studio" ? "Creating studio order…" : "Order for studio"}
+                    </button>
+                    {studioOrderMessage ? (
+                      <p className={styles.studioOrderSuccess}>
+                        {studioOrderMessage}{" "}
+                        <Link href="/admin/fulfilment">Open fulfilment</Link> for specs and the print file.
+                      </p>
+                    ) : (
+                      <p className={styles.adminHint}>
+                        Admin only · No payment, no edition number. Queues a lab TIFF for Pixel Perfect.
+                      </p>
+                    )}
+                    <button
+                      className={`button-outline ${styles.button}`}
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void handlePreparePrintDownload()}
+                    >
+                      {busy === "print" ? "Preparing print TIFF…" : "Prepare & download print TIFF"}
+                    </button>
+                    <p className={styles.adminHint}>
+                      Admin only · Lab TIFF at the size above (Adobe RGB, 300 DPI). Generation can take a few minutes.
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
 
           {error ? <p className={styles.error}>{error}</p> : null}

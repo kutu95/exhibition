@@ -7,6 +7,7 @@ import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../../../lib/a
 import { isProductVisibleInCatalog, mapProductRow } from "../../../../lib/catalog-products";
 import { getMasterFileDimensions } from "../../../../lib/master-files";
 import { buildMetadata } from "../../../../lib/metadata";
+import { ORDER_EDIT_ITEM_PARAM, ORDER_EDIT_ORDER_PARAM } from "../../../../lib/order-item-edit-params";
 import { SHOW_CUSTOM_PRINT_PAGE } from "../../../../lib/print-custom";
 import { getOfferPricingBundle } from "../../../../lib/print-offer-bundle";
 import { createSupabaseServerClient } from "../../../../lib/supabase/server";
@@ -15,6 +16,7 @@ import { allowedGalleryIdSet, getCatalogAccess } from "../../../../lib/vault-acc
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 type ProductRow = Product & {
@@ -35,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default async function CustomPrintPage({ params }: PageProps) {
+export default async function CustomPrintPage({ params, searchParams }: PageProps) {
   if (!SHOW_CUSTOM_PRINT_PAGE) {
     notFound();
   }
@@ -109,6 +111,12 @@ export default async function CustomPrintPage({ params }: PageProps) {
 
   const cookieStore = await cookies();
   const isAdmin = await verifyAdminSessionToken(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const query = await searchParams;
+  const firstParam = (value: string | string[] | undefined): string | null => {
+    const raw = Array.isArray(value) ? value[0] : value;
+    const trimmed = raw?.trim() ?? "";
+    return trimmed || null;
+  };
 
   return (
     <CustomPrintClient
@@ -131,6 +139,8 @@ export default async function CustomPrintPage({ params }: PageProps) {
       rthCanvasRates={pricing.rthCanvasRates}
       papers={pricing.papers}
       isAdmin={isAdmin}
+      editOrderId={firstParam(query[ORDER_EDIT_ORDER_PARAM])}
+      editItemId={firstParam(query[ORDER_EDIT_ITEM_PARAM])}
     />
   );
 }

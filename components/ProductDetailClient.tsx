@@ -17,6 +17,7 @@ import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { adminClientFetch, adminClientFetchError } from "../lib/admin-client-fetch";
 import { readCart } from "../lib/cart";
 import { isWallSource } from "../lib/exhibition-links";
+import { readOrderItemEditParams, buildOrderItemEditQuery } from "../lib/order-item-edit-params";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
 import {
   findVariantForOfferCombo,
@@ -113,10 +114,13 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
   const [studioOrderDialogOpen, setStudioOrderDialogOpen] = useState(false);
   const [openStudioOrders, setOpenStudioOrders] = useState<OpenStudioOrder[]>([]);
   const [studioOrderMessage, setStudioOrderMessage] = useState<string | null>(null);
+  const [isSavingOrderItem, setIsSavingOrderItem] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addItem, itemCount } = useCart();
   const purchasesAllowed = usePurchasesAllowed();
   const fromWall = isWallSource(searchParams.get("src"));
+  const orderItemEdit = isAdmin ? readOrderItemEditParams(searchParams) : null;
+  const isEditingOrderItem = Boolean(orderItemEdit);
 
   useEffect(() => {
     if (!useOfferChooser) return;
@@ -335,6 +339,36 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     }
   };
 
+  const saveEditedOrderItem = async () => {
+    if (!orderItemEdit || !selectedVariant) return;
+    setIsSavingOrderItem(true);
+    setError(null);
+    try {
+      const response = await adminClientFetch(
+        `/api/admin/orders/${orderItemEdit.orderId}/items/${orderItemEdit.itemId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ variant_id: selectedVariant.id }),
+        },
+      );
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (response.status === 401) {
+        setError("Admin session expired. Sign in at /admin/login, then try again.");
+        return;
+      }
+      if (!response.ok) {
+        setError(body?.error ?? "Could not update this order item.");
+        return;
+      }
+      router.push(`/admin/orders/${orderItemEdit.orderId}`);
+    } catch (saveError) {
+      setError(adminClientFetchError(saveError));
+    } finally {
+      setIsSavingOrderItem(false);
+    }
+  };
+
   return (
     <section className={`section container ${styles.wrap}`}>
       <div className={styles.gallery}>
@@ -447,7 +481,14 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
               <legend className={styles.sizeLegend}>
                 <span>Size</span>
                 {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" && !fromWall ? (
-                  <Link className={styles.sizeCustomLink} href={`/shop/${product.slug}/custom`}>
+                  <Link
+                    className={styles.sizeCustomLink}
+                    href={
+                      orderItemEdit
+                        ? `/shop/${product.slug}/custom?${buildOrderItemEditQuery(orderItemEdit.orderId, orderItemEdit.itemId)}`
+                        : `/shop/${product.slug}/custom`
+                    }
+                  >
                     Custom
                   </Link>
                 ) : null}
@@ -627,83 +668,108 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
           </div>
         )}
 
-        <div className={`${styles.buyActions} ${fromWall ? styles.buyActionsWall : ""}`}>
-          <FavouriteButton
-            productId={product.id}
-            productTitle={product.title}
-            size="detail"
-            className={styles.favouriteButton}
-          />
-          {purchasesAllowed ? (
-            fromWall ? (
+        {isEditingOrderItem ? (
+          <div className={styles.studioOrder}>
+            <p className={styles.studioOrderHint}>
+              Updating this print on the existing order. Choose size, paper, and frame, then save.
+            </p>
+            <div className={`${styles.buyActions} ${styles.buyActionsWall}`}>
               <button
                 className={`button-solid ${styles.buyButton}`}
                 type="button"
-                onClick={handleBuyThisPrint}
-                disabled={isCheckingOut}
+                onClick={() => void saveEditedOrderItem()}
+                disabled={!selectedVariant || isSavingOrderItem}
               >
-                {isCheckingOut ? "Redirecting..." : "Buy this print"}
+                {isSavingOrderItem ? "Saving…" : "Save to order"}
               </button>
-            ) : (
-              <>
-                <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
-                  Add to cart
-                </button>
+              {orderItemEdit ? (
+                <Link className={`button-outline ${styles.buyButton}`} href={`/admin/orders/${orderItemEdit.orderId}`}>
+                  Cancel
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className={`${styles.buyActions} ${fromWall ? styles.buyActionsWall : ""}`}>
+              <FavouriteButton
+                productId={product.id}
+                productTitle={product.title}
+                size="detail"
+                className={styles.favouriteButton}
+              />
+              {purchasesAllowed ? (
+                fromWall ? (
+                  <button
+                    className={`button-solid ${styles.buyButton}`}
+                    type="button"
+                    onClick={handleBuyThisPrint}
+                    disabled={isCheckingOut}
+                  >
+                    {isCheckingOut ? "Redirecting..." : "Buy this print"}
+                  </button>
+                ) : (
+                  <>
+                    <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
+                      Add to cart
+                    </button>
+                    <button
+                      className={`button-outline ${styles.buyButton}`}
+                      type="button"
+                      onClick={handleBuyNow}
+                      disabled={isCheckingOut}
+                    >
+                      {isCheckingOut
+                        ? "Redirecting..."
+                        : itemCount > 0
+                          ? "Buy now (includes cart)"
+                          : "Buy now"}
+                    </button>
+                  </>
+                )
+              ) : null}
+            </div>
+
+            {!purchasesAllowed && !fromWall ? (
+              <p className={styles.purchaseNotice}>
+                {PURCHASES_DISABLED_MESSAGE}{" "}
+                <Link href="/contact">Contact</Link>
+              </p>
+            ) : null}
+
+            {purchasesAllowed && !fromWall && itemCount > 0 ? (
+              <p className={styles.cartFeedback}>
+                {itemCount} item{itemCount === 1 ? "" : "s"} already in your cart.{" "}
+                <Link href="/cart">View cart</Link>
+              </p>
+            ) : null}
+
+            {isAdmin && product.product_type === "print" ? (
+              <div className={styles.studioOrder}>
                 <button
                   className={`button-outline ${styles.buyButton}`}
                   type="button"
-                  onClick={handleBuyNow}
-                  disabled={isCheckingOut}
+                  onClick={() => void handleStudioOrder()}
+                  disabled={!selectedVariant || isStudioOrdering || studioOrderDialogOpen}
                 >
-                  {isCheckingOut
-                    ? "Redirecting..."
-                    : itemCount > 0
-                      ? "Buy now (includes cart)"
-                      : "Buy now"}
+                  {isStudioOrdering ? "Creating studio order…" : "Order for studio"}
                 </button>
-              </>
-            )
-          ) : null}
-        </div>
-
-        {!purchasesAllowed && !fromWall ? (
-          <p className={styles.purchaseNotice}>
-            {PURCHASES_DISABLED_MESSAGE}{" "}
-            <Link href="/contact">Contact</Link>
-          </p>
-        ) : null}
-
-        {purchasesAllowed && !fromWall && itemCount > 0 ? (
-          <p className={styles.cartFeedback}>
-            {itemCount} item{itemCount === 1 ? "" : "s"} already in your cart.{" "}
-            <Link href="/cart">View cart</Link>
-          </p>
-        ) : null}
+                {studioOrderMessage ? (
+                  <p className={styles.studioOrderSuccess}>
+                    {studioOrderMessage}{" "}
+                    <Link href="/admin/fulfilment">Open fulfilment</Link> for specs and the print file.
+                  </p>
+                ) : (
+                  <p className={styles.studioOrderHint}>
+                    Admin only · No payment, no edition number. Queues a lab TIFF for Pixel Perfect.
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </>
+        )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
-
-        {isAdmin && product.product_type === "print" ? (
-          <div className={styles.studioOrder}>
-            <button
-              className={`button-outline ${styles.buyButton}`}
-              type="button"
-              onClick={() => void handleStudioOrder()}
-              disabled={!selectedVariant || isStudioOrdering || studioOrderDialogOpen}
-            >
-              {isStudioOrdering ? "Creating studio order…" : "Order for studio"}
-            </button>
-            {studioOrderMessage ? (
-              <p className={styles.studioOrderSuccess}>
-                {studioOrderMessage}{" "}
-                <Link href="/admin/fulfilment">Open fulfilment</Link> for specs and the print file.
-              </p>
-            ) : (
-              <p className={styles.studioOrderHint}>
-                Admin only · No payment, no edition number. Queues a lab TIFF for Pixel Perfect.
-              </p>
-            )}
-          </div>
-        ) : null}
 
         {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
         <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
