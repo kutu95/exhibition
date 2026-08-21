@@ -89,7 +89,7 @@ export const replaceOrderItemVariant = async (args: {
       throw new Error("VARIANT_PRODUCT_MISMATCH");
     }
 
-    const unitPrice = isStudio ? 0 : variant.price_aud;
+    const unitPrice = isStudio ? 0 : Math.round(Number(variant.price_aud) || 0);
     if (item.current_variant_id === variant.id) {
       const { rows: orderRows } = await client.query<{ id: string; order_number: string }>(
         `
@@ -117,10 +117,10 @@ export const replaceOrderItemVariant = async (args: {
         update exhibition.order_items
         set
           variant_id = $2,
-          unit_price_aud = $3,
-          fulfilment_status = case when $4 then 'awaiting_file' else fulfilment_status end,
-          cloud_file_url = case when $4 then null else cloud_file_url end,
-          file_ready_at = case when $4 then null else file_ready_at end
+          unit_price_aud = $3::integer,
+          fulfilment_status = case when $4::boolean then 'awaiting_file' else fulfilment_status end,
+          cloud_file_url = case when $4::boolean then null else cloud_file_url end,
+          file_ready_at = case when $4::boolean then null else file_ready_at end
         where id = $1
       `,
       [item.item_id, variant.id, unitPrice, resetFile],
@@ -142,16 +142,18 @@ export const replaceOrderItemVariant = async (args: {
       `,
       [item.order_id],
     );
-    const subtotal = totalRows[0]?.subtotal ?? 0;
+    const subtotal = Number(totalRows[0]?.subtotal ?? 0);
+    const shipping = Number(item.shipping_aud ?? 0);
+    const total = subtotal + shipping;
 
     const { rows: orderRows } = await client.query<{ id: string; order_number: string }>(
       `
         update exhibition.orders
-        set subtotal_aud = $2, total_aud = $2 + $3
+        set subtotal_aud = $2::integer, total_aud = $3::integer
         where id = $1
         returning id, order_number
       `,
-      [item.order_id, subtotal, item.shipping_aud],
+      [item.order_id, subtotal, total],
     );
 
     const order = orderRows[0];
