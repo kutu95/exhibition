@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyAdminSession } from "../../../../../../../lib/admin-auth";
-import { replaceOrderItemVariant } from "../../../../../../../lib/admin-order-item-variant";
+import { removeOrderItem, replaceOrderItemVariant } from "../../../../../../../lib/admin-order-item-variant";
 import { handleRouteError } from "../../../../../../../lib/api-route-errors";
 
 export const runtime = "nodejs";
@@ -58,5 +58,37 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
     return handleRouteError(error, "Admin order item variant update failed");
+  }
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const isAuthed = await verifyAdminSession(request);
+  if (!isAuthed) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id, itemId } = await context.params;
+
+  try {
+    const result = await removeOrderItem({
+      orderId: id,
+      itemId,
+    });
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (code === "ORDER_ITEM_NOT_FOUND" || code === "ORDER_NOT_FOUND") {
+      return NextResponse.json({ error: "Order item not found." }, { status: 404 });
+    }
+    if (code === "ORDER_ITEM_NOT_EDITABLE") {
+      return NextResponse.json(
+        {
+          error:
+            "This print can only be removed while the order is pending, or a studio order still waiting for the lab.",
+        },
+        { status: 400 },
+      );
+    }
+    return handleRouteError(error, "Admin order item remove failed");
   }
 }

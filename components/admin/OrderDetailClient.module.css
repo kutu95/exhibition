@@ -41,6 +41,33 @@
   text-decoration: none;
 }
 
+.buttonSecondary {
+  border: 1px solid #111;
+  background: transparent;
+  color: #111;
+  border-radius: 0;
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.buttonSecondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.itemActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.itemError {
+  color: #8a2a2a;
+  margin: 0 0 0.7rem;
+}
+
 .notes {
   width: 100%;
   min-height: 140px;

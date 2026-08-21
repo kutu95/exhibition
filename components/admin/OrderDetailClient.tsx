@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { formatAUD } from "../../lib/utils/currency";
 import { formatLabDimensions } from "../../lib/print-size";
+import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import { buildOrderItemEditQuery } from "../../lib/order-item-edit-params";
 import { isStudioOrderNotes } from "../../lib/studio-orders";
 import { StatusBadge } from "./StatusBadge";
@@ -64,6 +65,8 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
   const [editionValues, setEditionValues] = useState<Record<string, string>>(
     Object.fromEntries(items.map((item) => [item.id, item.edition_number_assigned?.toString() ?? ""])),
   );
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [itemActionError, setItemActionError] = useState<string | null>(null);
 
   const shippingLines = useMemo(() => {
     if (!order.shipping_address) return ["No shipping address provided."];
@@ -81,11 +84,14 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
     0,
   );
 
-  const itemIsEditable = (item: OrderItemRecord): boolean => {
-    if (!canEditItems || !item.product_slug) return false;
+  const itemIsMutable = (item: OrderItemRecord): boolean => {
+    if (!canEditItems) return false;
     const fulfilmentStatus = item.fulfilment_status ?? "awaiting_file";
     return fulfilmentStatus === "awaiting_file" || fulfilmentStatus === "file_ready";
   };
+
+  const itemIsEditable = (item: OrderItemRecord): boolean =>
+    itemIsMutable(item) && Boolean(item.product_slug);
 
   const updateStatus = async () => {
     await fetch(`/api/admin/orders/${order.id}/status`, {
@@ -115,6 +121,38 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
       body: JSON.stringify({ edition_number: value }),
     });
     router.refresh();
+  };
+
+  const removeItem = async (item: OrderItemRecord) => {
+    const lastItem = items.length === 1;
+    const confirmed = window.confirm(
+      lastItem
+        ? `Remove “${item.product_title}” from ${order.order_number}? This is the last print, so the order will be cancelled.`
+        : `Remove “${item.product_title}” from ${order.order_number}?`,
+    );
+    if (!confirmed) return;
+
+    setRemovingItemId(item.id);
+    setItemActionError(null);
+    try {
+      const response = await adminClientFetch(`/api/admin/orders/${order.id}/items/${item.id}`, {
+        method: "DELETE",
+      });
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (response.status === 401) {
+        setItemActionError("Admin session expired. Sign in at /admin/login, then try again.");
+        return;
+      }
+      if (!response.ok) {
+        setItemActionError(body?.error ?? "Could not remove this print.");
+        return;
+      }
+      router.refresh();
+    } catch (error) {
+      setItemActionError(adminClientFetchError(error));
+    } finally {
+      setRemovingItemId(null);
+    }
   };
 
   return (
@@ -153,6 +191,7 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
 
       <section className={styles.panel}>
         <h2>Items</h2>
+        {itemActionError ? <p className={styles.itemError}>{itemActionError}</p> : null}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -225,15 +264,27 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
                   </td>
                   {canEditItems ? (
                     <td>
-                      {itemIsEditable(item) ? (
-                        <Link
-                          className={styles.button}
-                          href={`/shop/${item.product_slug}?${buildOrderItemEditQuery(order.id, item.id, {
-                            variant: item.variant_id,
-                          })}`}
-                        >
-                          Edit
-                        </Link>
+                      {itemIsMutable(item) ? (
+                        <div className={styles.itemActions}>
+                          {itemIsEditable(item) ? (
+                            <Link
+                              className={styles.button}
+                              href={`/shop/${item.product_slug}?${buildOrderItemEditQuery(order.id, item.id, {
+                                variant: item.variant_id,
+                              })}`}
+                            >
+                              Edit
+                            </Link>
+                          ) : null}
+                          <button
+                            className={styles.buttonSecondary}
+                            type="button"
+                            disabled={removingItemId !== null}
+                            onClick={() => void removeItem(item)}
+                          >
+                            {removingItemId === item.id ? "Removing…" : "Remove"}
+                          </button>
+                        </div>
                       ) : (
                         "—"
                       )}

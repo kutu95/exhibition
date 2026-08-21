@@ -4,6 +4,24 @@ import { withTransaction } from "./postgres";
 const EDITABLE_ORDER_STATUSES = new Set(["pending", "paid", "processing"]);
 const EDITABLE_FULFILMENT_STATUSES = new Set(["awaiting_file", "file_ready"]);
 
+const assertOrderItemMutable = (item: {
+  order_status: string;
+  fulfilment_status: string;
+  order_notes: string | null;
+}): boolean => {
+  if (!EDITABLE_ORDER_STATUSES.has(item.order_status)) {
+    throw new Error("ORDER_ITEM_NOT_EDITABLE");
+  }
+  if (!EDITABLE_FULFILMENT_STATUSES.has(item.fulfilment_status)) {
+    throw new Error("ORDER_ITEM_NOT_EDITABLE");
+  }
+  const isStudio = isStudioOrderNotes(item.order_notes);
+  if (item.order_status !== "pending" && !isStudio) {
+    throw new Error("ORDER_ITEM_NOT_EDITABLE");
+  }
+  return isStudio;
+};
+
 type ItemContext = {
   item_id: string;
   order_id: string;
@@ -61,17 +79,7 @@ export const replaceOrderItemVariant = async (args: {
       throw new Error("ORDER_ITEM_NOT_FOUND");
     }
 
-    if (!EDITABLE_ORDER_STATUSES.has(item.order_status)) {
-      throw new Error("ORDER_ITEM_NOT_EDITABLE");
-    }
-    if (!EDITABLE_FULFILMENT_STATUSES.has(item.fulfilment_status)) {
-      throw new Error("ORDER_ITEM_NOT_EDITABLE");
-    }
-
-    const isStudio = isStudioOrderNotes(item.order_notes);
-    if (item.order_status !== "pending" && !isStudio) {
-      throw new Error("ORDER_ITEM_NOT_EDITABLE");
-    }
+    const isStudio = assertOrderItemMutable(item);
 
     const { rows: variantRows } = await client.query<VariantContext>(
       `
@@ -168,3 +176,91 @@ export const replaceOrderItemVariant = async (args: {
     };
   });
 };
+
+export type RemoveOrderItemResult = {
+  order_id: string;
+  order_number: string;
+  cancelled: boolean;
+};
+
+export const removeOrderItem = async (args: {
+  orderId: string;
+  itemId: string;
+}): Promise<RemoveOrderItemResult> => {
+  return withTransaction(async (client) => {
+    const { rows: itemRows } = await client.query<{
+      item_id: string;
+      order_id: string;
+      fulfilment_status: string;
+      order_status: string;
+      order_notes: string | null;
+      shipping_aud: number;
+    }>(
+      `
+        select
+          oi.id as item_id,
+          oi.order_id,
+          oi.fulfilment_status,
+          o.status as order_status,
+          o.notes as order_notes,
+          o.shipping_aud
+        from exhibition.order_items oi
+        join exhibition.orders o on o.id = oi.order_id
+        where oi.id = $1
+          and oi.order_id = $2
+      `,
+      [args.itemId, args.orderId],
+    );
+
+    const item = itemRows[0];
+    if (!item) {
+      throw new Error("ORDER_ITEM_NOT_FOUND");
+    }
+
+    assertOrderItemMutable(item);
+
+    await client.query(`delete from exhibition.order_items where id = $1`, [item.item_id]);
+
+    const { rows: remainingRows } = await client.query<{ remaining: number; subtotal: number }>(
+      `
+        select
+          count(*)::int as remaining,
+          coalesce(sum(unit_price_aud * quantity), 0)::int as subtotal
+        from exhibition.order_items
+        where order_id = $1
+      `,
+      [item.order_id],
+    );
+    const remaining = Number(remainingRows[0]?.remaining ?? 0);
+    const subtotal = remaining === 0 ? 0 : Number(remainingRows[0]?.subtotal ?? 0);
+    const shipping = remaining === 0 ? 0 : Number(item.shipping_aud ?? 0);
+    const total = subtotal + shipping;
+    const cancelEmpty = remaining === 0;
+
+    const { rows: orderRows } = await client.query<{ id: string; order_number: string }>(
+      `
+        update exhibition.orders
+        set
+          subtotal_aud = $2::integer,
+          shipping_aud = $3::integer,
+          total_aud = $4::integer,
+          status = case when $5::boolean then 'cancelled' else status end
+        where id = $1
+        returning id, order_number
+      `,
+      [item.order_id, subtotal, shipping, total, cancelEmpty],
+    );
+
+    const order = orderRows[0];
+    if (!order) {
+      throw new Error("ORDER_NOT_FOUND");
+    }
+
+    return {
+      order_id: order.id,
+      order_number: order.order_number,
+      cancelled: cancelEmpty,
+    };
+  });
+};
+
