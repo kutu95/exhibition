@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { formatAUD } from "../../lib/utils/currency";
+import { formatLabDimensions } from "../../lib/print-size";
 import { isStudioOrderNotes } from "../../lib/studio-orders";
 import { StatusBadge } from "./StatusBadge";
 import styles from "./OrderDetailClient.module.css";
@@ -30,6 +31,9 @@ type OrderItemRecord = {
   edition_size: number | null;
   product_title: string;
   variant_label: string;
+  width_mm: number | null;
+  height_mm: number | null;
+  lab_cost_aud: number | null;
   image_url: string | null;
   image_alt: string | null;
 };
@@ -62,6 +66,12 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
     const text = JSON.stringify(order.shipping_address, null, 2);
     return text.split("\n");
   }, [order.shipping_address]);
+
+  const isStudio = isStudioOrderNotes(order.notes);
+  const labCostTotal = items.reduce(
+    (sum, item) => sum + (item.lab_cost_aud ?? 0) * item.quantity,
+    0,
+  );
 
   const updateStatus = async () => {
     await fetch(`/api/admin/orders/${order.id}/status`, {
@@ -98,7 +108,7 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
       <section className={styles.panel}>
         <h1>{order.order_number}</h1>
         <StatusBadge status={order.status} />
-        {isStudioOrderNotes(order.notes) ? <StatusBadge status="studio" /> : null}
+        {isStudio ? <StatusBadge status="studio" /> : null}
         <div className={styles.inlineControls} style={{ marginTop: "0.9rem" }}>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
             {statusOptions.map((option) => (
@@ -136,7 +146,9 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
                 <th className={styles.imageCol}>Image</th>
                 <th>Product</th>
                 <th>Variant</th>
+                <th>Size</th>
                 <th>Qty</th>
+                {isStudio ? <th>Lab cost</th> : null}
                 <th>Unit Price</th>
                 <th>Edition</th>
               </tr>
@@ -160,7 +172,19 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
                   </td>
                   <td>{item.product_title}</td>
                   <td>{item.variant_label}</td>
+                  <td>
+                    {item.width_mm && item.height_mm && item.width_mm > 0 && item.height_mm > 0
+                      ? formatLabDimensions(item.width_mm, item.height_mm)
+                      : "—"}
+                  </td>
                   <td>{item.quantity}</td>
+                  {isStudio ? (
+                    <td>
+                      {item.lab_cost_aud != null && item.lab_cost_aud > 0
+                        ? formatAUD(item.lab_cost_aud)
+                        : "—"}
+                    </td>
+                  ) : null}
                   <td>{formatAUD(item.unit_price_aud)}</td>
                   <td>
                     {item.edition_size ? (
@@ -193,6 +217,11 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
 
       <section className={styles.panel}>
         <h2>Totals</h2>
+        {isStudio ? (
+          <p>
+            <strong>Lab cost: {labCostTotal > 0 ? formatAUD(labCostTotal) : "—"}</strong>
+          </p>
+        ) : null}
         <p>Subtotal: {formatAUD(order.subtotal_aud ?? 0)}</p>
         <p>Shipping: {formatAUD(order.shipping_aud ?? 0)}</p>
         <p>

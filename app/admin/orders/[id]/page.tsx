@@ -25,6 +25,9 @@ type OrderDetailPayload = {
     edition_size: number | null;
     product_title: string;
     variant_label: string;
+    width_mm: number | null;
+    height_mm: number | null;
+    lab_cost_aud: number | null;
     image_url: string | null;
     image_alt: string | null;
   }>;

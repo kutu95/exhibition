@@ -44,6 +44,9 @@ export async function GET(request: Request, context: RouteContext) {
     {
       variant_label: string;
       edition_size: number | null;
+      width_mm: number | null;
+      height_mm: number | null;
+      lab_cost_aud: number | null;
       product_title: string;
       image_url: string | null;
       image_alt: string | null;
@@ -75,7 +78,7 @@ export async function GET(request: Request, context: RouteContext) {
   if (variantIds.length > 0) {
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")
-      .select("id,variant_label,edition_size,products(title,product_images(image_url,alt_text,is_primary,sort_order))")
+      .select("id,variant_label,edition_size,width_mm,height_mm,lab_cost_aud,products(title,product_images(image_url,alt_text,is_primary,sort_order))")
       .in("id", variantIds);
 
     if (variantsError) {
@@ -90,6 +93,9 @@ export async function GET(request: Request, context: RouteContext) {
       variantsById.set(variant.id, {
         variant_label: variant.variant_label,
         edition_size: variant.edition_size,
+        width_mm: variant.width_mm,
+        height_mm: variant.height_mm,
+        lab_cost_aud: variant.lab_cost_aud,
         product_title: products?.title ?? "Unknown product",
         image_url: image?.image_url ?? null,
         image_alt: image?.image_alt ?? null,
@@ -103,6 +109,9 @@ export async function GET(request: Request, context: RouteContext) {
       ...item,
       variant_label: variant?.variant_label ?? "Unknown variant",
       edition_size: variant?.edition_size ?? null,
+      width_mm: variant?.width_mm ?? null,
+      height_mm: variant?.height_mm ?? null,
+      lab_cost_aud: variant?.lab_cost_aud ?? null,
       product_title: variant?.product_title ?? "Unknown product",
       image_url: variant?.image_url ?? null,
       image_alt: variant?.image_alt ?? null,
