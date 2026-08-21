@@ -25,7 +25,7 @@ type OrdersTableClientProps = {
 };
 
 export function OrdersTableClient({ orders }: OrdersTableClientProps) {
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -52,8 +52,8 @@ export function OrdersTableClient({ orders }: OrdersTableClientProps) {
     <div>
       <div className={styles.controls}>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-          <option value="all">All</option>
           <option value="active">Active</option>
+          <option value="all">All</option>
           <option value="pending">Pending</option>
           <option value="paid">Paid</option>
           <option value="processing">Processing</option>
