@@ -1,7 +1,10 @@
 import { isStudioOrderNotes, STUDIO_ORDER_MARKER, type OpenStudioOrder } from "./studio-orders";
 import { queryPostgres, withTransaction } from "./postgres";
 
-const OPEN_FULFILMENT_STATUSES = ["awaiting_file", "file_ready", "submitted_to_lab", "shipped"];
+/** Still assembling the lab batch — new prints may be added. */
+const OPEN_FOR_ADD_STATUSES = ["awaiting_file", "file_ready"];
+/** Already sent to Pixel Perfect (or beyond) — do not add more prints. */
+const SUBMITTED_FULFILMENT_STATUSES = ["submitted_to_lab", "shipped", "delivered"];
 
 type StudioOrderRow = {
   id: string;
@@ -34,9 +37,12 @@ export const listOpenStudioOrders = async (): Promise<OpenStudioOrder[]> => {
       having count(*) filter (
         where oi.fulfilment_status = any($2::text[])
       ) > 0
+        and count(*) filter (
+          where oi.fulfilment_status = any($3::text[])
+        ) = 0
       order by o.created_at desc
     `,
-    [STUDIO_ORDER_MARKER, OPEN_FULFILMENT_STATUSES],
+    [STUDIO_ORDER_MARKER, OPEN_FOR_ADD_STATUSES, SUBMITTED_FULFILMENT_STATUSES],
   );
 
   return rows;
@@ -66,6 +72,19 @@ export const requireOpenStudioOrder = async (orderId: string): Promise<StudioOrd
   if (order.status === "cancelled" || order.status === "refunded") {
     throw new Error("STUDIO_ORDER_CLOSED");
   }
+
+  const { rows: itemStatuses } = await queryPostgres<{ fulfilment_status: string }>(
+    `
+      select fulfilment_status
+      from exhibition.order_items
+      where order_id = $1
+    `,
+    [orderId],
+  );
+  if (itemStatuses.some((row) => SUBMITTED_FULFILMENT_STATUSES.includes(row.fulfilment_status))) {
+    throw new Error("STUDIO_ORDER_SUBMITTED");
+  }
+
   return order;
 };
 

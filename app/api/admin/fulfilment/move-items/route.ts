@@ -17,6 +17,7 @@ const moveErrorStatus: Record<string, number> = {
   STUDIO_ORDER_NOT_FOUND: 404,
   NOT_A_STUDIO_ORDER: 400,
   STUDIO_ORDER_CLOSED: 400,
+  STUDIO_ORDER_SUBMITTED: 400,
   ORDER_ITEM_NOT_FOUND: 404,
   NOT_A_STUDIO_ITEM: 400,
 };
@@ -26,6 +27,7 @@ const moveErrorMessage: Record<string, string> = {
   STUDIO_ORDER_NOT_FOUND: "Studio order not found.",
   NOT_A_STUDIO_ORDER: "Prints can only be moved onto a studio order.",
   STUDIO_ORDER_CLOSED: "That studio order is cancelled or refunded.",
+  STUDIO_ORDER_SUBMITTED: "That studio order has already been submitted to the lab.",
   ORDER_ITEM_NOT_FOUND: "One of the selected prints was not found.",
   NOT_A_STUDIO_ITEM: "Only studio prints can be moved onto a studio order.",
 };

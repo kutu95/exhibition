@@ -257,6 +257,12 @@ export async function POST(request: Request) {
       if (code === "STUDIO_ORDER_CLOSED") {
         return NextResponse.json({ error: "That studio order is cancelled or refunded." }, { status: 400 });
       }
+      if (code === "STUDIO_ORDER_SUBMITTED") {
+        return NextResponse.json(
+          { error: "That studio order has already been submitted to the lab." },
+          { status: 400 },
+        );
+      }
       throw error;
     }
 
