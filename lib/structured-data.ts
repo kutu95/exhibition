@@ -101,13 +101,6 @@ export function buildHomeWebPage(): Record<string, unknown> {
       "@type": "ExhibitionEvent",
       name: siteConfig.name,
     },
-    significantLink: [
-      `${siteConfig.url}/story`,
-      `${siteConfig.url}/book`,
-      `${siteConfig.url}/about-the-photographer`,
-      `${siteConfig.url}/shop`,
-      `${siteConfig.url}/visit`,
-    ],
     primaryImageOfPage: buildOgImageObject(),
     image: buildOgImageObject(),
     thumbnailUrl: defaultImageUrl,
@@ -230,17 +223,7 @@ export const HOME_FAQ_ITEMS = [
   {
     question: "What is the SS Georgette?",
     answer:
-      "The SS Georgette was an iron screw-steamer built at Dumbarton on the Clyde in 1872 and wrecked at Calgardup Bay, off Redgate Beach, on 1 December 1876. Seven people drowned when the lifeboat capsized. This exhibition marks 150 years since that wreck through photographs made at the related coastal sites.",
-  },
-  {
-    question: "Who was Sam Isaacs?",
-    answer:
-      "Sam Isaacs was an Aboriginal stockman who rode to the beach with Grace Bussell on the day of the wreck. He was awarded the Royal Humane Society’s bronze medal. The rock off Calgardup Bay now called Isaac Rock carries his name.",
-  },
-  {
-    question: "Can I buy the photographs?",
-    answer:
-      "Yes. Limited edition archival prints by John Bowskill are available in the shop and at the exhibition.",
+      "The SS Georgette was a steamship that foundered off Redgate Beach on 1 December 1876. This exhibition marks 150 years since that wreck through photography made at the related coastal sites.",
   },
 ] as const;
 
