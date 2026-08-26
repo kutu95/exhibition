@@ -114,3 +114,26 @@
   justify-content: center;
   text-align: center;
 }
+
+.groupRow th {
+  background: #f3f1ec;
+  border-bottom: 1px solid #d8d8d8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+}
+
+.subtotalRow td {
+  background: #faf9f6;
+  border-bottom: 1px solid #d8d8d8;
+  color: #333;
+  font-size: 0.88rem;
+}
+
+.totalRow td {
+  background: #f3f1ec;
+  border-bottom: 0;
+  font-weight: 600;
+}

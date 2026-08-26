@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { formatAUD } from "../../lib/utils/currency";
 import { formatLabDimensions } from "../../lib/print-size";
+import { formatSqIn, groupOrderItemsByPaper } from "../../lib/order-item-paper-groups";
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import { buildOrderItemEditQuery } from "../../lib/order-item-edit-params";
 import { isStudioOrderNotes } from "../../lib/studio-orders";
@@ -36,6 +37,7 @@ type OrderItemRecord = {
   variant_label: string;
   width_mm: number | null;
   height_mm: number | null;
+  paper_type: string | null;
   lab_cost_aud: number | null;
   product_slug: string | null;
   fulfilment_status?: string;
@@ -79,10 +81,10 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
     order.status !== "cancelled" &&
     order.status !== "refunded" &&
     (order.status === "pending" || isStudio);
-  const labCostTotal = items.reduce(
-    (sum, item) => sum + (item.lab_cost_aud ?? 0) * item.quantity,
-    0,
-  );
+  const paperGroups = useMemo(() => groupOrderItemsByPaper(items), [items]);
+  const labCostTotal = paperGroups.reduce((sum, group) => sum + group.labCostCents, 0);
+  const columnCount = 8 + (canEditItems ? 1 : 0);
+  const formatLabCell = (cents: number) => (cents > 0 ? formatAUD(cents) : "—");
 
   const itemIsMutable = (item: OrderItemRecord): boolean => {
     if (!canEditItems) return false;
@@ -201,98 +203,113 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
                 <th>Variant</th>
                 <th>Size</th>
                 <th>Qty</th>
-                {isStudio ? <th>Lab cost</th> : null}
+                <th>Lab cost</th>
                 <th>Unit Price</th>
                 <th>Edition</th>
                 {canEditItems ? <th></th> : null}
               </tr>
             </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td className={styles.imageCol}>
-                    {item.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail of local or remote product image
-                      <img
-                        className={styles.thumb}
-                        src={item.image_url}
-                        alt={item.image_alt || item.product_title}
-                      />
-                    ) : (
-                      <div className={styles.thumbPlaceholder} aria-hidden="true">
-                        No image
-                      </div>
-                    )}
-                  </td>
-                  <td>{item.product_title}</td>
-                  <td>{item.variant_label}</td>
-                  <td>
-                    {item.width_mm && item.height_mm && item.width_mm > 0 && item.height_mm > 0
-                      ? formatLabDimensions(item.width_mm, item.height_mm)
-                      : "—"}
-                  </td>
-                  <td>{item.quantity}</td>
-                  {isStudio ? (
+            {paperGroups.map((group) => (
+              <tbody key={group.paperLabel}>
+                <tr className={styles.groupRow}>
+                  <th scope="colgroup" colSpan={columnCount}>
+                    {group.paperLabel}
+                  </th>
+                </tr>
+                {group.items.map((item) => (
+                  <tr key={item.id}>
+                    <td className={styles.imageCol}>
+                      {item.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail of local or remote product image
+                        <img
+                          className={styles.thumb}
+                          src={item.image_url}
+                          alt={item.image_alt || item.product_title}
+                        />
+                      ) : (
+                        <div className={styles.thumbPlaceholder} aria-hidden="true">
+                          No image
+                        </div>
+                      )}
+                    </td>
+                    <td>{item.product_title}</td>
+                    <td>{item.variant_label}</td>
                     <td>
-                      {item.lab_cost_aud != null && item.lab_cost_aud > 0
-                        ? formatAUD(item.lab_cost_aud)
+                      {item.width_mm && item.height_mm && item.width_mm > 0 && item.height_mm > 0
+                        ? formatLabDimensions(item.width_mm, item.height_mm)
                         : "—"}
                     </td>
-                  ) : null}
-                  <td>{formatAUD(item.unit_price_aud)}</td>
-                  <td>
-                    {item.edition_size ? (
-                      <div className={styles.inlineControls}>
-                        <input
-                          value={editionValues[item.id] ?? ""}
-                          onChange={(event) =>
-                            setEditionValues((prev) => ({
-                              ...prev,
-                              [item.id]: event.target.value,
-                            }))
-                          }
-                          placeholder="Edition #"
-                          style={{ width: "90px" }}
-                        />
-                        <button className={styles.button} type="button" onClick={() => saveEdition(item.id)}>
-                          Save
-                        </button>
-                      </div>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  {canEditItems ? (
+                    <td>{item.quantity}</td>
+                    <td>{formatLabCell(item.lab_cost_aud ?? 0)}</td>
+                    <td>{formatAUD(item.unit_price_aud)}</td>
                     <td>
-                      {itemIsMutable(item) ? (
-                        <div className={styles.itemActions}>
-                          {itemIsEditable(item) ? (
-                            <Link
-                              className={styles.button}
-                              href={`/shop/${item.product_slug}?${buildOrderItemEditQuery(order.id, item.id, {
-                                variant: item.variant_id,
-                              })}`}
-                            >
-                              Edit
-                            </Link>
-                          ) : null}
-                          <button
-                            className={styles.buttonSecondary}
-                            type="button"
-                            disabled={removingItemId !== null}
-                            onClick={() => void removeItem(item)}
-                          >
-                            {removingItemId === item.id ? "Removing…" : "Remove"}
+                      {item.edition_size ? (
+                        <div className={styles.inlineControls}>
+                          <input
+                            value={editionValues[item.id] ?? ""}
+                            onChange={(event) =>
+                              setEditionValues((prev) => ({
+                                ...prev,
+                                [item.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="Edition #"
+                            style={{ width: "90px" }}
+                          />
+                          <button className={styles.button} type="button" onClick={() => saveEdition(item.id)}>
+                            Save
                           </button>
                         </div>
                       ) : (
                         "—"
                       )}
                     </td>
-                  ) : null}
+                    {canEditItems ? (
+                      <td>
+                        {itemIsMutable(item) ? (
+                          <div className={styles.itemActions}>
+                            {itemIsEditable(item) ? (
+                              <Link
+                                className={styles.button}
+                                href={`/shop/${item.product_slug}?${buildOrderItemEditQuery(order.id, item.id, {
+                                  variant: item.variant_id,
+                                })}`}
+                              >
+                                Edit
+                              </Link>
+                            ) : null}
+                            <button
+                              className={styles.buttonSecondary}
+                              type="button"
+                              disabled={removingItemId !== null}
+                              onClick={() => void removeItem(item)}
+                            >
+                              {removingItemId === item.id ? "Removing…" : "Remove"}
+                            </button>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    ) : null}
+                  </tr>
+                ))}
+                <tr className={styles.subtotalRow}>
+                  <td colSpan={5}>
+                    Subtotal · {formatSqIn(group.areaSqIn)}
+                  </td>
+                  <td>{formatLabCell(group.labCostCents)}</td>
+                  <td colSpan={2 + (canEditItems ? 1 : 0)} />
                 </tr>
-              ))}
-            </tbody>
+              </tbody>
+            ))}
+            <tfoot>
+              <tr className={styles.totalRow}>
+                <td colSpan={5}>All item lab costs</td>
+                <td>{formatLabCell(labCostTotal)}</td>
+                <td colSpan={2 + (canEditItems ? 1 : 0)} />
+              </tr>
+            </tfoot>
           </table>
         </div>
       </section>
