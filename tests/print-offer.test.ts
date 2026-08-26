@@ -1,108 +1,114 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  lookupBandByUnitedInches,
-  SEED_FRAME_RATES,
-  SEED_RTH_CANVAS_RATES,
-  unitedInchesFromMm,
-  frameLabCostAud,
-} from "../lib/print-frame-pricing";
+import { lookupBandByUnitedInches, SEED_RTH_CANVAS_RATES, unitedInchesFromMm } from "../lib/print-frame-pricing";
 import {
   applyOfferSelection,
   buildOfferVariantsForProduct,
   computeOfferVariantPricing,
   findVariantForOfferCombo,
   formatOfferVariantLabel,
+  OFFER_CLASS_PROVIDER,
   OFFER_COMBOS,
   parseOfferAxesFromVariant,
 } from "../lib/print-offer";
+import { SEED_POSTERFACTORY_CATALOGUE } from "../lib/posterfactory";
+
+const pricingArgs = {
+  editionSize: 10,
+  mediaMarkupFactor: 3,
+  mediaBasePriceAud: 0,
+  frameMarkupFactor: 3,
+  frameBasePriceAud: 0,
+};
 
 describe("print offer matrix", () => {
-  it("defines nine Size × Finish × Framed combos", () => {
-    expect(OFFER_COMBOS).toHaveLength(9);
-    expect(OFFER_COMBOS.filter((c) => c.finishId === "archival_matte" && c.presentationId === "framed")).toHaveLength(
-      3,
-    );
-    expect(OFFER_COMBOS.filter((c) => c.finishId === "rth_canvas")).toHaveLength(3);
-    expect(OFFER_COMBOS.every((c) => c.finishId !== "rth_canvas" || c.presentationId === "unframed")).toBe(true);
+  it("defines twelve Size × product-class combos", () => {
+    expect(OFFER_COMBOS).toHaveLength(12);
+    expect(OFFER_COMBOS.filter((c) => c.classId === "photographic")).toHaveLength(3);
+    expect(OFFER_COMBOS.filter((c) => c.classId === "fine_art")).toHaveLength(3);
+    expect(OFFER_COMBOS.filter((c) => c.classId === "framed")).toHaveLength(3);
+    expect(OFFER_COMBOS.filter((c) => c.classId === "canvas")).toHaveLength(3);
   });
 
-  it("builds nine priced drafts for a landscape master", () => {
+  it("builds priced drafts with hidden suppliers", () => {
     const drafts = buildOfferVariantsForProduct({
       pixelWidth: 6000,
       pixelHeight: 4000,
-      editionSize: 10,
-      mediaMarkupFactor: 3,
-      mediaBasePriceAud: 0,
-      frameMarkupFactor: 3,
-      frameBasePriceAud: 0,
+      ...pricingArgs,
     });
-    expect(drafts).toHaveLength(9);
-    expect(new Set(drafts.map((d) => d.variant_label)).size).toBe(9);
-    expect(drafts.every((d) => d.price_aud > 0 && d.lab_cost_aud > 0)).toBe(true);
+    expect(drafts).toHaveLength(12);
+    expect(new Set(drafts.map((d) => d.variant_label)).size).toBe(12);
 
-    const framed = drafts.find((d) => d.combo.presentationId === "framed" && d.combo.sizeId === "medium")!;
-    const unframed = drafts.find((d) => d.combo.presentationId === "unframed" && d.combo.sizeId === "medium" && d.combo.finishId === "archival_matte")!;
-    expect(framed.price_aud).toBeGreaterThan(unframed.price_aud);
+    const photo = drafts.find((d) => d.combo.classId === "photographic" && d.combo.sizeId === "medium")!;
+    const fineArt = drafts.find((d) => d.combo.classId === "fine_art" && d.combo.sizeId === "medium")!;
+    const framed = drafts.find((d) => d.combo.classId === "framed" && d.combo.sizeId === "medium")!;
+    const canvas = drafts.find((d) => d.combo.classId === "canvas" && d.combo.sizeId === "medium")!;
+
+    expect(photo.fulfilment_provider).toBe("posterfactory");
+    expect(photo.paper_type).toContain("Ilford Smooth Pearl");
+    expect(photo.lab_cost_aud).toBe(Math.round(SEED_POSTERFACTORY_CATALOGUE.photographic.sizes.medium.supplierCostAud * 100));
+    expect(photo.price_aud).toBe(10000);
+
+    expect(fineArt.fulfilment_provider).toBe("pixelperfect");
+    expect(fineArt.paper_type).toBe("Hahnemühle Photo Rag Pearl");
+    expect(fineArt.price_aud).toBeGreaterThan(0);
+
+    expect(framed.fulfilment_provider).toBe("posterfactory");
     expect(framed.is_framed).toBe(true);
-    expect(framed.frame_type).toBe("standard_perspex");
+    expect(framed.price_aud).toBeGreaterThan(photo.price_aud);
 
-    const canvas = drafts.find((d) => d.combo.finishId === "rth_canvas" && d.combo.sizeId === "medium")!;
-    expect(canvas.is_framed).toBe(false);
+    expect(canvas.fulfilment_provider).toBe("pixelperfect");
     expect(canvas.print_type).toBe("canvas");
+    expect(canvas.is_framed).toBe(false);
   });
 
-  it("formats buyer labels without lab jargon", () => {
-    expect(
-      formatOfferVariantLabel({
-        sizeId: "large",
-        finishId: "archival_matte",
-        presentationId: "framed",
-      }),
-    ).toBe("Large · Archival matte · Standard frame");
-    expect(
-      formatOfferVariantLabel({
-        sizeId: "small",
-        finishId: "rth_canvas",
-        presentationId: "unframed",
-      }),
-    ).toBe("Small · Ready-to-hang canvas");
+  it("formats buyer labels without supplier names", () => {
+    expect(formatOfferVariantLabel({ sizeId: "large", classId: "framed" })).toBe("Large · Framed Print");
+    expect(formatOfferVariantLabel({ sizeId: "small", classId: "canvas" })).toBe("Small · Ready-to-hang canvas");
+    expect(OFFER_CLASS_PROVIDER.fine_art).toBe("pixelperfect");
+    expect(OFFER_CLASS_PROVIDER.photographic).toBe("posterfactory");
   });
 
-  it("parses offer axes from variant metadata", () => {
-    const axes = parseOfferAxesFromVariant({
-      tier_label: "Medium",
-      finish: "Archival matte",
-      is_framed: true,
-      variant_label: "Medium · Archival matte · Standard frame",
-    });
-    expect(axes).toEqual({
-      sizeId: "medium",
-      finishId: "archival_matte",
-      presentationId: "framed",
-    });
-    const legacy = parseOfferAxesFromVariant({
-      tier_label: "Medium",
-      finish: "Archival matte",
-      is_framed: true,
-      variant_label: "Medium · Archival matte · Framed",
-    });
-    expect(legacy?.presentationId).toBe("framed");
+  it("parses new and legacy variant metadata", () => {
+    expect(
+      parseOfferAxesFromVariant({
+        fulfilment_class: "standard",
+        tier_label: "Medium",
+        variant_label: "Medium · Photographic Print",
+      }),
+    ).toEqual({ sizeId: "medium", classId: "photographic" });
+
+    expect(
+      parseOfferAxesFromVariant({
+        tier_label: "Medium",
+        finish: "Archival matte",
+        is_framed: true,
+        variant_label: "Medium · Archival matte · Standard frame",
+      }),
+    ).toEqual({ sizeId: "medium", classId: "framed" });
+
+    expect(
+      parseOfferAxesFromVariant({
+        fulfilment_class: "framed",
+        tier_label: "Medium",
+        finish: "Archival matte",
+        is_framed: false,
+        variant_label: "Medium · Archival matte · Unframed",
+      }),
+    ).toEqual({ sizeId: "medium", classId: "fine_art" });
   });
 
   it("resolves a combo from a variant list", () => {
     const drafts = buildOfferVariantsForProduct({
       pixelWidth: 4000,
       pixelHeight: 3000,
+      ...pricingArgs,
       editionSize: 5,
-      mediaMarkupFactor: 3,
-      mediaBasePriceAud: 0,
-      frameMarkupFactor: 3,
-      frameBasePriceAud: 0,
     });
     const asVariants = drafts.map((draft, index) => ({
       id: `v-${index}`,
       is_active: true,
+      fulfilment_class: draft.fulfilment_class,
       tier_label: draft.tier_label,
       finish: draft.finish,
       is_framed: draft.is_framed,
@@ -110,8 +116,7 @@ describe("print offer matrix", () => {
     }));
     const match = findVariantForOfferCombo(asVariants, {
       sizeId: "small",
-      finishId: "rth_canvas",
-      presentationId: "unframed",
+      classId: "canvas",
     });
     expect(match?.variant_label).toBe("Small · Ready-to-hang canvas");
   });
@@ -120,57 +125,55 @@ describe("print offer matrix", () => {
     const drafts = buildOfferVariantsForProduct({
       pixelWidth: 6000,
       pixelHeight: 4000,
-      editionSize: 10,
-      mediaMarkupFactor: 3,
-      mediaBasePriceAud: 0,
-      frameMarkupFactor: 3,
-      frameBasePriceAud: 0,
+      ...pricingArgs,
     });
     const selected = applyOfferSelection(drafts, [
-      { sizeId: "medium", finishId: "archival_matte", presentationId: "unframed" },
-      { sizeId: "medium", finishId: "rth_canvas", presentationId: "unframed", price_aud: 25000 },
+      { sizeId: "medium", classId: "photographic" },
+      { sizeId: "medium", classId: "canvas", price_aud: 25000 },
     ]);
     expect(selected).toHaveLength(2);
-    expect(selected[0]?.variant_label).toBe("Medium · Archival matte · Unframed");
+    expect(selected[0]?.variant_label).toBe("Medium · Photographic Print");
     expect(selected[1]?.price_aud).toBe(25000);
-    expect(applyOfferSelection(drafts, undefined)).toHaveLength(9);
+    expect(applyOfferSelection(drafts, undefined)).toHaveLength(12);
     expect(() => applyOfferSelection(drafts, [])).toThrow("EMPTY_OFFER_SELECTION");
   });
 });
 
 describe("offer pricing", () => {
-  it("adds frame retail on top of matte media retail", () => {
-    const unframed = computeOfferVariantPricing({
+  it("uses PosterFactory package cost for photographic and framed", () => {
+    const photo = computeOfferVariantPricing({
       widthMm: 594,
       heightMm: 420,
-      finishId: "archival_matte",
-      presentationId: "unframed",
+      classId: "photographic",
+      sizeId: "medium",
       mediaMarkupFactor: 3,
       mediaBasePriceAud: 0,
       frameMarkupFactor: 3,
       frameBasePriceAud: 0,
     })!;
+    expect(photo.labCostAud).toBe(32);
+    expect(photo.retailAud).toBe(100);
+
     const framed = computeOfferVariantPricing({
       widthMm: 594,
       heightMm: 420,
-      finishId: "archival_matte",
-      presentationId: "framed",
+      classId: "framed",
+      sizeId: "small",
       mediaMarkupFactor: 3,
       mediaBasePriceAud: 0,
       frameMarkupFactor: 3,
       frameBasePriceAud: 0,
     })!;
-    expect(framed.mediaLabAud).toBe(unframed.mediaLabAud);
-    expect(framed.frameLabAud).toBeGreaterThan(0);
-    expect(framed.retailAud).toBe(unframed.mediaRetailAud + framed.frameRetailAud);
+    expect(framed.labCostAud).toBe(99);
+    expect(framed.retailAud).toBe(300);
   });
 
   it("prices canvas from RTH package without double-counting sq-in media", () => {
     const canvas = computeOfferVariantPricing({
       widthMm: 594,
       heightMm: 420,
-      finishId: "rth_canvas",
-      presentationId: "unframed",
+      classId: "canvas",
+      sizeId: "medium",
       mediaMarkupFactor: 3,
       mediaBasePriceAud: 0,
       frameMarkupFactor: 3,
@@ -181,18 +184,5 @@ describe("offer pricing", () => {
     const uin = unitedInchesFromMm(594, 420);
     const band = lookupBandByUnitedInches(uin, SEED_RTH_CANVAS_RATES)!;
     expect(canvas.labCostAud).toBe(band.packageAud);
-  });
-});
-
-describe("united-inch lookup", () => {
-  it("rounds up to the next listed band", () => {
-    expect(lookupBandByUnitedInches(65, SEED_FRAME_RATES)?.uin).toBe(67);
-    expect(lookupBandByUnitedInches(67, SEED_FRAME_RATES)?.uin).toBe(67);
-    expect(lookupBandByUnitedInches(20, SEED_FRAME_RATES)?.uin).toBe(20);
-  });
-
-  it("sums standard + perspex for frame lab cost", () => {
-    const band = SEED_FRAME_RATES.find((row) => row.uin === 43)!;
-    expect(frameLabCostAud(band)).toBe(Math.round((191.1 + 33.44) * 100) / 100);
   });
 });

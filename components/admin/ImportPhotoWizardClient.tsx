@@ -15,6 +15,7 @@ import {
   type FrameRateBand,
   type RthCanvasRateBand,
 } from "../../lib/print-frame-pricing";
+import type { PosterFactoryCatalogue } from "../../lib/posterfactory";
 import type { Gallery } from "../../lib/galleries";
 import type { Theme } from "../../lib/supabase/types";
 import { slugify } from "../../lib/utils/slugify";
@@ -145,6 +146,7 @@ export function ImportPhotoWizardClient({
   const [frameBasePriceAud, setFrameBasePriceAud] = useState(initialFrameBasePriceAud);
   const [frameRates, setFrameRates] = useState<FrameRateBand[] | undefined>(undefined);
   const [rthCanvasRates, setRthCanvasRates] = useState<RthCanvasRateBand[] | undefined>(undefined);
+  const [posterfactory, setPosterfactory] = useState<PosterFactoryCatalogue | undefined>(undefined);
   const [webImageMode, setWebImageMode] = useState<WebImageMode>("generate");
   const [webImage, setWebImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -177,6 +179,7 @@ export function ImportPhotoWizardClient({
         frameBasePriceAud,
         frameRates,
         rthCanvasRates,
+        posterfactory,
       });
     } catch {
       return [];
@@ -190,6 +193,7 @@ export function ImportPhotoWizardClient({
     hasMasterPixels,
     markupFactor,
     rthCanvasRates,
+    posterfactory,
     selectedMaster,
   ]);
 
@@ -208,6 +212,7 @@ export function ImportPhotoWizardClient({
           frame_base_price_aud?: number;
           frame_rates?: FrameRateBand[];
           rth_canvas_rates?: RthCanvasRateBand[];
+          posterfactory?: PosterFactoryCatalogue;
         };
         if (!cancelled) {
           if (typeof body.markup_factor === "number") setMarkupFactor(body.markup_factor);
@@ -216,6 +221,7 @@ export function ImportPhotoWizardClient({
           if (typeof body.frame_base_price_aud === "number") setFrameBasePriceAud(body.frame_base_price_aud);
           if (Array.isArray(body.frame_rates)) setFrameRates(body.frame_rates);
           if (Array.isArray(body.rth_canvas_rates)) setRthCanvasRates(body.rth_canvas_rates);
+          if (body.posterfactory) setPosterfactory(body.posterfactory);
         }
       } catch {
         // Keep server-provided default.
@@ -320,7 +326,7 @@ export function ImportPhotoWizardClient({
       return "Master TIFF pixel dimensions are required to build the print offer.";
     }
     if (step === 3 && offerDrafts.length === 0) {
-      return "Could not price the standard Size × Finish × Framed offer. Check Print Templates pricing.";
+      return "Could not price the standard Photographic / Fine Art / Framed / Canvas offer. Check Print Templates pricing.";
     }
     if (step === 3 && !sizesValid) {
       return "Select at least one print option, and check any price overrides.";
@@ -477,7 +483,7 @@ export function ImportPhotoWizardClient({
                 (with an embedded ICC profile).
               </li>
               <li>
-                You add title, slug, edition size, then choose which Size × Finish × Frame options to offer. Each
+                You add title, slug, edition size, then choose which Photographic / Fine Art / Frame / Canvas options to offer. Each
                 selected combo becomes an aspect-true custom-size variant priced as roundUp(base + markup × lab cost) —
                 currently base ${basePriceAud.toFixed(2)} and {markupFactor}× markup (editable on{" "}
                 <Link href="/admin/print-profiles">Print Templates</Link>). You can uncheck options or override retail

@@ -27,6 +27,8 @@ const registerProductSchema = z.object({
   edition_size: z.number().int().positive(),
   master_filename: z.string().min(1),
   web_image_url: z.string().url(),
+  master_pixel_width: z.number().int().positive().optional(),
+  master_pixel_height: z.number().int().positive().optional(),
   theme_ids: z.array(z.string().uuid()).optional(),
 });
 

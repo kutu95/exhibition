@@ -36,6 +36,7 @@ export function CartClient() {
           items: items.map((item) => ({
             variant_id: item.variant_id,
             quantity: item.quantity,
+            ...(item.frame_colour ? { frame_colour: item.frame_colour } : {}),
           })),
         }),
       });

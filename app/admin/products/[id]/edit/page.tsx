@@ -45,6 +45,9 @@ type ProductDetailResponse = {
     turnaround_days_max: number | null;
     shipping_class: string | null;
     fulfilment_notes: string | null;
+    fulfilment_provider?: "posterfactory" | "pixelperfect" | null;
+    fulfilment_class?: "standard" | "fine_art" | "framed" | "canvas" | null;
+    supplier_product_code?: string | null;
     aspect_ratio: string | null;
     canvas_wrap_mm: number | null;
     wrap_style: string | null;
@@ -144,6 +147,9 @@ export default async function AdminEditProductPage({ params }: PageProps) {
           turnaround_days_max: variant.turnaround_days_max?.toString() ?? "",
           shipping_class: variant.shipping_class ?? "",
           fulfilment_notes: variant.fulfilment_notes ?? "",
+          fulfilment_provider: variant.fulfilment_provider ?? "",
+          fulfilment_class: variant.fulfilment_class ?? "",
+          supplier_product_code: variant.supplier_product_code ?? "",
           aspect_ratio: variant.aspect_ratio ?? "",
           canvas_wrap_mm: variant.canvas_wrap_mm?.toString() ?? "",
           wrap_style: variant.wrap_style ?? "",

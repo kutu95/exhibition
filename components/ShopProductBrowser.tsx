@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
+import { providerFromVariant } from "../lib/fulfilment";
+import { findVariantForOfferCombo } from "../lib/print-offer";
 import { useCart } from "./CartProvider";
 import { useFavourites } from "./FavouritesProvider";
 import { ProductGrid } from "./ProductGrid";
@@ -20,6 +22,10 @@ const pickDefaultVariant = (product: ProductWithVariantsAndImages) => {
   const active = product.product_variants.filter((variant) => variant.is_active);
   const pool = active.length > 0 ? active : product.product_variants;
   if (pool.length === 0) return null;
+  const photographic = findVariantForOfferCombo(pool, { sizeId: "medium", classId: "photographic" });
+  if (photographic) return photographic;
+  const fineArt = findVariantForOfferCombo(pool, { sizeId: "medium", classId: "fine_art" });
+  if (fineArt) return fineArt;
   return pool.reduce((best, variant) => (variant.price_aud < best.price_aud ? variant : best));
 };
 
@@ -131,7 +137,7 @@ export function ShopProductBrowser({ products, isAdmin = false, galleries = [] }
       const variant = pickDefaultVariant(product);
       const imageUrl = product.product_images[0]?.image_url;
       if (!variant || !imageUrl) return;
-      addItem({
+      const result = addItem({
         variant_id: variant.id,
         product_title: product.title,
         variant_label: variant.variant_label,
@@ -139,7 +145,9 @@ export function ShopProductBrowser({ products, isAdmin = false, galleries = [] }
         slug: product.slug,
         image_url: imageUrl,
         quantity: 1,
+        fulfilment_provider: providerFromVariant(variant),
       });
+      if (!result.ok) return;
       added += 1;
     });
     if (added > 0) {

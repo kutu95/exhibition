@@ -46,6 +46,8 @@ export type FulfilmentDashboardItem = {
   frame_type: string | null;
   print_dpi: number;
   shipping_class: string | null;
+  fulfilment_provider?: "posterfactory" | "pixelperfect" | null;
+  fulfilment_class?: "standard" | "fine_art" | "framed" | "canvas" | null;
   variant_fulfilment_notes: string | null;
   canvas_wrap_mm: number | null;
   wrap_style: string | null;
@@ -302,7 +304,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     setPreviewFailed(false);
   }, [previewItem?.order_item_id]);
 
-  const copyToClipboard = async (value: string, label: string, html?: string) => {
+  const copyToClipboard = async (value: string, label: string, html?: string): Promise<boolean> => {
     try {
       if (html && typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
         await navigator.clipboard.write([
@@ -316,14 +318,17 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
       }
       setError(null);
       setMessage(`${label} copied.`);
+      return true;
     } catch {
       try {
         await navigator.clipboard.writeText(value);
         setError(null);
         setMessage(`${label} copied.`);
+        return true;
       } catch {
         setMessage(null);
         setError(`Could not copy ${label.toLowerCase()}.`);
+        return false;
       }
     }
   };
@@ -346,8 +351,17 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
       (item) => isStudioItem(item) && studioStatusesForLabEmail.has(item.fulfilment_status),
     );
     if (studioItems.length === 0) return null;
+    const countsByOrder = new Map<string, number>();
+    studioItems.forEach((item) => {
+      countsByOrder.set(item.order_number, (countsByOrder.get(item.order_number) ?? 0) + 1);
+    });
+    const orderSummary = [...countsByOrder.entries()]
+      .map(([orderNumber, count]) => `${orderNumber}: ${count}`)
+      .join(" · ");
     return {
       count: studioItems.length,
+      items: studioItems,
+      orderSummary,
       ...buildPixelPerfectOrderEmail(studioItems.map(pixelPerfectEmailItem)),
     };
   }, [items]);
@@ -390,6 +404,37 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     return true;
   };
 
+  const applyToItems = async (
+    targetItems: FulfilmentDashboardItem[],
+    fulfilmentStatus: string,
+    successLabel: string,
+  ) => {
+    if (targetItems.length === 0) return;
+
+    setError(null);
+    setMessage(null);
+    setApplyingOrder(successLabel);
+
+    try {
+      for (const item of targetItems) {
+        const ok = await patchItem(item.order_item_id, { fulfilment_status: fulfilmentStatus });
+        if (!ok) {
+          router.refresh();
+          return;
+        }
+      }
+
+      setMessage(
+        `Updated ${targetItems.length} print${targetItems.length === 1 ? "" : "s"} to ${formatStatusLabel(fulfilmentStatus)}.`,
+      );
+      router.refresh();
+    } catch (patchError) {
+      setError(adminClientFetchError(patchError));
+    } finally {
+      setApplyingOrder(null);
+    }
+  };
+
   const applyToGroup = async (group: OrderGroup, fulfilmentStatus: string) => {
     const selected = group.items.filter((item) => selectedIds.has(item.order_item_id));
     if (selected.length === 0) return;
@@ -420,6 +465,31 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     } finally {
       setApplyingOrder(null);
     }
+  };
+
+  const copyStudioOrderEmail = async () => {
+    if (!studioLabEmail) return;
+    const copied = await copyToClipboard(
+      studioLabEmail.body,
+      "Studio Pixel Perfect email",
+      studioLabEmail.html,
+    );
+    if (!copied) return;
+    const confirmed = window.confirm(
+      `Mark these ${studioLabEmail.count} studio prints as submitted to the lab?\n${studioLabEmail.orderSummary}`,
+    );
+    if (!confirmed) return;
+    await applyToItems(studioLabEmail.items, "submitted_to_lab", "studio-email");
+  };
+
+  const markStudioGroupSubmitted = async (group: OrderGroup) => {
+    const waiting = group.items.filter((item) => studioStatusesForLabEmail.has(item.fulfilment_status));
+    if (waiting.length === 0) return;
+    const confirmed = window.confirm(
+      `Mark ${waiting.length} print${waiting.length === 1 ? "" : "s"} on ${group.order_number} as submitted to the lab?`,
+    );
+    if (!confirmed) return;
+    await applyToItems(waiting, "submitted_to_lab", group.order_number);
   };
 
   const moveSelectedToOrder = async (group: OrderGroup) => {
@@ -545,16 +615,16 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
         {studioLabEmail ? (
           <>
             <p className={styles.muted}>
-              {studioLabEmail.count} studio print{studioLabEmail.count === 1 ? "" : "s"} waiting for the lab.
-              One email to {PIXEL_PERFECT_ORDER_EMAIL} — they invoice; you pay separately.
+              {studioLabEmail.count} studio print{studioLabEmail.count === 1 ? "" : "s"} waiting for the lab
+              {studioLabEmail.orderSummary ? ` (${studioLabEmail.orderSummary})` : ""}. One email to{" "}
+              {PIXEL_PERFECT_ORDER_EMAIL} — they invoice; you pay separately.
             </p>
             <div className={styles.actionRow}>
               <button
                 className={styles.button}
                 type="button"
-                onClick={() =>
-                  copyToClipboard(studioLabEmail.body, "Studio Pixel Perfect email", studioLabEmail.html)
-                }
+                disabled={applyingOrder !== null}
+                onClick={() => void copyStudioOrderEmail()}
               >
                 Copy studio order email
               </button>
@@ -674,6 +744,16 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   </button>
                   {isStudioOrder ? (
                     <>
+                      {group.items.some((item) => studioStatusesForLabEmail.has(item.fulfilment_status)) ? (
+                        <button
+                          className={styles.buttonSecondary}
+                          type="button"
+                          disabled={isApplying}
+                          onClick={() => void markStudioGroupSubmitted(group)}
+                        >
+                          Mark submitted to lab
+                        </button>
+                      ) : null}
                       <select
                         className={styles.field}
                         value={moveTargets[group.order_number] ?? ""}
@@ -781,6 +861,14 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                                 : `Cover crop${item.crop_offset ? ` · pan ${Number(item.crop_offset).toFixed(2)}` : ""}`}
                             </p>
                             <p><strong>Paper:</strong> {item.paper_type ?? "—"}</p>
+                            <p>
+                              <strong>Lab:</strong>{" "}
+                              {item.fulfilment_provider === "posterfactory"
+                                ? "PosterFactory"
+                                : item.fulfilment_provider === "pixelperfect"
+                                  ? "Pixel Perfect"
+                                  : "—"}
+                            </p>
                             <p><strong>Finish:</strong> {item.finish ?? "—"}</p>
                             <p><strong>Frame:</strong> {item.is_framed ? item.frame_type ?? "Framed" : "No"}</p>
                             <p><strong>Shipping class:</strong> {item.shipping_class ?? "—"}</p>

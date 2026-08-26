@@ -46,6 +46,7 @@ type VariantRepriceRow = {
   finish: string | null;
   tier_label: string | null;
   is_framed: boolean | null;
+  fulfilment_class: string | null;
   price_aud: number;
   lab_cost_aud: number | null;
   is_active: boolean;
@@ -80,6 +81,9 @@ const VARIANT_INSERT_SQL = `
     turnaround_days_max,
     shipping_class,
     fulfilment_notes,
+    fulfilment_provider,
+    fulfilment_class,
+    supplier_product_code,
     aspect_ratio,
     canvas_wrap_mm,
     wrap_style,
@@ -92,7 +96,7 @@ const VARIANT_INSERT_SQL = `
   values (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     null, null, null, null, true,
-    $11, $12, $13, $14, $15, $16, null, null, null, null, null, $17, $18,
+    $11, $12, $13, $14, $15, $16, null, null, null, null, $22, $17, $23, $24, $25, $18,
     null, null, null, null,
     $19, $20, $21
   )
@@ -129,6 +133,10 @@ export const insertOfferDrafts = async (
       draft.fit_mode,
       draft.crop_offset,
       draft.size_lock,
+      draft.shipping_class,
+      draft.fulfilment_provider,
+      draft.fulfilment_class,
+      draft.supplier_product_code,
     ]);
     created += 1;
   }
@@ -236,6 +244,7 @@ export const rebuildAllPrintOfferVariants = async (): Promise<RebuildPrintOption
         frameBasePriceAud: pricing.frameBasePriceAud,
         frameRates: pricing.frameRates,
         rthCanvasRates: pricing.rthCanvasRates,
+        posterfactory: pricing.posterfactory,
       });
     } catch {
       productsSkipped += 1;
@@ -335,6 +344,7 @@ export const rebuildPrintOfferVariantsForProduct = async (
       frameBasePriceAud: pricing.frameBasePriceAud,
       frameRates: pricing.frameRates,
       rthCanvasRates: pricing.rthCanvasRates,
+      posterfactory: pricing.posterfactory,
     });
 
     const deactivated = await client.query(
@@ -369,6 +379,7 @@ export const repriceAllPrintVariants = async (): Promise<RepriceOfferResult> => 
           pv.finish,
           pv.tier_label,
           pv.is_framed,
+          pv.fulfilment_class,
           pv.price_aud,
           pv.lab_cost_aud,
           pv.is_active
@@ -399,14 +410,15 @@ export const repriceAllPrintVariants = async (): Promise<RepriceOfferResult> => 
       const next = computeOfferVariantPricing({
         widthMm,
         heightMm,
-        finishId: axes.finishId,
-        presentationId: axes.presentationId,
+        classId: axes.classId,
+        sizeId: axes.sizeId,
         mediaMarkupFactor: pricing.markupFactor,
         mediaBasePriceAud: pricing.basePriceAud,
         frameMarkupFactor: pricing.frameMarkupFactor,
         frameBasePriceAud: pricing.frameBasePriceAud,
         frameRates: pricing.frameRates,
         rthCanvasRates: pricing.rthCanvasRates,
+        posterfactory: pricing.posterfactory,
       });
 
       if (!next) {

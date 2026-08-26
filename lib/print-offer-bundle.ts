@@ -9,6 +9,7 @@ import {
 import { getPrintPricingSettings, type PrintPricingSettings } from "./print-markup";
 import { getPrintPapers } from "./print-papers";
 import type { ManagedPaper } from "./print-catalogue";
+import { getPosterFactoryCatalogue, type PosterFactoryCatalogue } from "./posterfactory";
 
 export type OfferPricingBundle = PrintPricingSettings & {
   papers: ManagedPaper[];
@@ -16,15 +17,17 @@ export type OfferPricingBundle = PrintPricingSettings & {
   frameBasePriceAud: number;
   frameRates: FrameRateBand[];
   rthCanvasRates: RthCanvasRateBand[];
+  posterfactory: PosterFactoryCatalogue;
 };
 
 export const getOfferPricingBundle = async (): Promise<OfferPricingBundle> => {
-  const [media, frame, frameRates, rthCanvasRates, papers] = await Promise.all([
+  const [media, frame, frameRates, rthCanvasRates, papers, posterfactory] = await Promise.all([
     getPrintPricingSettings(),
     getFramePricingSettings(),
     getFrameRates(),
     getRthCanvasRates(),
     getPrintPapers(),
+    getPosterFactoryCatalogue(),
   ]);
 
   return {
@@ -34,6 +37,7 @@ export const getOfferPricingBundle = async (): Promise<OfferPricingBundle> => {
     frameBasePriceAud: frame.basePriceAud,
     frameRates,
     rthCanvasRates,
+    posterfactory,
   };
 };
 

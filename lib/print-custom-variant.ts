@@ -26,6 +26,7 @@ export type CreateCustomPrintVariantResult = {
   price_aud: number;
   width_mm: number;
   height_mm: number;
+  fulfilment_provider: "pixelperfect";
 };
 
 type ProductContext = {
@@ -173,6 +174,9 @@ export const createCustomPrintVariant = async (
           turnaround_days_max,
           shipping_class,
           fulfilment_notes,
+          fulfilment_provider,
+          fulfilment_class,
+          supplier_product_code,
           aspect_ratio,
           canvas_wrap_mm,
           wrap_style,
@@ -186,7 +190,7 @@ export const createCustomPrintVariant = async (
           $1, $2, $3, $4, 0, $5, $6, $7, $8, $9,
           null, null, null, null, true,
           'Custom', $10, $11, $12, 300, $13,
-          null, null, null, null, null, $14, $15,
+          null, null, null, null, 'pixelperfect', $14, 'pixelperfect', $16, $17, $15,
           null, null, null, null,
           'custom_size', 0, 'long_edge'
         )
@@ -208,6 +212,8 @@ export const createCustomPrintVariant = async (
         priced.labCostCents,
         priced.fulfilmentNotes,
         size.aspect_ratio,
+        priced.fulfilment_class,
+        priced.supplier_product_code,
       ],
     );
 
@@ -220,6 +226,7 @@ export const createCustomPrintVariant = async (
       price_aud: priced.retailCents,
       width_mm: priced.widthMm,
       height_mm: priced.heightMm,
+      fulfilment_provider: "pixelperfect",
     };
   });
 };

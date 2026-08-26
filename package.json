@@ -9,7 +9,8 @@
     "worker": ".worker-venv/bin/python3 worker/fulfilment_worker.py",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:check": "node scripts/check-database.mjs"
+    "db:check": "node scripts/check-database.mjs",
+    "db:backup": "bash scripts/backup-shared-supabase.sh"
   },
   "keywords": [],
   "author": "",

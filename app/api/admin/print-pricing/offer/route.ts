@@ -18,7 +18,8 @@ import {
   type RthCanvasRateBand,
 } from "../../../../../lib/print-frame-pricing";
 import { getOfferPricingBundle } from "../../../../../lib/print-offer-bundle";
-import { OFFER_COMBOS, OFFER_MATTE_PAPER_LABEL, OFFER_SIZES } from "../../../../../lib/print-offer";
+import { OFFER_CLASSES, OFFER_COMBOS, OFFER_FINE_ART_PAPER_LABEL, OFFER_SIZES } from "../../../../../lib/print-offer";
+import { setPosterFactoryCatalogue, type PosterFactoryCatalogue } from "../../../../../lib/posterfactory";
 
 export async function GET(request: Request) {
   try {
@@ -39,10 +40,12 @@ export async function GET(request: Request) {
       default_frame_base_price_aud: DEFAULT_PRINT_FRAME_BASE_AUD,
       frame_rates: bundle.frameRates,
       rth_canvas_rates: bundle.rthCanvasRates,
+      posterfactory: bundle.posterfactory,
       offer: {
         sizes: OFFER_SIZES,
+        classes: OFFER_CLASSES,
         combo_count: OFFER_COMBOS.length,
-        matte_paper: OFFER_MATTE_PAPER_LABEL,
+        fine_art_paper: OFFER_FINE_ART_PAPER_LABEL,
       },
     });
   } catch (error) {
@@ -71,6 +74,58 @@ const patchSchema = z.object({
         packageAud: z.number().min(0),
       }),
     )
+    .optional(),
+  posterfactory: z
+    .object({
+      photographic: z.object({
+        classId: z.literal("photographic"),
+        label: z.string(),
+        paper: z.string(),
+        productCode: z.string(),
+        productUrl: z.string(),
+        sizes: z.object({
+          small: z.object({
+            supplierCostAud: z.number().min(0),
+            retailPriceAud: z.number().min(0).nullable(),
+            isActive: z.boolean(),
+          }),
+          medium: z.object({
+            supplierCostAud: z.number().min(0),
+            retailPriceAud: z.number().min(0).nullable(),
+            isActive: z.boolean(),
+          }),
+          large: z.object({
+            supplierCostAud: z.number().min(0),
+            retailPriceAud: z.number().min(0).nullable(),
+            isActive: z.boolean(),
+          }),
+        }),
+      }),
+      framed: z.object({
+        classId: z.literal("framed"),
+        label: z.string(),
+        paper: z.string(),
+        productCode: z.string(),
+        productUrl: z.string(),
+        sizes: z.object({
+          small: z.object({
+            supplierCostAud: z.number().min(0),
+            retailPriceAud: z.number().min(0).nullable(),
+            isActive: z.boolean(),
+          }),
+          medium: z.object({
+            supplierCostAud: z.number().min(0),
+            retailPriceAud: z.number().min(0).nullable(),
+            isActive: z.boolean(),
+          }),
+          large: z.object({
+            supplierCostAud: z.number().min(0),
+            retailPriceAud: z.number().min(0).nullable(),
+            isActive: z.boolean(),
+          }),
+        }),
+      }),
+    })
     .optional(),
 });
 
@@ -108,6 +163,9 @@ export async function PATCH(request: Request) {
     if (parsed.data.rth_canvas_rates) {
       await setRthCanvasRates(parsed.data.rth_canvas_rates as RthCanvasRateBand[]);
     }
+    if (parsed.data.posterfactory) {
+      await setPosterFactoryCatalogue(parsed.data.posterfactory as PosterFactoryCatalogue);
+    }
 
     const bundle = await getOfferPricingBundle();
     return NextResponse.json({
@@ -117,6 +175,7 @@ export async function PATCH(request: Request) {
       frame_base_price_aud: bundle.frameBasePriceAud,
       frame_rates: bundle.frameRates,
       rth_canvas_rates: bundle.rthCanvasRates,
+      posterfactory: bundle.posterfactory,
     });
   } catch (error) {
     return handleRouteError(error, "Admin print offer PATCH failed");

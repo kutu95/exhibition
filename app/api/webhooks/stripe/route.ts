@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 import { assignEditionsToOrder } from "../../../../lib/edition-assignment";
+import { singleFulfilmentProvider } from "../../../../lib/fulfilment";
 import { sendOrderConfirmationEmail } from "../../../../lib/emails/order-confirmation";
 import { stripe } from "../../../../lib/stripe";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
@@ -12,6 +13,7 @@ export const runtime = "nodejs";
 type CheckoutMetadataItem = {
   variant_id: string;
   quantity: number;
+  frame_colour?: string | null;
 };
 
 type VariantForOrder = {
@@ -19,6 +21,7 @@ type VariantForOrder = {
   variant_label: string;
   price_aud: number;
   edition_size: number | null;
+  fulfilment_provider: "posterfactory" | "pixelperfect" | null;
   products:
     | {
         title: string;
@@ -140,7 +143,7 @@ const upsertPaidOrderFromSession = async (
 
   const { data: variants, error: variantError } = await supabaseAdmin
     .from("product_variants")
-    .select("id, variant_label, price_aud, edition_size, products(title)")
+    .select("id, variant_label, price_aud, edition_size, fulfilment_provider, products(title)")
     .in("id", variantIds);
 
   if (variantError) {
@@ -169,6 +172,9 @@ const upsertPaidOrderFromSession = async (
     return;
   }
 
+  const providerCheck = singleFulfilmentProvider(variantRows);
+  const fulfilmentProvider = providerCheck.ok ? providerCheck.provider : null;
+
   const orderInsert = {
     stripe_payment_intent_id: paymentIntentId,
     stripe_checkout_session_id: session.id,
@@ -180,6 +186,7 @@ const upsertPaidOrderFromSession = async (
     shipping_aud: session.shipping_cost?.amount_total ?? 0,
     total_aud: session.amount_total ?? 0,
     notes: session.metadata?.source ? `source=${session.metadata.source}` : null,
+    fulfilment_provider: fulfilmentProvider,
   };
 
   const { data: createdOrder, error: orderError } = await supabaseAdmin
@@ -205,6 +212,8 @@ const upsertPaidOrderFromSession = async (
       unit_price_aud: variant.price_aud,
       edition_number_assigned: null as number | null,
       fulfilment_status: "awaiting_file" as const,
+      fulfilment_provider: variant.fulfilment_provider,
+      frame_colour: typeof item.frame_colour === "string" ? item.frame_colour : null,
     };
   });
 

@@ -140,6 +140,7 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
       frameBasePriceAud: pricing.frameBasePriceAud,
       frameRates: pricing.frameRates,
       rthCanvasRates: pricing.rthCanvasRates,
+      posterfactory: pricing.posterfactory,
     }),
     payload.offer_selection,
   );

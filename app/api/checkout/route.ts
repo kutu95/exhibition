@@ -3,6 +3,8 @@ import Stripe from "stripe";
 import { z } from "zod";
 
 import { isProductVisibleInCatalog } from "../../../lib/catalog-products";
+import { checkoutShippingOptions } from "../../../lib/checkout-shipping";
+import { MIXED_PROVIDER_MESSAGE, singleFulfilmentProvider } from "../../../lib/fulfilment";
 import { assignEditionsToOrder } from "../../../lib/edition-assignment";
 import {
   arePurchasesAllowedForRequest,
@@ -20,6 +22,7 @@ const checkoutSchema = z.object({
       z.object({
         variant_id: z.string().uuid(),
         quantity: z.number().int().positive(),
+        frame_colour: z.string().max(40).nullable().optional(),
       }),
     )
     .min(1),
@@ -30,6 +33,7 @@ type VariantRecord = {
   id: string;
   variant_label: string;
   price_aud: number;
+  fulfilment_provider: "posterfactory" | "pixelperfect" | null;
   products:
     | {
         title: string;
@@ -84,7 +88,7 @@ export async function POST(request: Request) {
 
     const { data: variants, error: variantsError } = await supabaseAdmin
       .from("product_variants")
-      .select("id, variant_label, price_aud, products!inner(title, is_available, visibility, gallery_id)")
+      .select("id, variant_label, price_aud, fulfilment_provider, products!inner(title, is_available, visibility, gallery_id)")
       .in("id", variantIds)
       .eq("is_active", true)
       .eq("products.is_available", true);
@@ -108,6 +112,12 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const providerCheck = singleFulfilmentProvider([...variantMap.values()]);
+    if (!providerCheck.ok) {
+      return NextResponse.json({ error: MIXED_PROVIDER_MESSAGE }, { status: 400 });
+    }
+    const fulfilmentProvider = providerCheck.provider;
 
     if (isStripeBypassEnabled()) {
       const subtotal = requestedItems.reduce((sum, item) => {
@@ -133,6 +143,7 @@ export async function POST(request: Request) {
           subtotal_aud: subtotal,
           shipping_aud: 0,
           total_aud: subtotal,
+          fulfilment_provider: fulfilmentProvider,
           notes: checkoutSource
             ? `Order created with CHECKOUT_BYPASS_STRIPE enabled. source=${checkoutSource}`
             : "Order created with CHECKOUT_BYPASS_STRIPE enabled.",
@@ -159,6 +170,8 @@ export async function POST(request: Request) {
           edition_number_assigned: null as number | null,
           fulfilment_status: "awaiting_file" as const,
           fulfilment_notes: "Created via global Stripe bypass setting.",
+          fulfilment_provider: variant.fulfilment_provider,
+          frame_colour: item.frame_colour ?? null,
         };
       });
 
@@ -212,32 +225,11 @@ export async function POST(request: Request) {
       shipping_address_collection: {
         allowed_countries: ["AU", "NZ", "GB", "US", "CA", "DE", "FR", "NL", "SG", "JP"],
       },
-      shipping_options: [
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: 0, currency: "aud" },
-            display_name: "Exhibition pickup",
-            delivery_estimate: {
-              maximum: { unit: "business_day", value: 1 },
-            },
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: 0, currency: "aud" },
-            display_name: "Ship to address (Australia free / international arranged)",
-            delivery_estimate: {
-              minimum: { unit: "business_day", value: 3 },
-              maximum: { unit: "business_day", value: 14 },
-            },
-          },
-        },
-      ],
+      shipping_options: checkoutShippingOptions(fulfilmentProvider),
       metadata: {
         variant_ids: JSON.stringify(requestedItems),
         ...(checkoutSource ? { source: checkoutSource } : {}),
+        ...(fulfilmentProvider ? { fulfilment_provider: fulfilmentProvider } : {}),
       },
     });
 

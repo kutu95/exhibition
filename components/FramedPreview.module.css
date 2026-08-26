@@ -71,7 +71,8 @@
   --deluxe-4: #838d98;
 }
 
-.framed[data-frame-colour="teak"] {
+.framed[data-frame-colour="teak"],
+.framed[data-frame-colour="timber"] {
   --standard-1: #b18258;
   --standard-2: #8d613a;
   --standard-3: #6e4727;

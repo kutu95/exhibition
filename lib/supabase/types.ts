@@ -95,6 +95,9 @@ export type ProductVariant = {
   turnaround_days_max: number | null;
   shipping_class: string | null;
   fulfilment_notes: string | null;
+  fulfilment_provider: "posterfactory" | "pixelperfect" | null;
+  fulfilment_class: "standard" | "fine_art" | "framed" | "canvas" | null;
+  supplier_product_code: string | null;
   aspect_ratio: string | null;
   canvas_wrap_mm: number | null;
   wrap_style: string | null;
@@ -143,6 +146,7 @@ export type Order = {
   shipping_aud: number;
   total_aud: number;
   notes: string | null;
+  fulfilment_provider: "posterfactory" | "pixelperfect" | null;
   created_at: string;
   updated_at: string;
 };
@@ -160,6 +164,8 @@ export type OrderItem = {
   pixel_perfect_order_ref: string | null;
   tracking_number: string | null;
   fulfilment_notes: string | null;
+  fulfilment_provider: "posterfactory" | "pixelperfect" | null;
+  frame_colour: string | null;
   file_ready_at: string | null;
   submitted_to_lab_at: string | null;
   shipped_at: string | null;

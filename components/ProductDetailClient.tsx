@@ -11,31 +11,29 @@ import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "./StudioOrde
 import {
   type FrameColourId,
   FramedPreview,
-  mapOfferPresentationToFrame,
 } from "./FramedPreview";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { adminClientFetch, adminClientFetchError } from "../lib/admin-client-fetch";
 import { readCart } from "../lib/cart";
+import { providerFromVariant } from "../lib/fulfilment";
 import { isWallSource } from "../lib/exhibition-links";
 import { readOrderItemEditParams, buildOrderItemEditQuery } from "../lib/order-item-edit-params";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
 import {
   findVariantForOfferCombo,
-  OFFER_FINISH_LABEL,
-  OFFER_PRESENTATION_LABEL,
+  OFFER_CLASS_DETAILS,
+  OFFER_CLASS_LABEL,
+  OFFER_CLASS_PROVIDER,
+  OFFER_CLASS_SUMMARY,
+  OFFER_CLASSES,
   OFFER_SIZE_LABEL,
   OFFER_SIZES,
   parseOfferAxesFromVariant,
-  type OfferFinishId,
-  type OfferPresentationId,
+  type OfferClassId,
   type OfferSizeId,
 } from "../lib/print-offer";
 import { SHOW_CUSTOM_PRINT_PAGE } from "../lib/print-custom";
-import {
-  FRAME_NOTE_PERSPEX,
-  OFFER_FRAMED_FRAME,
-  OFFER_FRAMED_SAMPLE_IMAGE,
-} from "../lib/print-frame-styles";
+import { OFFER_FRAMED_SAMPLE_IMAGE } from "../lib/print-frame-styles";
 import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
@@ -49,15 +47,14 @@ type ProductDetailClientProps = {
   isAdmin?: boolean;
 };
 
-const FINISH_OPTIONS: OfferFinishId[] = ["archival_matte", "rth_canvas"];
-const PRESENTATION_OPTIONS: OfferPresentationId[] = ["unframed", "framed"];
-const FRAME_COLOUR_OPTIONS: { id: FrameColourId; label: string }[] = [
+const POSTERFACTORY_FRAME_COLOURS: { id: FrameColourId; label: string }[] = [
   { id: "black", label: "Black" },
-  { id: "silver", label: "Silver" },
-  { id: "teak", label: "Teak" },
-  { id: "gold", label: "Gold" },
   { id: "white", label: "White" },
+  { id: "timber", label: "Timber" },
 ];
+
+const FRAME_NOTE_OPTISHIELD =
+  "Framed prints use 3mm Opti-shield (acrylic) instead of glass so they can be shipped safely.";
 
 const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   const wIn = Math.round(mmToInches(widthMm) * 10) / 10;
@@ -85,23 +82,26 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
 
   const defaultAxes = useMemo(() => {
     if (preselectedAxes) return preselectedAxes;
-    const mediumUnframed = findVariantForOfferCombo(offerVariants, {
+    const mediumPhoto = findVariantForOfferCombo(offerVariants, {
       sizeId: "medium",
-      finishId: "archival_matte",
-      presentationId: "unframed",
+      classId: "photographic",
     });
-    if (mediumUnframed) {
-      return parseOfferAxesFromVariant(mediumUnframed)!;
+    if (mediumPhoto) {
+      return parseOfferAxesFromVariant(mediumPhoto)!;
+    }
+    const mediumFineArt = findVariantForOfferCombo(offerVariants, {
+      sizeId: "medium",
+      classId: "fine_art",
+    });
+    if (mediumFineArt) {
+      return parseOfferAxesFromVariant(mediumFineArt)!;
     }
     const first = offerVariants[0] ? parseOfferAxesFromVariant(offerVariants[0]) : null;
-    return first ?? { sizeId: "medium" as OfferSizeId, finishId: "archival_matte" as OfferFinishId, presentationId: "unframed" as OfferPresentationId };
+    return first ?? { sizeId: "medium" as OfferSizeId, classId: "photographic" as OfferClassId };
   }, [offerVariants, preselectedAxes]);
 
   const [sizeId, setSizeId] = useState<OfferSizeId>(defaultAxes.sizeId);
-  const [finishId, setFinishId] = useState<OfferFinishId>(defaultAxes.finishId);
-  const [presentationId, setPresentationId] = useState<OfferPresentationId>(
-    defaultAxes.finishId === "rth_canvas" ? "unframed" : defaultAxes.presentationId,
-  );
+  const [classId, setClassId] = useState<OfferClassId>(defaultAxes.classId);
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
 
   const initialVariantId =
@@ -126,11 +126,10 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     if (!useOfferChooser) return;
     const resolved = findVariantForOfferCombo(offerVariants, {
       sizeId,
-      finishId,
-      presentationId: finishId === "rth_canvas" ? "unframed" : presentationId,
+      classId,
     });
     if (resolved) setSelectedVariantId(resolved.id);
-  }, [finishId, offerVariants, presentationId, sizeId, useOfferChooser]);
+  }, [classId, offerVariants, sizeId, useOfferChooser]);
 
   useEffect(() => {
     if (!preselectVariantId) return;
@@ -140,8 +139,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     const axes = parseOfferAxesFromVariant(match);
     if (axes) {
       setSizeId(axes.sizeId);
-      setFinishId(axes.finishId);
-      setPresentationId(axes.presentationId);
+      setClassId(axes.classId);
     }
   }, [preselectVariantId, variants]);
 
@@ -176,10 +174,18 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     return OFFER_SIZES.map((s) => s.id).filter((id) => ids.has(id));
   }, [offerVariants]);
 
+  const availableClassIds = useMemo(() => {
+    const ids = new Set<OfferClassId>();
+    for (const variant of offerVariants) {
+      const axes = parseOfferAxesFromVariant(variant);
+      if (axes) ids.add(axes.classId);
+    }
+    return OFFER_CLASSES.filter((id) => ids.has(id));
+  }, [offerVariants]);
+
   const priceForCombo = (combo: {
     sizeId: OfferSizeId;
-    finishId: OfferFinishId;
-    presentationId: OfferPresentationId;
+    classId: OfferClassId;
   }): ProductVariant | null => findVariantForOfferCombo(offerVariants, combo);
 
   if (!primaryImage) {
@@ -188,6 +194,10 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
 
   const cartLine = () => {
     if (!selectedVariant) return null;
+    // Prefer the variant row; fall back to the selected offer class so newly
+    // presented Photographic/Framed options still enforce cart rules before rebuild.
+    const fulfilmentProvider =
+      providerFromVariant(selectedVariant) ?? OFFER_CLASS_PROVIDER[classId] ?? null;
     return {
       variant_id: selectedVariant.id,
       product_title: product.title,
@@ -196,6 +206,8 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
       slug: product.slug,
       image_url: primaryImage,
       quantity: 1 as const,
+      fulfilment_provider: fulfilmentProvider,
+      frame_colour: classId === "framed" ? frameColour : null,
     };
   };
 
@@ -204,7 +216,8 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     const item = cartLine();
     if (!item || !selectedVariant) return;
     setError(null);
-    addItem(item);
+    const result = addItem(item);
+    if (!result.ok) return;
     trackEvent(PlausibleEvents.SHOP_ADD_TO_CART, {
       product: product.title,
       variant: selectedVariant.variant_label,
@@ -214,7 +227,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     router.push("/cart");
   };
 
-  const startCheckout = async (checkoutItems: { variant_id: string; quantity: number }[]) => {
+  const startCheckout = async (checkoutItems: { variant_id: string; quantity: number; frame_colour?: string | null }[]) => {
     if (!selectedVariant) return;
 
     try {
@@ -262,17 +275,21 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     if (!purchasesAllowed) return;
     const item = cartLine();
     if (!item || !selectedVariant) return;
-    await startCheckout([{ variant_id: item.variant_id, quantity: item.quantity }]);
+    await startCheckout([
+      { variant_id: item.variant_id, quantity: item.quantity, frame_colour: item.frame_colour },
+    ]);
   };
 
   const handleBuyNow = async () => {
     if (!purchasesAllowed) return;
     const item = cartLine();
     if (!item || !selectedVariant) return;
-    addItem(item);
+    const result = addItem(item);
+    if (!result.ok) return;
     const checkoutItems = readCart().map((row) => ({
       variant_id: row.variant_id,
       quantity: row.quantity,
+      ...(row.frame_colour ? { frame_colour: row.frame_colour } : {}),
     }));
     await startCheckout(checkoutItems);
   };
@@ -373,11 +390,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     <section className={`section container ${styles.wrap}`}>
       <div className={styles.gallery}>
         <FramedPreview
-          frame={
-            useOfferChooser && finishId === "archival_matte"
-              ? mapOfferPresentationToFrame(presentationId)
-              : "none"
-          }
+          frame={useOfferChooser && classId === "framed" ? "standard" : "none"}
           longEdgeMm={OFFER_SIZES.find((size) => size.id === sizeId)?.longEdgeMm ?? 594}
           frameColour={frameColour}
           className={styles.mainImageWrap}
@@ -478,6 +491,55 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         {useOfferChooser ? (
           <div className={styles.offerChooser}>
             <fieldset className={styles.offerFieldset}>
+              <legend>Print type</legend>
+              <div className={styles.offerOptions}>
+                {availableClassIds.map((id) => {
+                  const sample = priceForCombo({ sizeId, classId: id });
+                  const isFramedOption = id === "framed";
+                  return (
+                    <label
+                      key={id}
+                      className={`${styles.offerOption} ${isFramedOption ? styles.offerOptionWithSample : ""} ${
+                        id === "fine_art" ? styles.offerOptionPremium : ""
+                      } ${classId === id ? styles.offerOptionActive : ""} ${
+                        !sample ? styles.offerOptionDisabled : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="offer-class"
+                        checked={classId === id}
+                        disabled={!sample}
+                        onChange={() => setClassId(id)}
+                      />
+                      {isFramedOption ? (
+                        <span className={styles.offerOptionSample}>
+                          <img
+                            src={OFFER_FRAMED_SAMPLE_IMAGE}
+                            alt="Framed print sample"
+                            width={96}
+                            height={96}
+                            className={styles.offerOptionSampleImage}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </span>
+                      ) : null}
+                      <span className={styles.offerOptionCopy}>
+                        <span className={styles.offerOptionTitle}>{OFFER_CLASS_LABEL[id]}</span>
+                        <span className={styles.offerOptionMeta}>{OFFER_CLASS_SUMMARY[id]}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <details className={styles.offerDetails}>
+                <summary>More details</summary>
+                <p>{OFFER_CLASS_DETAILS[classId]}</p>
+              </details>
+            </fieldset>
+
+            <fieldset className={styles.offerFieldset}>
               <legend className={styles.sizeLegend}>
                 <span>Size</span>
                 {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" && !fromWall ? (
@@ -495,11 +557,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
               </legend>
               <div className={styles.offerOptions}>
                 {availableSizeIds.map((id) => {
-                  const sample = priceForCombo({
-                    sizeId: id,
-                    finishId,
-                    presentationId: finishId === "rth_canvas" ? "unframed" : presentationId,
-                  });
+                  const sample = priceForCombo({ sizeId: id, classId });
                   const sizeDef = OFFER_SIZES.find((size) => size.id === id);
                   const widthMm = sample?.width_mm ?? null;
                   const heightMm = sample?.height_mm ?? null;
@@ -526,6 +584,9 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                       <span className={styles.offerOptionCopy}>
                         <span className={styles.offerOptionTitle}>{OFFER_SIZE_LABEL[id]}</span>
                         {dimensionLine ? <span className={styles.offerOptionMeta}>{dimensionLine}</span> : null}
+                        {sample ? (
+                          <span className={styles.offerOptionMeta}>{formatAUD(sample.price_aud)}</span>
+                        ) : null}
                       </span>
                     </label>
                   );
@@ -533,97 +594,12 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
               </div>
             </fieldset>
 
-            <fieldset className={styles.offerFieldset}>
-              <legend>Finish</legend>
-              <div className={styles.offerOptions}>
-                {FINISH_OPTIONS.map((id) => {
-                  const sample = priceForCombo({
-                    sizeId,
-                    finishId: id,
-                    presentationId: id === "rth_canvas" ? "unframed" : presentationId,
-                  });
-                  return (
-                    <label
-                      key={id}
-                      className={`${styles.offerOption} ${finishId === id ? styles.offerOptionActive : ""} ${
-                        !sample ? styles.offerOptionDisabled : ""
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="offer-finish"
-                        checked={finishId === id}
-                        disabled={!sample}
-                        onChange={() => {
-                          setFinishId(id);
-                          if (id === "rth_canvas") setPresentationId("unframed");
-                        }}
-                      />
-                      <span>{OFFER_FINISH_LABEL[id]}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            {finishId === "archival_matte" ? (
-              <fieldset className={styles.offerFieldset}>
-                <legend>Presentation</legend>
-                <p className={styles.frameNote}>{FRAME_NOTE_PERSPEX}</p>
-                <div className={styles.offerOptions}>
-                  {PRESENTATION_OPTIONS.map((id) => {
-                    const sample = priceForCombo({
-                      sizeId,
-                      finishId: "archival_matte",
-                      presentationId: id,
-                    });
-                    const isFramedOption = id === "framed";
-                    return (
-                      <label
-                        key={id}
-                        className={`${styles.offerOption} ${isFramedOption ? styles.offerOptionWithSample : ""} ${
-                          presentationId === id ? styles.offerOptionActive : ""
-                        } ${!sample ? styles.offerOptionDisabled : ""}`}
-                      >
-                        <input
-                          type="radio"
-                          name="offer-presentation"
-                          checked={presentationId === id}
-                          disabled={!sample}
-                          onChange={() => setPresentationId(id)}
-                        />
-                        {isFramedOption ? (
-                          <span className={styles.offerOptionSample}>
-                            <img
-                              src={OFFER_FRAMED_SAMPLE_IMAGE}
-                              alt={`${OFFER_FRAMED_FRAME.label} moulding sample`}
-                              width={96}
-                              height={96}
-                              className={styles.offerOptionSampleImage}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          </span>
-                        ) : null}
-                        <span className={styles.offerOptionCopy}>
-                          <span className={styles.offerOptionTitle}>{OFFER_PRESENTATION_LABEL[id]}</span>
-                          {isFramedOption ? (
-                            <span className={styles.offerOptionMeta}>{OFFER_FRAMED_FRAME.summary}</span>
-                          ) : (
-                            <span className={styles.offerOptionMeta}>Print only — no moulding</span>
-                          )}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            ) : null}
-            {finishId === "archival_matte" && presentationId === "framed" ? (
+            {classId === "framed" ? (
               <fieldset className={styles.offerFieldset}>
                 <legend>Frame colour</legend>
+                <p className={styles.frameNote}>{FRAME_NOTE_OPTISHIELD}</p>
                 <div className={styles.frameColourOptions}>
-                  {FRAME_COLOUR_OPTIONS.map((option) => (
+                  {POSTERFACTORY_FRAME_COLOURS.map((option) => (
                     <label
                       key={option.id}
                       className={`${styles.frameColourOption} ${
@@ -761,7 +737,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                   </p>
                 ) : (
                   <p className={styles.studioOrderHint}>
-                    Admin only · No payment, no edition number. Queues a lab TIFF for Pixel Perfect.
+                    Admin only · No payment, no edition number. Queues a lab TIFF for fulfilment.
                   </p>
                 )}
               </div>

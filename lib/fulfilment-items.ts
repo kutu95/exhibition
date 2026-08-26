@@ -41,6 +41,8 @@ export type FulfilmentItem = {
   frame_type: string | null;
   print_dpi: number;
   shipping_class: string | null;
+  fulfilment_provider: "posterfactory" | "pixelperfect" | null;
+  fulfilment_class: "standard" | "fine_art" | "framed" | "canvas" | null;
   variant_fulfilment_notes: string | null;
   canvas_wrap_mm: number | null;
   wrap_style: string | null;
@@ -137,6 +139,8 @@ const fulfilmentItemJson = `
       'frame_type', pv.frame_type,
       'print_dpi', pv.print_dpi,
       'shipping_class', pv.shipping_class,
+      'fulfilment_provider', coalesce(oi.fulfilment_provider, pv.fulfilment_provider),
+      'fulfilment_class', pv.fulfilment_class,
       'variant_fulfilment_notes', pv.fulfilment_notes,
       'canvas_wrap_mm', pv.canvas_wrap_mm,
       'wrap_style', pv.wrap_style,

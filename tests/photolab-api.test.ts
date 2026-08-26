@@ -234,6 +234,12 @@ describe("Photolab API contract", () => {
           update: vi.fn(() => ({
             eq: vi.fn(async () => ({ error: null })),
           })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+            })),
+          })),
+          insert: vi.fn(async () => ({ error: null })),
         })),
       },
     }));
@@ -252,6 +258,8 @@ describe("Photolab API contract", () => {
           edition_size: 10,
           master_filename: "new_print.tif",
           web_image_url: "https://example.com/image.jpg",
+          master_pixel_width: 6000,
+          master_pixel_height: 4000,
         }),
       }),
     );

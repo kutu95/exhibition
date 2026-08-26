@@ -20,6 +20,7 @@ import {
   type FrameRateBand,
   type RthCanvasRateBand,
 } from "../../lib/print-frame-pricing";
+import type { PosterFactoryCatalogue } from "../../lib/posterfactory";
 import { buildOfferVariantsForProduct, type OfferVariantDraft } from "../../lib/print-offer";
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import type { OpenStudioOrder } from "../../lib/studio-orders";
@@ -97,6 +98,9 @@ const createBlankVariant = (): VariantInput => ({
   turnaround_days_max: "",
   shipping_class: "",
   fulfilment_notes: "",
+  fulfilment_provider: "pixelperfect",
+  fulfilment_class: "fine_art",
+  supplier_product_code: "",
   aspect_ratio: "",
   canvas_wrap_mm: "",
   wrap_style: "",
@@ -132,6 +136,9 @@ const offerDraftToVariantInput = (draft: OfferVariantDraft, editionSize: string)
   frame_type: draft.frame_type ?? "",
   lab_cost_dollars: (draft.lab_cost_aud / 100).toFixed(2),
   fulfilment_notes: draft.fulfilment_notes,
+  fulfilment_provider: draft.fulfilment_provider,
+  fulfilment_class: draft.fulfilment_class,
+  supplier_product_code: draft.supplier_product_code ?? "",
   aspect_ratio: draft.aspect_ratio ?? "",
   fit_mode: "custom_size",
   crop_offset: "0",
@@ -170,6 +177,9 @@ const applyTemplateToVariant = (
     turnaround_days_max: template.turnaround_days_max?.toString() ?? "",
     shipping_class: template.shipping_class ?? "",
     fulfilment_notes: template.fulfilment_notes ?? "",
+    fulfilment_provider: "pixelperfect",
+    fulfilment_class: template.is_framed ? "framed" : template.print_type === "canvas" ? "canvas" : "fine_art",
+    supplier_product_code: "",
     canvas_wrap_mm: template.canvas_wrap_mm?.toString() ?? "",
     wrap_style: template.wrap_style ?? "",
     front_face_width_mm: template.front_face_width_mm?.toString() ?? "",
@@ -258,6 +268,7 @@ export function ProductEditorForm({
   const [frameBasePriceAud, setFrameBasePriceAud] = useState(DEFAULT_PRINT_FRAME_BASE_AUD);
   const [frameRates, setFrameRates] = useState<FrameRateBand[] | undefined>(undefined);
   const [rthCanvasRates, setRthCanvasRates] = useState<RthCanvasRateBand[] | undefined>(undefined);
+  const [posterfactory, setPosterfactory] = useState<PosterFactoryCatalogue | undefined>(undefined);
   const isNewPrint = mode === "new" && productType === "print";
   const offerPixelW = Number.parseInt(offerPixelWidth, 10);
   const offerPixelH = Number.parseInt(offerPixelHeight, 10);
@@ -276,6 +287,7 @@ export function ProductEditorForm({
         frameBasePriceAud,
         frameRates,
         rthCanvasRates,
+        posterfactory,
       });
     } catch {
       return [];
@@ -291,6 +303,7 @@ export function ProductEditorForm({
     offerPixelH,
     offerPixelW,
     rthCanvasRates,
+    posterfactory,
   ]);
   const offerSelection = useOfferSelection(offerDrafts);
 
@@ -308,6 +321,7 @@ export function ProductEditorForm({
           frame_base_price_aud?: number;
           frame_rates?: FrameRateBand[];
           rth_canvas_rates?: RthCanvasRateBand[];
+          posterfactory?: PosterFactoryCatalogue;
         };
         if (cancelled) return;
         if (typeof body.markup_factor === "number") setMarkupFactor(body.markup_factor);
@@ -316,6 +330,7 @@ export function ProductEditorForm({
         if (typeof body.frame_base_price_aud === "number") setFrameBasePriceAud(body.frame_base_price_aud);
         if (Array.isArray(body.frame_rates)) setFrameRates(body.frame_rates);
         if (Array.isArray(body.rth_canvas_rates)) setRthCanvasRates(body.rth_canvas_rates);
+        if (body.posterfactory) setPosterfactory(body.posterfactory);
       } catch {
         // Keep defaults; formula prices still work from seed rates.
       }
@@ -397,6 +412,9 @@ export function ProductEditorForm({
       turnaround_days_max: variant.turnaround_days_max ? Number.parseInt(variant.turnaround_days_max, 10) : null,
       shipping_class: variant.shipping_class.trim() || null,
       fulfilment_notes: variant.fulfilment_notes.trim() || null,
+      fulfilment_provider: variant.fulfilment_provider.trim() || null,
+      fulfilment_class: variant.fulfilment_class.trim() || null,
+      supplier_product_code: variant.supplier_product_code.trim() || null,
       aspect_ratio: variant.aspect_ratio.trim() || null,
       canvas_wrap_mm: variant.canvas_wrap_mm ? Number.parseInt(variant.canvas_wrap_mm, 10) : null,
       wrap_style: variant.wrap_style.trim() || null,
@@ -869,7 +887,7 @@ export function ProductEditorForm({
                   onClick={() => {
                     void (async () => {
                       const confirmed = window.confirm(
-                        "Rebuild this product’s print options to the standard Size × Finish × Framed offer? Existing active variants will be deactivated.",
+                        "Rebuild this product’s print options to the standard Photographic / Fine Art / Framed / Canvas offer? Existing active variants will be deactivated.",
                       );
                       if (!confirmed) return;
                       setRebuildingOffer(true);
@@ -912,7 +930,7 @@ export function ProductEditorForm({
           {isNewPrint ? (
             <div className={styles.offerSetup}>
               <p className={styles.muted}>
-                Standard Size × Finish × Frame options. Uncheck any this print should not offer, or override retail.
+                Standard Photographic / Fine Art / Framed / Canvas options. Uncheck any this print should not offer, or override retail.
                 Formula prices use markups from <Link href="/admin/print-profiles">Print Templates</Link>. Enter the
                 master pixel size so millimetres stay aspect-true.
               </p>

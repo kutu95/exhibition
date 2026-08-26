@@ -1,16 +1,20 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
+import { MixedProviderDialog } from "./MixedProviderDialog";
 import {
-  addToCart as addCartItem,
   CART_CHANGED_EVENT,
   cartItemCount,
   cartSubtotalAud,
   clearCart as clearCartStorage,
   readCart,
   removeFromCart as removeCartItem,
+  replaceCartWithItem,
+  tryAddToCart,
   type CartItem,
+  type TryAddToCartResult,
   updateCartQuantity as setCartQuantity,
 } from "../lib/cart";
 
@@ -18,7 +22,7 @@ type CartContextValue = {
   items: CartItem[];
   itemCount: number;
   subtotalAud: number;
-  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
+  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => TryAddToCartResult;
   updateQuantity: (variantId: string, quantity: number) => void;
   removeItem: (variantId: string) => void;
   clear: () => void;
@@ -27,8 +31,10 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [pendingItem, setPendingItem] = useState<(Omit<CartItem, "quantity"> & { quantity?: number }) | null>(null);
 
   useEffect(() => {
     const sync = () => setItems(readCart());
@@ -42,17 +48,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }): TryAddToCartResult => {
+    const result = tryAddToCart(item);
+    if (result.ok) {
+      setItems(result.items);
+      return result;
+    }
+    setPendingItem(item);
+    return result;
+  };
+
   const value: CartContextValue = {
     items: hydrated ? items : [],
     itemCount: hydrated ? cartItemCount(items) : 0,
     subtotalAud: hydrated ? cartSubtotalAud(items) : 0,
-    addItem: (item) => setItems(addCartItem(item)),
+    addItem,
     updateQuantity: (variantId, quantity) => setItems(setCartQuantity(variantId, quantity)),
     removeItem: (variantId) => setItems(removeCartItem(variantId)),
     clear: () => setItems(clearCartStorage()),
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <MixedProviderDialog
+        open={Boolean(pendingItem)}
+        onContinue={() => setPendingItem(null)}
+        onStartSeparate={() => {
+          if (!pendingItem) return;
+          setItems(replaceCartWithItem(pendingItem));
+          setPendingItem(null);
+          router.push("/cart");
+        }}
+      />
+    </CartContext.Provider>
+  );
 }
 
 export function useCart(): CartContextValue {

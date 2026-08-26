@@ -24,7 +24,8 @@ export type OfferSelectionState = {
   setPriceDollars: (key: string, dollars: string) => void;
   selectAll: () => void;
   selectNone: () => void;
-  selectMatte: () => void;
+  selectPosterFactory: () => void;
+  selectFineArt: () => void;
   selectCanvas: () => void;
   reset: () => void;
   displayPrice: (draft: OfferVariantDraft) => string;
@@ -99,11 +100,19 @@ export const useOfferSelection = (drafts: OfferVariantDraft[]): OfferSelectionSt
     },
     selectAll: () => setIncludedKeys(new Set(allKeys)),
     selectNone: () => setIncludedKeys(new Set()),
-    selectMatte: () =>
+    selectPosterFactory: () =>
       setIncludedKeys(
         new Set(
           drafts
-            .filter((draft) => draft.combo.finishId === "archival_matte")
+            .filter((draft) => draft.combo.classId === "photographic" || draft.combo.classId === "framed")
+            .map((draft) => offerComboKey(draft.combo)),
+        ),
+      ),
+    selectFineArt: () =>
+      setIncludedKeys(
+        new Set(
+          drafts
+            .filter((draft) => draft.combo.classId === "fine_art")
             .map((draft) => offerComboKey(draft.combo)),
         ),
       ),
@@ -111,7 +120,7 @@ export const useOfferSelection = (drafts: OfferVariantDraft[]): OfferSelectionSt
       setIncludedKeys(
         new Set(
           drafts
-            .filter((draft) => draft.combo.finishId === "rth_canvas")
+            .filter((draft) => draft.combo.classId === "canvas")
             .map((draft) => offerComboKey(draft.combo)),
         ),
       ),
@@ -141,11 +150,14 @@ export function OfferVariantMatrix({ drafts, selection }: OfferVariantMatrixProp
           <button type="button" onClick={selection.selectNone}>
             None
           </button>
-          <button type="button" onClick={selection.selectMatte}>
-            Matte only
+          <button type="button" onClick={selection.selectPosterFactory}>
+            PosterFactory
+          </button>
+          <button type="button" onClick={selection.selectFineArt}>
+            Fine Art
           </button>
           <button type="button" onClick={selection.selectCanvas}>
-            Canvas only
+            Canvas
           </button>
         </div>
       </div>
@@ -154,8 +166,9 @@ export function OfferVariantMatrix({ drafts, selection }: OfferVariantMatrixProp
           <tr>
             <th className={styles.includeCol}>Include</th>
             <th>Option</th>
+            <th>Lab / supplier</th>
             <th>Size</th>
-            <th>Lab cost</th>
+            <th>Supplier cost</th>
             <th>Retail (AUD)</th>
           </tr>
         </thead>
@@ -174,6 +187,7 @@ export function OfferVariantMatrix({ drafts, selection }: OfferVariantMatrixProp
                   />
                 </td>
                 <td>{draft.variant_label}</td>
+                <td>{draft.fulfilment_provider === "posterfactory" ? "PosterFactory" : "Pixel Perfect"}</td>
                 <td>{formatDualSize(draft.width_mm, draft.height_mm)}</td>
                 <td>{formatMoney(draft.lab_cost_aud / 100)}</td>
                 <td>

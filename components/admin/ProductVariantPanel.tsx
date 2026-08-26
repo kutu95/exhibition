@@ -34,6 +34,9 @@ export type VariantInput = {
   turnaround_days_max: string;
   shipping_class: string;
   fulfilment_notes: string;
+  fulfilment_provider: string;
+  fulfilment_class: string;
+  supplier_product_code: string;
   aspect_ratio: string;
   canvas_wrap_mm: string;
   wrap_style: string;
@@ -266,7 +269,39 @@ export function ProductVariantPanel({
           </label>
 
           <label>
-            Lab cost AUD
+            Fulfilment provider
+            <select
+              value={variant.fulfilment_provider || ""}
+              onChange={(event) => onChange({ ...variant, fulfilment_provider: event.target.value })}
+            >
+              <option value="">Unset</option>
+              <option value="posterfactory">PosterFactory</option>
+              <option value="pixelperfect">Pixel Perfect</option>
+            </select>
+          </label>
+          <label>
+            Fulfilment class
+            <select
+              value={variant.fulfilment_class || ""}
+              onChange={(event) => onChange({ ...variant, fulfilment_class: event.target.value })}
+            >
+              <option value="">Unset</option>
+              <option value="standard">Photographic / standard</option>
+              <option value="fine_art">Fine art</option>
+              <option value="framed">Framed</option>
+              <option value="canvas">Canvas</option>
+            </select>
+          </label>
+          <label>
+            Supplier product / SKU
+            <input
+              value={variant.supplier_product_code}
+              onChange={(event) => onChange({ ...variant, supplier_product_code: event.target.value })}
+              placeholder="e.g. ilford-smooth-pearl-310gsm"
+            />
+          </label>
+          <label>
+            Supplier cost AUD
             <input
               type="number"
               min="0"

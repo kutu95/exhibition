@@ -9,7 +9,7 @@ import {
 import styles from "./FramedPreview.module.css";
 
 export type FramedPreviewStyle = "none" | "standard" | "deluxe";
-export type FrameColourId = "black" | "silver" | "teak" | "gold" | "white";
+export type FrameColourId = "black" | "silver" | "teak" | "gold" | "white" | "timber";
 
 /**
  * Face widths for virtual preview — matches Pixel Perfect

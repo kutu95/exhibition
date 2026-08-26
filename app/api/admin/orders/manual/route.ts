@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { assignEditionsToOrder } from "../../../../../lib/edition-assignment";
 import { sendOrderConfirmationEmail } from "../../../../../lib/emails/order-confirmation";
+import { MIXED_PROVIDER_MESSAGE, providerFromVariant } from "../../../../../lib/fulfilment";
 import { requireOpenStudioOrder } from "../../../../../lib/open-studio-orders";
 import {
   STUDIO_CUSTOMER,
@@ -45,6 +46,7 @@ type VariantRow = {
   price_aud: number;
   is_active: boolean;
   edition_size: number | null;
+  fulfilment_provider: "posterfactory" | "pixelperfect" | null;
   products:
     | {
         title: string;
@@ -179,7 +181,7 @@ export async function POST(request: Request) {
   const { data: variant, error: variantError } = await supabaseAdmin
     .from("product_variants")
     .select(
-      "id, variant_label, price_aud, is_active, edition_size, products!inner(title, is_available, product_type)",
+      "id, variant_label, price_aud, is_active, edition_size, fulfilment_provider, products!inner(title, is_available, product_type)",
     )
     .eq("id", payload.variant_id)
     .single();
@@ -266,6 +268,20 @@ export async function POST(request: Request) {
       throw error;
     }
 
+    const incomingProvider = providerFromVariant(variantRow);
+    if (incomingProvider) {
+      const { data: existingItems } = await supabaseAdmin
+        .from("order_items")
+        .select("fulfilment_provider")
+        .eq("order_id", existing.id);
+      const existingProvider = (existingItems ?? [])
+        .map((row) => providerFromVariant(row))
+        .find((provider): provider is NonNullable<typeof provider> => Boolean(provider));
+      if (existingProvider && existingProvider !== incomingProvider) {
+        return NextResponse.json({ error: MIXED_PROVIDER_MESSAGE }, { status: 400 });
+      }
+    }
+
     const { data: createdItems, error: itemError } = await supabaseAdmin
       .from("order_items")
       .insert({
@@ -276,6 +292,7 @@ export async function POST(request: Request) {
         edition_number_assigned: null,
         fulfilment_status: fulfilmentStatus,
         fulfilment_notes: fulfilmentNotes,
+        fulfilment_provider: variantRow.fulfilment_provider,
       })
       .select("id, variant_id, quantity, unit_price_aud, edition_number_assigned");
 
@@ -330,6 +347,7 @@ export async function POST(request: Request) {
       shipping_aud: 0,
       total_aud: subtotal,
       notes: paymentNote(payload),
+      fulfilment_provider: variantRow.fulfilment_provider,
     })
     .select("id, order_number, customer_email, customer_name, total_aud, subtotal_aud, shipping_aud, status, notes, created_at, updated_at, stripe_payment_intent_id, stripe_checkout_session_id, square_payment_id, shipping_address")
     .single();
@@ -349,6 +367,7 @@ export async function POST(request: Request) {
       edition_number_assigned: null,
       fulfilment_status: fulfilmentStatus,
       fulfilment_notes: fulfilmentNotes,
+      fulfilment_provider: variantRow.fulfilment_provider,
     })
     .select("id, variant_id, quantity, unit_price_aud, edition_number_assigned");
 

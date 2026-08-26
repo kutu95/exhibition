@@ -6,6 +6,7 @@ import {
   type ManagedPaper,
   type PrintTypeCode,
 } from "./print-catalogue";
+import type { FulfilmentClass, FulfilmentProvider } from "./fulfilment";
 import {
   computeFrameRetailAud,
   computeRthCanvasRetailAud,
@@ -189,6 +190,9 @@ export type CustomPrintPricingResult = {
   frameType: string | null;
   paperType: string;
   fulfilmentNotes: string;
+  fulfilment_provider: FulfilmentProvider;
+  fulfilment_class: FulfilmentClass;
+  supplier_product_code: string | null;
 };
 
 const resolveMedia = (
@@ -317,6 +321,9 @@ export const computeCustomPrintPricing = (
     frameType,
     paperType,
     fulfilmentNotes,
+    fulfilment_provider: "pixelperfect",
+    fulfilment_class: isRth ? "canvas" : isFramed ? "framed" : media.printType === "photo" ? "standard" : "fine_art",
+    supplier_product_code: media.id,
   };
 };
 

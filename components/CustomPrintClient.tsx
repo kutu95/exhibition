@@ -180,11 +180,17 @@ export function CustomPrintClient({
       variant_id?: string;
       variant_label?: string;
       price_aud?: number;
+      fulfilment_provider?: "posterfactory" | "pixelperfect" | null;
     } | null;
     if (!response.ok || !body?.variant_id || body.price_aud === undefined || !body.variant_label) {
       throw new Error(body?.error ?? "Could not create this custom print.");
     }
-    return body as { variant_id: string; variant_label: string; price_aud: number };
+    return body as {
+      variant_id: string;
+      variant_label: string;
+      price_aud: number;
+      fulfilment_provider?: "posterfactory" | "pixelperfect" | null;
+    };
   };
 
   const handleAddToCart = async () => {
@@ -193,7 +199,7 @@ export function CustomPrintClient({
     setError(null);
     try {
       const created = await createVariant();
-      addItem({
+      const result = addItem({
         variant_id: created.variant_id,
         product_title: product.title,
         variant_label: created.variant_label,
@@ -201,7 +207,9 @@ export function CustomPrintClient({
         slug: product.slug,
         image_url: product.image_url,
         quantity: 1,
+        fulfilment_provider: created.fulfilment_provider ?? "pixelperfect",
       });
+      if (!result.ok) return;
       router.push("/cart");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add to cart.");
@@ -216,7 +224,7 @@ export function CustomPrintClient({
     setError(null);
     try {
       const created = await createVariant();
-      addItem({
+      const result = addItem({
         variant_id: created.variant_id,
         product_title: product.title,
         variant_label: created.variant_label,
@@ -224,10 +232,16 @@ export function CustomPrintClient({
         slug: product.slug,
         image_url: product.image_url,
         quantity: 1,
+        fulfilment_provider: created.fulfilment_provider ?? "pixelperfect",
       });
+      if (!result.ok) {
+        setBusy(null);
+        return;
+      }
       const checkoutItems = readCart().map((row) => ({
         variant_id: row.variant_id,
         quantity: row.quantity,
+        ...(row.frame_colour ? { frame_colour: row.frame_colour } : {}),
       }));
       const response = await fetch("/api/checkout", {
         method: "POST",

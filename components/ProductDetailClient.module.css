@@ -227,8 +227,32 @@
   line-height: 1.35;
 }
 
-.offerOptionActive {
-  border-color: var(--color-rust);
+.offerOptionPremium {
+  border-color: rgba(138, 98, 42, 0.45);
+  background: linear-gradient(180deg, rgba(250, 244, 232, 0.9), rgba(247, 244, 239, 0.4));
+}
+
+.offerOptionPremium.offerOptionActive {
+  border-color: #8a622a;
+}
+
+.offerDetails {
+  margin: 0.15rem 0 0;
+}
+
+.offerDetails summary {
+  cursor: pointer;
+  color: #555;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.offerDetails p {
+  margin: 0.45rem 0 0;
+  color: #555;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .offerOptionDisabled {
@@ -279,7 +303,8 @@
   background: linear-gradient(135deg, #f4f4f4, #aeb6be);
 }
 
-.frameColourSwatch[data-frame-colour="teak"] {
+.frameColourSwatch[data-frame-colour="teak"],
+.frameColourSwatch[data-frame-colour="timber"] {
   background: linear-gradient(135deg, #c08a57, #7a4d2d);
 }
 

@@ -108,6 +108,50 @@ Or use `scripts/repair-shared-supabase.sh --migrations-only` (skips bootstrap wh
 - Removing **containers** only: `docker ps -aq --filter name=cashbook | xargs -r docker rm -f`
 - Removing stale **`postmaster.pid`** when the DB crash-loops after unclean shutdown
 - Additive SQL migrations
+- Scheduled dumps via `scripts/backup-shared-supabase.sh` (does not modify the live volume)
+
+## Backups (all apps)
+
+Application data for **every schema** lives in one Postgres database (`postgres` on the cashbook stack). Back that up; do not create a separate Exhibition-only dump.
+
+| Item | Value |
+|------|--------|
+| NAS share | `smb://192.168.0.142/AppData/Backup` |
+| Host path | `/mnt/nas/AppData/Backup/shared-supabase/` |
+| Mac path | `/Volumes/AppData/Backup/shared-supabase/` |
+| Dump | Roles/globals + custom-format `postgres` (all app schemas, including `storage` bucket metadata) |
+| Storage buckets | Host backups also tar the `supabase_storage_cashbook` volume (`storage.tar.gz`) — the actual files in every bucket |
+| Host config | `.env` files from `~/apps`, Cloudflare tunnel (`~/.cloudflared`, `/etc/cloudflared`), nginx vhosts, `cloudflared.service`, `/etc/hosts` (`host-config.tar.gz`; host backups only) |
+| Excluded by default | `_supabase` (~100GB Logflare/analytics). Set `INCLUDE_ANALYTICS=1` to include it. |
+| Retention | 14 days |
+
+Cloudflare **DNS records** live in the Cloudflare dashboard. The tunnel ingress in `config.yml` is what this box can copy.
+
+**On the host (preferred, daily cron):**
+
+```bash
+cd ~/apps/exhibition
+git pull --ff-only
+bash scripts/install-shared-supabase-backup-cron.sh
+# first run:
+bash scripts/backup-shared-supabase.sh
+```
+
+**From a Mac** (NAS mounted at `/Volumes/AppData`, Postgres reachable on `:54322`):
+
+```bash
+npm run db:backup
+```
+
+Restore is disaster-only and requires an explicit flag. Never use `supabase db reset` as a restore:
+
+```bash
+bash scripts/restore-shared-supabase.sh --list
+bash scripts/restore-shared-supabase.sh --snapshot /mnt/nas/AppData/Backup/shared-supabase/<timestamp> \
+  --i-understand-this-replaces-the-live-database
+```
+
+Unpack `host-config.tar.gz` beside the database restore if you need `.env`, nginx, or Cloudflare tunnel files.
 
 ## Common failures
 
@@ -189,6 +233,9 @@ Developers often reach `192.168.0.146` over Tailscale. No special Tailscale conf
 | [supabase-shared-stack.md](./supabase-shared-stack.md) | Short pointer to this document |
 | `supabase/config.toml` | Reference `[api] schemas` snippet to merge on the host |
 | `scripts/repair-shared-supabase.sh` | Automated repair (host only) |
+| `scripts/backup-shared-supabase.sh` | Full-cluster app dump to NAS `AppData/Backup` |
+| `scripts/install-shared-supabase-backup-cron.sh` | Daily 02:15 cron on the host |
+| `scripts/restore-shared-supabase.sh` | Disaster restore (explicit confirm flag) |
 | `scripts/check-database.mjs` | `npm run db:check` |
 
 ## History (why this doc exists)

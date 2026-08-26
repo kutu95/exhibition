@@ -19,6 +19,13 @@ alwaysApply: true
 - `.env`: `NEXT_PUBLIC_SUPABASE_URL=http://192.168.0.146:54321`
 - Verify: `npm run db:check`
 
+## Backups
+
+- All apps: dump the cashbook `postgres` database to NAS `smb://192.168.0.142/AppData/Backup` (`shared-supabase/`)
+- Host snapshots also include Storage files, app `.env` files, Cloudflare tunnel config, and nginx
+- Scripts: `scripts/backup-shared-supabase.sh`, cron installer, restore (explicit flag only)
+- Do not dump only `exhibition`. Skip `_supabase` analytics unless `INCLUDE_ANALYTICS=1`
+
 ## Never
 
 - `supabase db reset` or `docker volume rm` on `supabase_db_cashbook`

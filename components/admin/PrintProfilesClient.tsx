@@ -12,7 +12,13 @@ import {
   type RthCanvasRateBand,
 } from "../../lib/print-frame-pricing";
 import { DEFAULT_PRINT_PRICE_BASE_AUD, DEFAULT_PRINT_PRICE_MARKUP_FACTOR } from "../../lib/print-markup";
-import { OFFER_COMBOS, OFFER_MATTE_PAPER_LABEL, OFFER_SIZES } from "../../lib/print-offer";
+import { OFFER_CLASSES, OFFER_COMBOS, OFFER_FINE_ART_PAPER_LABEL, OFFER_SIZES } from "../../lib/print-offer";
+import {
+  SEED_POSTERFACTORY_CATALOGUE,
+  type PosterFactoryCatalogue,
+  type PosterFactoryClassId,
+  type PosterFactorySizeId,
+} from "../../lib/posterfactory";
 import {
   PIXEL_PERFECT_SQ_IN_RATES_AUD,
   PRINT_TYPES,
@@ -32,6 +38,7 @@ type PrintProfilesClientProps = {
   initialFrameRates?: FrameRateBand[];
   initialRthCanvasRates?: RthCanvasRateBand[];
   initialPapers?: ManagedPaper[];
+  initialPosterFactory?: PosterFactoryCatalogue;
 };
 
 const printTypes = [
@@ -60,6 +67,7 @@ export function PrintProfilesClient({
   initialFrameRates = SEED_FRAME_RATES,
   initialRthCanvasRates = SEED_RTH_CANVAS_RATES,
   initialPapers = seedManagedPapers(),
+  initialPosterFactory = SEED_POSTERFACTORY_CATALOGUE,
 }: PrintProfilesClientProps) {
   const router = useRouter();
   const [profiles, setProfiles] = useState(initialProfiles);
@@ -84,6 +92,7 @@ export function PrintProfilesClient({
   );
   const [frameRates, setFrameRates] = useState<FrameRateBand[]>(initialFrameRates);
   const [rthRates, setRthRates] = useState<RthCanvasRateBand[]>(initialRthCanvasRates);
+  const [posterfactory, setPosterfactory] = useState<PosterFactoryCatalogue>(initialPosterFactory);
   const [papers, setPapers] = useState<ManagedPaper[]>(initialPapers);
   const [savingPricing, setSavingPricing] = useState(false);
   const [savingPapers, setSavingPapers] = useState(false);
@@ -108,6 +117,7 @@ export function PrintProfilesClient({
             frame_base_price_aud?: number;
             frame_rates?: FrameRateBand[];
             rth_canvas_rates?: RthCanvasRateBand[];
+            posterfactory?: PosterFactoryCatalogue;
           };
           if (typeof body.markup_factor === "number") setMarkupFactor(String(body.markup_factor));
           if (typeof body.base_price_aud === "number") setBasePriceAud(body.base_price_aud.toFixed(2));
@@ -119,6 +129,7 @@ export function PrintProfilesClient({
           if (Array.isArray(body.rth_canvas_rates) && body.rth_canvas_rates.length) {
             setRthRates(body.rth_canvas_rates);
           }
+          if (body.posterfactory) setPosterfactory(body.posterfactory);
         }
 
         if (papersResponse.ok) {
@@ -162,6 +173,7 @@ export function PrintProfilesClient({
         frame_base_price_aud: frameBase,
         frame_rates: frameRates,
         rth_canvas_rates: rthRates,
+        posterfactory,
       }),
     });
 
@@ -180,6 +192,7 @@ export function PrintProfilesClient({
       frame_base_price_aud: number;
       frame_rates: FrameRateBand[];
       rth_canvas_rates: RthCanvasRateBand[];
+      posterfactory?: PosterFactoryCatalogue;
     };
     setMarkupFactor(String(body.markup_factor));
     setBasePriceAud(body.base_price_aud.toFixed(2));
@@ -187,12 +200,30 @@ export function PrintProfilesClient({
     setFrameBasePriceAud(body.frame_base_price_aud.toFixed(2));
     setFrameRates(body.frame_rates);
     setRthRates(body.rth_canvas_rates);
-    setMessage("Saved media and frame pricing.");
+    if (body.posterfactory) setPosterfactory(body.posterfactory);
+    setMessage("Saved media, PosterFactory, and frame pricing.");
     router.refresh();
   };
 
   const updatePaper = (id: string, updates: Partial<ManagedPaper>) => {
     setPapers((rows) => rows.map((row) => (row.id === id ? { ...row, ...updates } : row)));
+  };
+
+  const updatePosterFactorySize = (
+    classId: PosterFactoryClassId,
+    sizeId: PosterFactorySizeId,
+    updates: Partial<PosterFactoryCatalogue[PosterFactoryClassId]["sizes"][PosterFactorySizeId]>,
+  ) => {
+    setPosterfactory((current) => ({
+      ...current,
+      [classId]: {
+        ...current[classId],
+        sizes: {
+          ...current[classId].sizes,
+          [sizeId]: { ...current[classId].sizes[sizeId], ...updates },
+        },
+      },
+    }));
   };
 
   const addPaper = () => {
@@ -281,7 +312,7 @@ export function PrintProfilesClient({
 
   const rebuildAll = async () => {
     const confirmed = window.confirm(
-      `Rebuild ALL print products to the ${OFFER_COMBOS.length}-SKU offer (Size × Finish × Framed)?\n\nThis deactivates existing variants and creates new ones. Past orders keep old variant rows. Save pricing first.`,
+      `Rebuild ALL print products to the ${OFFER_COMBOS.length}-SKU offer (Photographic / Fine Art / Framed / Canvas)?\n\nThis deactivates existing variants and creates new ones. Past orders keep old variant rows. Save pricing first.`,
     );
     if (!confirmed) return;
 
@@ -383,10 +414,19 @@ export function PrintProfilesClient({
       <section className={styles.panel}>
         <h2>Buyer print offer</h2>
         <p className={styles.muted}>
-          Fixed catalogue recipe: {OFFER_SIZES.map((s) => s.label).join(" / ")} × Archival matte (unframed or framed) ×
-          Ready-to-hang canvas ({OFFER_COMBOS.length} SKUs). Matte paper: {OFFER_MATTE_PAPER_LABEL}. Framed =
-          Standard moulding (20–42mm face) + Perspex for shipping. Import Wizard and new products start from this set —
-          you can uncheck options or override retail per print.
+          Fixed catalogue recipe: {OFFER_SIZES.map((s) => s.label).join(" / ")} ×{" "}
+          {OFFER_CLASSES.map((id) =>
+            id === "photographic"
+              ? "Photographic Print (PosterFactory)"
+              : id === "fine_art"
+                ? "Fine Art Print (Pixel Perfect)"
+                : id === "framed"
+                  ? "Framed Print (PosterFactory)"
+                  : "Canvas (Pixel Perfect)",
+          ).join(" / ")}{" "}
+          ({OFFER_COMBOS.length} SKUs). Fine art paper: {OFFER_FINE_ART_PAPER_LABEL}. Photographic and framed
+          supplier costs are edited in the PosterFactory table below. Retail uses the media markup unless a
+          PosterFactory retail override is set.
         </p>
 
         <h3 className={styles.papersHeading}>Media markup</h3>
@@ -401,11 +441,85 @@ export function PrintProfilesClient({
           </label>
         </div>
 
+        <h3 className={styles.papersHeading}>PosterFactory products</h3>
+        <p className={styles.muted}>
+          Supplier cost is what PosterFactory charges (AUD incl. GST). Retail is calculated from the media markup
+          unless you set a retail override. Smooth Pearl uses published A2 $32 (~8.28¢/sq in); Small/Large are A3/A1
+          at that rate. Photo+Frame from $99 is published; Medium/Large framed remain estimates until confirmed. Save
+          this form, then rebuild SKUs.
+        </p>
+        <div className={styles.papersTableWrap}>
+          <table className={styles.papersTable}>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Paper / SKU</th>
+                <th>Size</th>
+                <th>Supplier cost</th>
+                <th>Retail override</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(["photographic", "framed"] as const).flatMap((classId) => {
+                const product = posterfactory[classId];
+                return (["small", "medium", "large"] as const).map((sizeId, index) => {
+                  const row = product.sizes[sizeId];
+                  return (
+                    <tr key={`${classId}-${sizeId}`}>
+                      <td>{index === 0 ? product.label : ""}</td>
+                      <td>{index === 0 ? `${product.paper} · ${product.productCode}` : ""}</td>
+                      <td>{sizeId}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={row.supplierCostAud}
+                          onChange={(event) =>
+                            updatePosterFactorySize(classId, sizeId, {
+                              supplierCostAud: Number.parseFloat(event.target.value) || 0,
+                            })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="markup"
+                          value={row.retailPriceAud ?? ""}
+                          onChange={(event) => {
+                            const raw = event.target.value.trim();
+                            updatePosterFactorySize(classId, sizeId, {
+                              retailPriceAud: raw === "" ? null : Number.parseFloat(raw) || 0,
+                            });
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={row.isActive}
+                          onChange={(event) =>
+                            updatePosterFactorySize(classId, sizeId, { isActive: event.target.checked })
+                          }
+                        />
+                      </td>
+                    </tr>
+                  );
+                });
+              })}
+            </tbody>
+          </table>
+        </div>
+
         <h3 className={styles.papersHeading}>Papers / media</h3>
         <p className={styles.muted}>
           Active papers with a $/sq in rate appear on the custom print page. Uncheck Active to hide a paper from buyers.
-          Leave rate blank for quote-only media (no formula price). The standard shop offer still uses Hahnemühle Photo
-          Rag for archival matte.
+          Leave rate blank for quote-only media (no formula price). The standard shop Fine Art option uses{" "}
+          {OFFER_FINE_ART_PAPER_LABEL}.
         </p>
         <div className={styles.papersTableWrap}>
           <table className={styles.papersTable}>
