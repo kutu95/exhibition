@@ -119,7 +119,9 @@ export const useOfferSelection = (drafts: OfferVariantDraft[]): OfferSelectionSt
           drafts
             .filter(
               (draft) =>
-                draft.combo.classId === "fine_art" || draft.combo.classId === "fine_art_mounted",
+                draft.combo.classId === "fine_art" ||
+                draft.combo.classId === "fine_art_mounted" ||
+                draft.combo.classId === "fine_art_framed",
             )
             .map((draft) => offerComboKey(draft.combo)),
         ),

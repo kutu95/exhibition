@@ -22,6 +22,7 @@ import { PlausibleEvents, trackEvent } from "../lib/plausible";
 import {
   classIdFromMediaPresentation,
   findVariantForOfferCombo,
+  isFramedOfferClass,
   mediaPresentationFromClassId,
   OFFER_CLASS_DETAILS,
   OFFER_CLASS_PROVIDER,
@@ -258,7 +259,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
       image_url: primaryImage,
       quantity: 1 as const,
       fulfilment_provider: fulfilmentProvider,
-      frame_colour: classId === "framed" ? frameColour : null,
+      frame_colour: isFramedOfferClass(classId) ? frameColour : null,
     };
   };
 
@@ -441,7 +442,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     <section className={`section container ${styles.wrap}`}>
       <div className={styles.gallery}>
         <FramedPreview
-          frame={useOfferChooser && classId === "framed" ? "standard" : "none"}
+          frame={useOfferChooser && isFramedOfferClass(classId) ? "standard" : "none"}
           longEdgeMm={OFFER_SIZES.find((size) => size.id === sizeId)?.longEdgeMm ?? 594}
           frameColour={frameColour}
           className={styles.mainImageWrap}
@@ -691,7 +692,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
               </div>
             </fieldset>
 
-            {classId === "framed" ? (
+            {isFramedOfferClass(classId) ? (
               <fieldset className={styles.offerFieldset}>
                 <legend>Frame colour</legend>
                 <p className={styles.frameNote}>{FRAME_NOTE_OPTISHIELD}</p>

@@ -27,13 +27,14 @@ const pricingArgs = {
 };
 
 describe("print offer matrix", () => {
-  it("defines twenty-eight Size × product-class combos", () => {
-    expect(OFFER_COMBOS).toHaveLength(28);
+  it("defines thirty-two Size × product-class combos", () => {
+    expect(OFFER_COMBOS).toHaveLength(32);
     expect(OFFER_COMBOS.filter((c) => c.classId === "photographic")).toHaveLength(4);
     expect(OFFER_COMBOS.filter((c) => c.classId === "photographic_mounted")).toHaveLength(4);
     expect(OFFER_COMBOS.filter((c) => c.classId === "fine_art")).toHaveLength(4);
     expect(OFFER_COMBOS.filter((c) => c.classId === "fine_art_mounted")).toHaveLength(4);
     expect(OFFER_COMBOS.filter((c) => c.classId === "framed")).toHaveLength(4);
+    expect(OFFER_COMBOS.filter((c) => c.classId === "fine_art_framed")).toHaveLength(4);
     expect(OFFER_COMBOS.filter((c) => c.classId === "canvas")).toHaveLength(4);
     expect(OFFER_COMBOS.filter((c) => c.classId === "canvas_wrap")).toHaveLength(4);
   });
@@ -43,11 +44,12 @@ describe("print offer matrix", () => {
     expect(classIdFromMediaPresentation("tier1", "mounted")).toBe("photographic_mounted");
     expect(classIdFromMediaPresentation("tier1", "framed")).toBe("framed");
     expect(classIdFromMediaPresentation("tier2", "mounted")).toBe("fine_art_mounted");
+    expect(classIdFromMediaPresentation("tier2", "framed")).toBe("fine_art_framed");
     expect(classIdFromMediaPresentation("canvas", "print")).toBe("canvas");
     expect(classIdFromMediaPresentation("canvas", "wrap")).toBe("canvas_wrap");
-    expect(mediaPresentationFromClassId("canvas_wrap")).toEqual({
-      media: "canvas",
-      presentation: "wrap",
+    expect(mediaPresentationFromClassId("fine_art_framed")).toEqual({
+      media: "tier2",
+      presentation: "framed",
     });
   });
 
@@ -82,6 +84,9 @@ describe("print offer matrix", () => {
 
   it("formats buyer labels without supplier names", () => {
     expect(formatOfferVariantLabel({ sizeId: "a0", classId: "framed" })).toBe("A0 · Tier 1 · Framed");
+    expect(formatOfferVariantLabel({ sizeId: "a3", classId: "fine_art_framed" })).toBe(
+      "A3 · Tier 2 · Framed",
+    );
     expect(formatOfferVariantLabel({ sizeId: "a4", classId: "fine_art_mounted" })).toBe(
       "A4 · Tier 2 · Mountboard",
     );
