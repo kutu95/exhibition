@@ -7,6 +7,8 @@
   --color-ink: #1a1a1a;
   --font-heading: "Cormorant Garamond", serif;
   --font-body: "Inter", sans-serif;
+  /* Height of the fixed SiteNav. Sticky elements and anchor targets offset by this. */
+  --header-h: 78px;
 }
 
 *,
@@ -19,6 +21,10 @@ html,
 body {
   margin: 0;
   padding: 0;
+}
+
+html {
+  scroll-padding-top: calc(var(--header-h) + 1rem);
 }
 
 body {

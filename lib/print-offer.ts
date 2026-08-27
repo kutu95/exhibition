@@ -102,43 +102,94 @@ export const OFFER_CLASS_DETAILS: Record<OfferClassId, string> = {
     "Canson Photoart Pro Canvas with image wrap — print continues around the stretcher edges.",
 };
 
-export const OFFER_MEDIA_LABEL: Record<OfferMediaId, string> = {
-  tier1: "Tier 1",
-  tier2: "Tier 2",
-  canvas: "Canvas sheet",
-  canvas_wrap: "Canvas · Image wrap",
+/**
+ * Buyer-facing paper axis for the storefront chooser. Canvas is a single paper
+ * with two finishes (rolled / stretched) rather than two separate mediums, so
+ * the chooser always presents the same three steps: size, paper, finish.
+ */
+export type OfferPaperId = "tier1" | "tier2" | "canvas";
+
+export const OFFER_PAPER_IDS: OfferPaperId[] = ["tier1", "tier2", "canvas"];
+
+export const OFFER_PAPER_LABEL: Record<OfferPaperId, string> = {
+  tier1: "Photographic",
+  tier2: "Fine art rag",
+  canvas: "Canvas",
 };
 
-export const OFFER_MEDIA_SUMMARY: Record<OfferMediaId, string> = {
-  tier1: "Ilford Galerie Smooth Pearl",
-  tier2: "Canson Rag Photographique",
-  canvas: "Flat canvas sheet — no stretcher or wrap.",
-  canvas_wrap: "Stretched canvas with the image wrapping the edges.",
+export const OFFER_PAPER_SUMMARY: Record<OfferPaperId, string> = {
+  tier1: "Rich colour, low glare",
+  tier2: "Matte, deepest blacks",
+  canvas: "Woven texture, no glass",
 };
 
-export const OFFER_PRESENTATION_LABEL: Record<OfferPresentationId, string> = {
-  print: "Print only",
-  mounted: "Mountboard",
-  framed: "Framed",
-  wrap: "Image wrap",
+export const OFFER_PAPER_DETAILS: Record<OfferPaperId, string> = {
+  tier1: `${OFFER_PHOTOGRAPHIC_PAPER_LABEL} — a pearl-surface photographic paper with excellent colour and fine detail, and far less reflection than gloss.`,
+  tier2: `${OFFER_FINE_ART_PAPER_LABEL} — 100% cotton rag with a matte surface, the deepest blacks and the longest archival life. The collector's choice.`,
+  canvas: `${OFFER_CANVAS_PAPER_LABEL} — a woven canvas surface, supplied rolled in a tube or stretched over a timber frame with the image continuing around the edges.`,
 };
 
-export const OFFER_PRESENTATION_SUMMARY: Record<OfferPresentationId, string> = {
-  print: "Unmounted sheet.",
-  mounted: "Mounted on board.",
-  framed: "Ready-to-hang frame.",
-  wrap: "Stretched with image wrap.",
-};
-
-/** Valid finishes for each medium. Canvas options are chosen as mediums (no extra finish step). */
-export const OFFER_MEDIA_PRESENTATIONS: Record<OfferMediaId, OfferPresentationId[]> = {
+/** Finishes available per paper. Every paper has at least two, so the step never disappears. */
+export const OFFER_PAPER_PRESENTATIONS: Record<OfferPaperId, OfferPresentationId[]> = {
   tier1: ["print", "mounted", "framed"],
   tier2: ["print", "mounted", "framed"],
-  canvas: [],
-  canvas_wrap: [],
+  canvas: ["print", "wrap"],
 };
 
-export const OFFER_MEDIA_IDS: OfferMediaId[] = ["tier1", "tier2", "canvas", "canvas_wrap"];
+export const classIdFromPaperPresentation = (
+  paper: OfferPaperId,
+  presentation: OfferPresentationId,
+): OfferClassId | null => {
+  if (paper === "canvas") {
+    if (presentation === "print") return "canvas";
+    if (presentation === "wrap") return "canvas_wrap";
+    return null;
+  }
+  return classIdFromMediaPresentation(paper, presentation);
+};
+
+export const paperPresentationFromClassId = (
+  classId: OfferClassId,
+): { paper: OfferPaperId; presentation: OfferPresentationId } => {
+  const { media, presentation } = mediaPresentationFromClassId(classId);
+  return { paper: media === "canvas_wrap" ? "canvas" : media, presentation };
+};
+
+/** Finish wording depends on the paper — "Print only" means nothing for canvas. */
+export const offerPresentationLabel = (
+  paper: OfferPaperId,
+  presentation: OfferPresentationId,
+): string => {
+  if (paper === "canvas") return presentation === "wrap" ? "Stretched" : "Rolled";
+  if (presentation === "mounted") return "Mounted";
+  if (presentation === "framed") return "Framed";
+  return "Print only";
+};
+
+export const offerPresentationSummary = (
+  paper: OfferPaperId,
+  presentation: OfferPresentationId,
+): string => {
+  if (paper === "canvas") {
+    return presentation === "wrap"
+      ? "On a timber frame, ready to hang"
+      : "Rolled in a tube, ready to stretch";
+  }
+  if (presentation === "mounted") return "On backing board, ready to frame";
+  if (presentation === "framed") return "Framed behind acrylic, ready to hang";
+  return "Loose sheet, you arrange framing";
+};
+
+/**
+ * Where each size belongs on a wall. `OFFER_SIZE_LABEL` stays the canonical
+ * A-code written into variant labels; this is display only.
+ */
+export const OFFER_SIZE_HINT: Record<OfferSizeId, string> = {
+  a4: "Desk or shelf",
+  a3: "Small wall",
+  a2: "Feature wall",
+  a0: "Statement piece",
+};
 
 export const isFramedOfferClass = (classId: OfferClassId): boolean =>
   classId === "framed" || classId === "fine_art_framed";
@@ -687,6 +738,41 @@ export const parseOfferAxesFromVariant = (variant: {
   if (fromClass === "canvas") return { sizeId, classId: "canvas" };
 
   return null;
+};
+
+export type BuyerFacingVariant = {
+  tier_label?: string | null;
+  variant_label?: string | null;
+  finish?: string | null;
+  is_framed?: boolean | null;
+  print_type?: string | null;
+  fulfilment_class?: string | null;
+};
+
+/**
+ * Shopper-readable description of a stored variant. `variant_label` stays as the
+ * internal fulfilment label ("A3 · Tier 1") because lab paperwork, admin and the
+ * variant parser all key off it; use this anywhere a customer will read it.
+ * Returns null for variants outside the offer matrix (e.g. custom sizes) so
+ * callers can fall back to the stored label.
+ */
+export const describeVariantForBuyer = (
+  variant: BuyerFacingVariant,
+  frameColour?: string | null,
+): string | null => {
+  const combo = parseOfferAxesFromVariant(variant);
+  if (!combo) return null;
+
+  const { paper, presentation } = paperPresentationFromClassId(combo.classId);
+  const parts = [
+    OFFER_SIZE_LABEL[combo.sizeId],
+    OFFER_PAPER_LABEL[paper],
+    offerPresentationLabel(paper, presentation),
+  ];
+  if (isFramedOfferClass(combo.classId) && frameColour) {
+    parts.push(`${frameColour} frame`);
+  }
+  return parts.join(" · ");
 };
 
 export const findVariantForOfferCombo = <

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { describeVariantForBuyer } from "../lib/print-offer";
 import { formatAUD } from "../lib/utils/currency";
 import { useCart } from "./CartProvider";
 import styles from "./SiteNav.module.css";
@@ -112,7 +113,11 @@ export function SiteNav({ exhibitionTitle }: SiteNavProps) {
                         <div className={styles.cartPreviewDetails}>
                           <p className={styles.cartPreviewTitle}>{item.product_title}</p>
                           <p className={styles.cartPreviewMeta}>
-                            {item.variant_label} · Qty {item.quantity}
+                            {describeVariantForBuyer(
+                              { variant_label: item.variant_label },
+                              item.frame_colour,
+                            ) ?? item.variant_label}{" "}
+                            · Qty {item.quantity}
                           </p>
                         </div>
                         <p className={styles.cartPreviewPrice}>{formatAUD(item.price_aud * item.quantity)}</p>

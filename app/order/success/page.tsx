@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { OrderSuccessTracker } from "../../../components/OrderSuccessTracker";
 import { buildMetadata } from "../../../lib/metadata";
 import { queryPostgres } from "../../../lib/postgres";
+import { describeVariantForBuyer } from "../../../lib/print-offer";
 import { stripe } from "../../../lib/stripe";
 import { formatAUD } from "../../../lib/utils/currency";
 import styles from "../../../components/OrderSuccessContent.module.css";
@@ -25,6 +26,7 @@ type SuccessOrderRow = {
   item: {
     photo_title: string;
     variant_label: string;
+    frame_colour: string | null;
     edition_number_assigned: number | null;
     edition_size: number | null;
   };
@@ -39,6 +41,7 @@ const getOrderForSession = async (sessionId: string): Promise<SuccessOrderRow | 
         json_build_object(
           'photo_title', p.title,
           'variant_label', pv.variant_label,
+          'frame_colour', oi.frame_colour,
           'edition_number_assigned', oi.edition_number_assigned,
           'edition_size', pv.edition_size
         ) as item
@@ -65,6 +68,7 @@ const getOrderForManualOrderNumber = async (orderNumber: string): Promise<Succes
         json_build_object(
           'photo_title', p.title,
           'variant_label', pv.variant_label,
+          'frame_colour', oi.frame_colour,
           'edition_number_assigned', oi.edition_number_assigned,
           'edition_size', pv.edition_size
         ) as item
@@ -123,7 +127,11 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             <strong>Photograph:</strong> {order.item.photo_title}
           </p>
           <p>
-            <strong>Size:</strong> {order.item.variant_label}
+            <strong>Print:</strong>{" "}
+            {describeVariantForBuyer(
+              { variant_label: order.item.variant_label },
+              order.item.frame_colour,
+            ) ?? order.item.variant_label}
           </p>
           <p>
             <strong>Edition:</strong> {editionText}

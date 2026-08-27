@@ -73,6 +73,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       {children}
       <MixedProviderDialog
         open={Boolean(pendingItem)}
+        cartItemCount={cartItemCount(items)}
         onContinue={() => setPendingItem(null)}
         onStartSeparate={() => {
           if (!pendingItem) return;

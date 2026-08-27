@@ -7,6 +7,7 @@ import {
   buildOfferVariantsForProduct,
   classIdFromMediaPresentation,
   computeOfferVariantPricing,
+  describeVariantForBuyer,
   findVariantForOfferCombo,
   formatOfferVariantLabel,
   mediaPresentationFromClassId,
@@ -115,6 +116,34 @@ describe("print offer matrix", () => {
         print_type: "canvas",
       }),
     ).toEqual({ sizeId: "a2", classId: "canvas_wrap" });
+  });
+
+  it("describes stored variants in buyer language", () => {
+    expect(describeVariantForBuyer({ variant_label: "A3 · Tier 1" })).toBe(
+      "A3 · Photographic · Print only",
+    );
+    expect(describeVariantForBuyer({ variant_label: "A4 · Tier 2 · Mountboard" })).toBe(
+      "A4 · Fine art rag · Mounted",
+    );
+    expect(describeVariantForBuyer({ variant_label: "A2 · Canvas" })).toBe(
+      "A2 · Canvas · Rolled",
+    );
+    expect(describeVariantForBuyer({ variant_label: "A2 · Canvas · Image wrap" })).toBe(
+      "A2 · Canvas · Stretched",
+    );
+  });
+
+  it("appends frame colour only for framed variants", () => {
+    expect(describeVariantForBuyer({ variant_label: "A0 · Tier 1 · Framed" }, "black")).toBe(
+      "A0 · Photographic · Framed · black frame",
+    );
+    expect(describeVariantForBuyer({ variant_label: "A0 · Tier 1" }, "black")).toBe(
+      "A0 · Photographic · Print only",
+    );
+  });
+
+  it("returns null for variants outside the offer matrix", () => {
+    expect(describeVariantForBuyer({ variant_label: "600mm custom print" })).toBeNull();
   });
 
   it("resolves a combo from a variant list", () => {

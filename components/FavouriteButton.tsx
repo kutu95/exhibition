@@ -8,8 +8,14 @@ type FavouriteButtonProps = {
   productId: string;
   productTitle: string;
   className?: string;
-  size?: "card" | "detail";
+  size?: "card" | "detail" | "compact";
 };
+
+const SIZE_CLASS = {
+  card: "card",
+  detail: "detail",
+  compact: "compact",
+} as const;
 
 export function FavouriteButton({
   productId,
@@ -23,7 +29,7 @@ export function FavouriteButton({
   return (
     <button
       type="button"
-      className={`${styles.button} ${size === "detail" ? styles.detail : styles.card} ${favourited ? styles.active : ""} ${className ?? ""}`}
+      className={`${styles.button} ${styles[SIZE_CLASS[size]]} ${favourited ? styles.active : ""} ${className ?? ""}`}
       aria-pressed={favourited}
       aria-label={favourited ? `Remove ${productTitle} from favourites` : `Add ${productTitle} to favourites`}
       title={favourited ? "Remove from favourites" : "Add to favourites"}

@@ -8,6 +8,7 @@ import { useCart } from "./CartProvider";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import styles from "./CartClient.module.css";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
+import { describeVariantForBuyer } from "../lib/print-offer";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import { formatAUD } from "../lib/utils/currency";
 
@@ -81,8 +82,11 @@ export function CartClient() {
               <Link href={`/shop/${item.slug}`}>
                 <strong>{item.product_title}</strong>
               </Link>
-              <p>{item.variant_label}</p>
-              <p>{formatAUD(item.price_aud)}</p>
+              <p>
+                {describeVariantForBuyer({ variant_label: item.variant_label }, item.frame_colour) ??
+                  item.variant_label}
+              </p>
+              <p>{formatAUD(item.price_aud)} each</p>
             </div>
             <div className={styles.qty}>
               <label>

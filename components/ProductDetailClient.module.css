@@ -94,24 +94,31 @@
   font-size: 0.9rem;
 }
 
+/* Offset by the fixed SiteNav, otherwise the price scrolls in behind it. */
 .priceSticky {
   position: sticky;
-  top: 0;
+  top: var(--header-h);
   z-index: 2;
-  margin: 0 0 1rem;
+  margin: 0 0 1.25rem;
   padding: 0.65rem 0 0.85rem;
   border-bottom: 1px solid rgba(10, 22, 40, 0.15);
-  background: color-mix(in srgb, var(--color-paper, #f7f4ef) 92%, white);
+  background: var(--color-cream);
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .price {
   font-family: var(--font-heading);
   font-size: 2rem;
-  margin: 0 0 0.2rem;
+  margin: 0;
 }
 
 .offerSummary {
-  margin: 0;
+  margin: 0.15rem 0 0;
   color: #555;
   font-size: 0.92rem;
 }
@@ -123,30 +130,22 @@
 
 .offerChooser {
   display: grid;
-  gap: 1rem;
+  gap: 1.35rem;
 }
 
-.offerFieldset {
+.step {
   border: 0;
   margin: 0;
   padding: 0;
   min-inline-size: 0;
 }
 
-.offerFieldset legend {
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #555;
-  margin-bottom: 0.45rem;
-  padding: 0;
-}
-
-.sizeLegend {
+.stepLegend {
   display: flex;
-  align-items: baseline;
-  gap: 0.65rem;
-  margin-bottom: 0.45rem;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.55rem;
   padding: 0;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
@@ -154,8 +153,28 @@
   color: #555;
 }
 
-.sizeCustomLink {
-  font-size: 0.82rem;
+.stepNumber {
+  display: grid;
+  place-content: center;
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1px solid rgba(10, 22, 40, 0.35);
+  border-radius: 50%;
+  color: var(--color-navy);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.stepTitle {
+  font-weight: 500;
+  color: var(--color-navy);
+}
+
+.stepAside {
+  margin-left: auto;
+  font-size: 0.8rem;
   letter-spacing: 0.02em;
   text-transform: none;
   text-decoration: underline;
@@ -163,77 +182,139 @@
   color: var(--color-navy);
 }
 
-.sizeCustomLink:hover {
+.stepAside:hover {
   color: var(--color-rust);
 }
 
-.frameNote {
-  margin: 0 0 0.65rem;
+.stepNote {
+  margin: 0.5rem 0 0;
   color: #555;
   font-size: 0.82rem;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
-.offerOptions {
+.chipRow {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.offerOption {
-  border: 1px solid rgba(10, 22, 40, 0.25);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.6rem;
+.chipRow[data-columns="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.chipRow[data-columns="4"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 0.65rem;
+  justify-content: center;
+  gap: 0.15rem;
+  /* Comfortable thumb target on a phone. */
+  min-height: 3.1rem;
+  padding: 0.5rem 0.3rem;
+  border: 1px solid rgba(10, 22, 40, 0.25);
   cursor: pointer;
+  text-align: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.offerOptionWithSample {
-  grid-template-columns: auto 6rem 1fr;
-}
-
-.offerOptionSample {
-  display: block;
-  width: 6rem;
-  height: 6rem;
-  flex-shrink: 0;
-  border: 1px solid rgba(10, 22, 40, 0.2);
-  background: #f3f1ec;
-  overflow: hidden;
-}
-
-.offerOptionSampleImage {
+/* Transparent overlay so the whole chip is the hit area and stays focusable. */
+.chipInput {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: inherit;
 }
 
-.offerOptionCopy {
-  display: grid;
-  gap: 0.15rem;
+.chipInput:focus-visible {
+  outline: 2px solid var(--color-rust);
+  outline-offset: 2px;
+}
+
+.chipTitle {
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.chipMeta {
+  color: #555;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.chipActive {
+  border-color: var(--color-navy);
+  background: var(--color-navy);
+  color: var(--color-cream);
+}
+
+.chipActive .chipMeta {
+  color: rgba(245, 240, 232, 0.72);
+}
+
+.chipDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Live scale cue: bar length is the print's long edge against the largest size. */
+.scaleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.55rem 0 0;
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.scaleTrack {
+  display: block;
+  flex: 0 0 4.5rem;
+  height: 0.4rem;
+  background: rgba(10, 22, 40, 0.12);
+}
+
+.scaleFill {
+  display: block;
+  height: 100%;
+  background: var(--color-rust);
+  transition: width 0.2s ease;
+}
+
+.scaleLabel {
   min-width: 0;
 }
 
-.offerOptionTitle {
-  font-weight: 500;
+.frameNoteRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.55rem;
 }
 
-.offerOptionMeta {
-  color: #555;
-  font-size: 0.82rem;
-  line-height: 1.35;
+.frameNoteRow .stepNote {
+  margin-top: 0;
 }
 
-.offerOptionPremium {
-  border-color: rgba(138, 98, 42, 0.45);
-  background: linear-gradient(180deg, rgba(250, 244, 232, 0.9), rgba(247, 244, 239, 0.4));
-}
-
-.offerOptionPremium.offerOptionActive {
-  border-color: #8a622a;
+.frameSampleImage {
+  flex-shrink: 0;
+  width: 4rem;
+  height: 4rem;
+  object-fit: cover;
+  border: 1px solid rgba(10, 22, 40, 0.2);
 }
 
 .offerDetails {
@@ -255,44 +336,16 @@
   line-height: 1.45;
 }
 
-.offerOptionDisabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.offerOption input {
-  accent-color: var(--color-rust);
-}
-
-.frameColourOptions {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.frameColourOption {
-  border: 1px solid rgba(10, 22, 40, 0.25);
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.5rem 0.65rem;
-  cursor: pointer;
-}
-
-.frameColourOption input {
-  accent-color: var(--color-rust);
-}
-
-.frameColourOptionActive {
-  border-color: var(--color-rust);
-}
-
 .frameColourSwatch {
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 50%;
   border: 1px solid rgba(10, 22, 40, 0.25);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.chipActive .frameColourSwatch {
+  border-color: rgba(245, 240, 232, 0.5);
 }
 
 .frameColourSwatch[data-frame-colour="black"] {
@@ -345,8 +398,21 @@
   gap: 0.65rem;
 }
 
+/* Single-column layout has no room to spare, so keep the buy action in reach. */
+@media (max-width: 949px) {
+  .buyActions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    margin-top: 1rem;
+    padding: 0.75rem 0 calc(0.25rem + env(safe-area-inset-bottom, 0px));
+    background: var(--color-cream);
+    border-top: 1px solid rgba(10, 22, 40, 0.12);
+  }
+}
+
 .favouriteButton {
-  justify-content: center;
+  margin-left: auto;
 }
 
 .cartFeedback {
@@ -396,8 +462,8 @@
   bottom: 0;
   z-index: 3;
   margin-top: 1rem;
-  padding: 0.75rem 0 0.25rem;
-  background: color-mix(in srgb, var(--color-paper, #f7f4ef) 94%, white);
+  padding: 0.75rem 0 calc(0.25rem + env(safe-area-inset-bottom, 0px));
+  background: var(--color-cream);
   border-top: 1px solid rgba(10, 22, 40, 0.12);
 }
 

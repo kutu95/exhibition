@@ -26,6 +26,24 @@
   background: transparent;
 }
 
+/* Icon-only, but sized to a comfortable touch target. */
+.compact {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  background: transparent;
+}
+
+.compact .icon {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.compact.active {
+  border-color: var(--color-rust);
+}
+
 .icon {
   width: 100%;
   height: 100%;

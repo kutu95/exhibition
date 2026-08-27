@@ -20,24 +20,25 @@ import { isWallSource } from "../lib/exhibition-links";
 import { readOrderItemEditParams, buildOrderItemEditQuery } from "../lib/order-item-edit-params";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
 import {
-  classIdFromMediaPresentation,
+  classIdFromPaperPresentation,
   findVariantForOfferCombo,
   isFramedOfferClass,
-  mediaPresentationFromClassId,
-  OFFER_CLASS_DETAILS,
+  offerPresentationLabel,
+  offerPresentationSummary,
   OFFER_CLASS_PROVIDER,
   OFFER_CLASSES,
-  OFFER_MEDIA_IDS,
-  OFFER_MEDIA_LABEL,
-  OFFER_MEDIA_PRESENTATIONS,
-  OFFER_MEDIA_SUMMARY,
-  OFFER_PRESENTATION_LABEL,
-  OFFER_PRESENTATION_SUMMARY,
+  OFFER_PAPER_DETAILS,
+  OFFER_PAPER_IDS,
+  OFFER_PAPER_LABEL,
+  OFFER_PAPER_PRESENTATIONS,
+  OFFER_PAPER_SUMMARY,
+  OFFER_SIZE_HINT,
   OFFER_SIZE_LABEL,
   OFFER_SIZES,
+  paperPresentationFromClassId,
   parseOfferAxesFromVariant,
   type OfferClassId,
-  type OfferMediaId,
+  type OfferPaperId,
   type OfferPresentationId,
   type OfferSizeId,
 } from "../lib/print-offer";
@@ -68,8 +69,17 @@ const FRAME_NOTE_OPTISHIELD =
 const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   const wIn = Math.round(mmToInches(widthMm) * 10) / 10;
   const hIn = Math.round(mmToInches(heightMm) * 10) / 10;
-  return `${Math.round(widthMm)} × ${Math.round(heightMm)} mm · ${wIn} × ${hIn} in`;
+  return `${Math.round(widthMm / 10)} × ${Math.round(heightMm / 10)} cm · ${wIn} × ${hIn} in`;
 };
+
+/** Price difference against the current selection, e.g. "+$25" or "−$8.50". */
+const formatPriceDelta = (cents: number): string => {
+  const magnitude = Math.abs(cents);
+  const body = magnitude % 100 === 0 ? `$${magnitude / 100}` : formatAUD(magnitude);
+  return `${cents > 0 ? "+" : "−"}${body}`;
+};
+
+const LARGEST_OFFER_LONG_EDGE_MM = Math.max(...OFFER_SIZES.map((size) => size.longEdgeMm));
 
 export function ProductDetailClient({ product, shareButtons, isAdmin = false }: ProductDetailClientProps) {
   const router = useRouter();
@@ -112,16 +122,24 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     return first ?? { sizeId: "a3" as OfferSizeId, classId: "photographic" as OfferClassId };
   }, [offerVariants, preselectedAxes]);
 
+  const defaultPaperFinish = paperPresentationFromClassId(defaultAxes.classId);
   const [sizeId, setSizeId] = useState<OfferSizeId>(defaultAxes.sizeId);
-  const [classId, setClassId] = useState<OfferClassId>(defaultAxes.classId);
-  const defaultMediaFinish = mediaPresentationFromClassId(defaultAxes.classId);
-  const [mediaId, setMediaId] = useState<OfferMediaId>(defaultMediaFinish.media);
-  const [presentationId, setPresentationId] = useState<OfferPresentationId>(defaultMediaFinish.presentation);
+  const [paperId, setPaperId] = useState<OfferPaperId>(defaultPaperFinish.paper);
+  const [presentationId, setPresentationId] = useState<OfferPresentationId>(
+    defaultPaperFinish.presentation,
+  );
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
 
-  const initialVariantId =
-    variants.find((variant) => variant.id === preselectVariantId)?.id ?? variants[0]?.id ?? "";
-  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
+  const classId = classIdFromPaperPresentation(paperId, presentationId) ?? defaultAxes.classId;
+
+  // Seeded from the default axes rather than variants[0], so the server-rendered
+  // price already matches the size and paper shown as selected.
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(() => {
+    const preselected = variants.find((variant) => variant.id === preselectVariantId);
+    if (preselected) return preselected.id;
+    const resolved = useOfferChooser ? findVariantForOfferCombo(offerVariants, defaultAxes) : null;
+    return resolved?.id ?? variants[0]?.id ?? "";
+  });
   const [activeImage, setActiveImage] = useState(primaryImage);
   const [imageRatio, setImageRatio] = useState<number | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -154,10 +172,9 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     const axes = parseOfferAxesFromVariant(match);
     if (axes) {
       setSizeId(axes.sizeId);
-      setClassId(axes.classId);
-      const mediaFinish = mediaPresentationFromClassId(axes.classId);
-      setMediaId(mediaFinish.media);
-      setPresentationId(mediaFinish.presentation);
+      const paperFinish = paperPresentationFromClassId(axes.classId);
+      setPaperId(paperFinish.paper);
+      setPresentationId(paperFinish.presentation);
     }
   }, [preselectVariantId, variants]);
 
@@ -201,55 +218,77 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     return OFFER_CLASSES.filter((id) => ids.has(id));
   }, [offerVariants]);
 
-  const availableMediaIds = useMemo(() => {
-    return OFFER_MEDIA_IDS.filter((media) => {
-      const presentations = OFFER_MEDIA_PRESENTATIONS[media];
-      if (presentations.length === 0) {
-        const classIdFor = classIdFromMediaPresentation(media, "print");
-        return classIdFor !== null && availableClassIds.includes(classIdFor);
-      }
-      return presentations.some((presentation) => {
-        const classIdFor = classIdFromMediaPresentation(media, presentation);
-        return classIdFor !== null && availableClassIds.includes(classIdFor);
+  /** Finishes actually stocked for each paper, keyed by paper. */
+  const finishesByPaper = useMemo(() => {
+    const map = {} as Record<OfferPaperId, OfferPresentationId[]>;
+    for (const paper of OFFER_PAPER_IDS) {
+      map[paper] = OFFER_PAPER_PRESENTATIONS[paper].filter((presentation) => {
+        const mapped = classIdFromPaperPresentation(paper, presentation);
+        return mapped !== null && availableClassIds.includes(mapped);
       });
-    });
+    }
+    return map;
   }, [availableClassIds]);
 
-  const availablePresentations = useMemo(() => {
-    return OFFER_MEDIA_PRESENTATIONS[mediaId].filter((presentation) => {
-      const classIdFor = classIdFromMediaPresentation(mediaId, presentation);
-      return classIdFor !== null && availableClassIds.includes(classIdFor);
-    });
-  }, [availableClassIds, mediaId]);
+  const availablePaperIds = useMemo(
+    () => OFFER_PAPER_IDS.filter((paper) => finishesByPaper[paper].length > 0),
+    [finishesByPaper],
+  );
 
-  const selectMedia = (nextMedia: OfferMediaId) => {
-    setMediaId(nextMedia);
-    const finishes = OFFER_MEDIA_PRESENTATIONS[nextMedia].filter((presentation) => {
-      const classIdFor = classIdFromMediaPresentation(nextMedia, presentation);
-      return classIdFor !== null && availableClassIds.includes(classIdFor);
-    });
-    if (finishes.length === 0) {
-      const nextClass = classIdFromMediaPresentation(nextMedia, "print");
-      setPresentationId(nextMedia === "canvas_wrap" ? "wrap" : "print");
-      if (nextClass) setClassId(nextClass);
-      return;
+  const availablePresentations = finishesByPaper[paperId] ?? [];
+
+  const selectPaper = (nextPaper: OfferPaperId) => {
+    setPaperId(nextPaper);
+    const finishes = finishesByPaper[nextPaper] ?? [];
+    if (finishes.length > 0 && !finishes.includes(presentationId)) {
+      setPresentationId(finishes[0]!);
     }
-    const nextPresentation = finishes.includes(presentationId) ? presentationId : finishes[0] ?? "print";
-    setPresentationId(nextPresentation);
-    const nextClass = classIdFromMediaPresentation(nextMedia, nextPresentation);
-    if (nextClass) setClassId(nextClass);
-  };
-
-  const selectPresentation = (nextPresentation: OfferPresentationId) => {
-    setPresentationId(nextPresentation);
-    const nextClass = classIdFromMediaPresentation(mediaId, nextPresentation);
-    if (nextClass) setClassId(nextClass);
   };
 
   const priceForCombo = (combo: {
     sizeId: OfferSizeId;
     classId: OfferClassId;
   }): ProductVariant | null => findVariantForOfferCombo(offerVariants, combo);
+
+  const priceCentsForCombo = (combo: { sizeId: OfferSizeId; classId: OfferClassId }): number | null =>
+    priceForCombo(combo)?.price_aud ?? null;
+
+  const selectedPriceCents = priceCentsForCombo({ sizeId, classId });
+
+  /** Cost of swapping one axis while the others stay put. */
+  const deltaForClass = (candidateClassId: OfferClassId | null): number | null => {
+    if (!candidateClassId || selectedPriceCents === null) return null;
+    const candidate = priceCentsForCombo({ sizeId, classId: candidateClassId });
+    if (candidate === null) return null;
+    return candidate - selectedPriceCents;
+  };
+
+  const deltaLabel = (isSelected: boolean, delta: number | null): string => {
+    if (isSelected) return "Selected";
+    if (delta === null) return "Unavailable";
+    if (delta === 0) return "Same price";
+    return formatPriceDelta(delta);
+  };
+
+  const frameColourLabel =
+    POSTERFACTORY_FRAME_COLOURS.find((option) => option.id === frameColour)?.label ?? "";
+
+  const selectedLongEdgeMm =
+    OFFER_SIZES.find((size) => size.id === sizeId)?.longEdgeMm ?? LARGEST_OFFER_LONG_EDGE_MM;
+
+  const selectedDimensionLine =
+    selectedVariant?.width_mm && selectedVariant?.height_mm
+      ? formatShopDimensions(selectedVariant.width_mm, selectedVariant.height_mm)
+      : null;
+
+  const selectionSummary = useOfferChooser
+    ? [
+        OFFER_SIZE_LABEL[sizeId],
+        OFFER_PAPER_LABEL[paperId],
+        offerPresentationLabel(paperId, presentationId),
+        ...(isFramedOfferClass(classId) ? [`${frameColourLabel.toLowerCase()} frame`] : []),
+      ].join(" · ")
+    : (selectedVariant?.variant_label ?? "");
 
   if (!primaryImage) {
     throw new Error(`Missing product image for product: ${product.slug}`);
@@ -543,188 +582,179 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         {maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
 
         <div className={styles.priceSticky}>
-          <p className={styles.price}>
-            {selectedVariant ? formatAUD(selectedVariant.price_aud) : "Price unavailable"}
-          </p>
-          {useOfferChooser && selectedVariant ? (
-            <p className={styles.offerSummary}>{selectedVariant.variant_label}</p>
-          ) : null}
+          <div className={styles.priceRow}>
+            <p className={styles.price}>
+              {selectedVariant ? formatAUD(selectedVariant.price_aud) : "Price unavailable"}
+            </p>
+            {isEditingOrderItem ? null : (
+              <FavouriteButton
+                productId={product.id}
+                productTitle={product.title}
+                size="compact"
+                className={styles.favouriteButton}
+              />
+            )}
+          </div>
+          {selectionSummary ? <p className={styles.offerSummary}>{selectionSummary}</p> : null}
         </div>
 
         {useOfferChooser ? (
           <div className={styles.offerChooser}>
-            <fieldset className={styles.offerFieldset}>
-              <legend>Medium</legend>
-              <div className={styles.offerOptions}>
-                {availableMediaIds.map((id) => {
-                  const presentations = OFFER_MEDIA_PRESENTATIONS[id];
-                  const sampleClass =
-                    presentations.length === 0
-                      ? classIdFromMediaPresentation(id, "print")
-                      : classIdFromMediaPresentation(
-                          id,
-                          presentations.find((presentation) => {
-                            const mapped = classIdFromMediaPresentation(id, presentation);
-                            return mapped !== null && availableClassIds.includes(mapped);
-                          }) ?? "print",
-                        );
-                  const sample = sampleClass
-                    ? priceForCombo({ sizeId, classId: sampleClass })
-                    : null;
-                  return (
-                    <label
-                      key={id}
-                      className={`${styles.offerOption} ${id === "tier2" ? styles.offerOptionPremium : ""} ${
-                        mediaId === id ? styles.offerOptionActive : ""
-                      } ${!sample ? styles.offerOptionDisabled : ""}`}
-                    >
-                      <input
-                        type="radio"
-                        name="offer-medium"
-                        checked={mediaId === id}
-                        disabled={!sample}
-                        onChange={() => selectMedia(id)}
-                      />
-                      <span className={styles.offerOptionCopy}>
-                        <span className={styles.offerOptionTitle}>{OFFER_MEDIA_LABEL[id]}</span>
-                        <span className={styles.offerOptionMeta}>{OFFER_MEDIA_SUMMARY[id]}</span>
-                        {sample ? (
-                          <span className={styles.offerOptionMeta}>{formatAUD(sample.price_aud)}</span>
-                        ) : null}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            {availablePresentations.length > 0 ? (
-              <fieldset className={styles.offerFieldset}>
-                <legend>Finish</legend>
-                <div className={styles.offerOptions}>
-                  {availablePresentations.map((id) => {
-                    const mappedClass = classIdFromMediaPresentation(mediaId, id);
-                    const sample = mappedClass ? priceForCombo({ sizeId, classId: mappedClass }) : null;
-                    return (
-                      <label
-                        key={id}
-                        className={`${styles.offerOption} ${id === "framed" ? styles.offerOptionWithSample : ""} ${
-                          presentationId === id ? styles.offerOptionActive : ""
-                        } ${!sample ? styles.offerOptionDisabled : ""}`}
-                      >
-                        <input
-                          type="radio"
-                          name="offer-finish"
-                          checked={presentationId === id}
-                          disabled={!sample}
-                          onChange={() => selectPresentation(id)}
-                        />
-                        {id === "framed" ? (
-                          <span className={styles.offerOptionSample}>
-                            <img
-                              src={OFFER_FRAMED_SAMPLE_IMAGE}
-                              alt="Framed print sample"
-                              width={96}
-                              height={96}
-                              className={styles.offerOptionSampleImage}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          </span>
-                        ) : null}
-                        <span className={styles.offerOptionCopy}>
-                          <span className={styles.offerOptionTitle}>{OFFER_PRESENTATION_LABEL[id]}</span>
-                          <span className={styles.offerOptionMeta}>{OFFER_PRESENTATION_SUMMARY[id]}</span>
-                          {sample ? (
-                            <span className={styles.offerOptionMeta}>{formatAUD(sample.price_aud)}</span>
-                          ) : null}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <details className={styles.offerDetails}>
-                  <summary>More details</summary>
-                  <p>{OFFER_CLASS_DETAILS[classId]}</p>
-                </details>
-              </fieldset>
-            ) : (
-              <details className={styles.offerDetails}>
-                <summary>More details</summary>
-                <p>{OFFER_CLASS_DETAILS[classId]}</p>
-              </details>
-            )}
-
-            <fieldset className={styles.offerFieldset}>
-              <legend className={styles.sizeLegend}>
-                <span>Size</span>
+            <fieldset className={styles.step}>
+              <legend className={styles.stepLegend}>
+                <span className={styles.stepNumber} aria-hidden>
+                  1
+                </span>
+                <span className={styles.stepTitle}>Size</span>
                 {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" && !fromWall ? (
                   <Link
-                    className={styles.sizeCustomLink}
+                    className={styles.stepAside}
                     href={
                       orderItemEdit
                         ? `/shop/${product.slug}/custom?${buildOrderItemEditQuery(orderItemEdit.orderId, orderItemEdit.itemId)}`
                         : `/shop/${product.slug}/custom`
                     }
                   >
-                    Custom Size
+                    Custom size
                   </Link>
                 ) : null}
               </legend>
-              <div className={styles.offerOptions}>
+              <div className={styles.chipRow} data-columns="4">
                 {availableSizeIds.map((id) => {
                   const sample = priceForCombo({ sizeId: id, classId });
-                  const sizeDef = OFFER_SIZES.find((size) => size.id === id);
-                  const widthMm = sample?.width_mm ?? null;
-                  const heightMm = sample?.height_mm ?? null;
-                  const dimensionLine =
-                    widthMm && heightMm && widthMm > 0 && heightMm > 0
-                      ? formatShopDimensions(widthMm, heightMm)
-                      : sizeDef
-                        ? `Long edge ${sizeDef.longEdgeMm} mm`
-                        : null;
                   return (
                     <label
                       key={id}
-                      className={`${styles.offerOption} ${sizeId === id ? styles.offerOptionActive : ""} ${
-                        !sample ? styles.offerOptionDisabled : ""
+                      className={`${styles.chip} ${sizeId === id ? styles.chipActive : ""} ${
+                        sample ? "" : styles.chipDisabled
                       }`}
                     >
                       <input
                         type="radio"
                         name="offer-size"
+                        className={styles.chipInput}
                         checked={sizeId === id}
                         disabled={!sample}
                         onChange={() => setSizeId(id)}
                       />
-                      <span className={styles.offerOptionCopy}>
-                        <span className={styles.offerOptionTitle}>{OFFER_SIZE_LABEL[id]}</span>
-                        {dimensionLine ? <span className={styles.offerOptionMeta}>{dimensionLine}</span> : null}
-                        {sample ? (
-                          <span className={styles.offerOptionMeta}>{formatAUD(sample.price_aud)}</span>
-                        ) : null}
+                      <span className={styles.chipTitle}>{OFFER_SIZE_LABEL[id]}</span>
+                      <span className={styles.chipMeta}>
+                        {sample ? formatAUD(sample.price_aud) : "—"}
                       </span>
                     </label>
                   );
                 })}
               </div>
+              <p className={styles.scaleRow}>
+                <span className={styles.scaleTrack} aria-hidden>
+                  <span
+                    className={styles.scaleFill}
+                    style={{
+                      width: `${Math.round((selectedLongEdgeMm / LARGEST_OFFER_LONG_EDGE_MM) * 100)}%`,
+                    }}
+                  />
+                </span>
+                <span className={styles.scaleLabel}>
+                  {selectedDimensionLine ? `${selectedDimensionLine} · ` : ""}
+                  {OFFER_SIZE_HINT[sizeId]}
+                </span>
+              </p>
             </fieldset>
 
+            <fieldset className={styles.step}>
+              <legend className={styles.stepLegend}>
+                <span className={styles.stepNumber} aria-hidden>
+                  2
+                </span>
+                <span className={styles.stepTitle}>Paper</span>
+              </legend>
+              <div className={styles.chipRow} data-columns="3">
+                {availablePaperIds.map((id) => {
+                  const finishes = finishesByPaper[id] ?? [];
+                  const nearestFinish = finishes.includes(presentationId) ? presentationId : finishes[0];
+                  const nearestClass = nearestFinish
+                    ? classIdFromPaperPresentation(id, nearestFinish)
+                    : null;
+                  return (
+                    <label
+                      key={id}
+                      className={`${styles.chip} ${paperId === id ? styles.chipActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="offer-paper"
+                        className={styles.chipInput}
+                        checked={paperId === id}
+                        onChange={() => selectPaper(id)}
+                      />
+                      <span className={styles.chipTitle}>{OFFER_PAPER_LABEL[id]}</span>
+                      <span className={styles.chipMeta}>
+                        {deltaLabel(paperId === id, deltaForClass(nearestClass))}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className={styles.stepNote}>{OFFER_PAPER_SUMMARY[paperId]}</p>
+              <details className={styles.offerDetails}>
+                <summary>About this paper</summary>
+                <p>{OFFER_PAPER_DETAILS[paperId]}</p>
+              </details>
+            </fieldset>
+
+            {availablePresentations.length > 0 ? (
+              <fieldset className={styles.step}>
+                <legend className={styles.stepLegend}>
+                  <span className={styles.stepNumber} aria-hidden>
+                    3
+                  </span>
+                  <span className={styles.stepTitle}>Finish</span>
+                </legend>
+                <div className={styles.chipRow} data-columns="3">
+                  {availablePresentations.map((id) => (
+                    <label
+                      key={id}
+                      className={`${styles.chip} ${presentationId === id ? styles.chipActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="offer-finish"
+                        className={styles.chipInput}
+                        checked={presentationId === id}
+                        onChange={() => setPresentationId(id)}
+                      />
+                      <span className={styles.chipTitle}>{offerPresentationLabel(paperId, id)}</span>
+                      <span className={styles.chipMeta}>
+                        {deltaLabel(
+                          presentationId === id,
+                          deltaForClass(classIdFromPaperPresentation(paperId, id)),
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className={styles.stepNote}>{offerPresentationSummary(paperId, presentationId)}</p>
+              </fieldset>
+            ) : null}
+
             {isFramedOfferClass(classId) ? (
-              <fieldset className={styles.offerFieldset}>
-                <legend>Frame colour</legend>
-                <p className={styles.frameNote}>{FRAME_NOTE_OPTISHIELD}</p>
-                <div className={styles.frameColourOptions}>
+              <fieldset className={styles.step}>
+                <legend className={styles.stepLegend}>
+                  <span className={styles.stepNumber} aria-hidden>
+                    4
+                  </span>
+                  <span className={styles.stepTitle}>Frame colour</span>
+                </legend>
+                <div className={styles.chipRow} data-columns="3">
                   {POSTERFACTORY_FRAME_COLOURS.map((option) => (
                     <label
                       key={option.id}
-                      className={`${styles.frameColourOption} ${
-                        frameColour === option.id ? styles.frameColourOptionActive : ""
-                      }`}
+                      className={`${styles.chip} ${frameColour === option.id ? styles.chipActive : ""}`}
                     >
                       <input
                         type="radio"
                         name="frame-colour"
+                        className={styles.chipInput}
                         checked={frameColour === option.id}
                         onChange={() => setFrameColour(option.id)}
                       />
@@ -733,9 +763,21 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                         data-frame-colour={option.id}
                         aria-hidden
                       />
-                      <span>{option.label}</span>
+                      <span className={styles.chipTitle}>{option.label}</span>
                     </label>
                   ))}
+                </div>
+                <div className={styles.frameNoteRow}>
+                  <img
+                    src={OFFER_FRAMED_SAMPLE_IMAGE}
+                    alt="The three frame mouldings: black, white and timber"
+                    width={64}
+                    height={64}
+                    className={styles.frameSampleImage}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <p className={styles.stepNote}>{FRAME_NOTE_OPTISHIELD}</p>
                 </div>
               </fieldset>
             ) : null}
@@ -784,12 +826,6 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         ) : (
           <>
             <div className={`${styles.buyActions} ${fromWall ? styles.buyActionsWall : ""}`}>
-              <FavouriteButton
-                productId={product.id}
-                productTitle={product.title}
-                size="detail"
-                className={styles.favouriteButton}
-              />
               {purchasesAllowed ? (
                 fromWall ? (
                   <button
@@ -814,7 +850,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                       {isCheckingOut
                         ? "Redirecting..."
                         : itemCount > 0
-                          ? "Buy now (includes cart)"
+                          ? `Buy now (${itemCount + 1} prints)`
                           : "Buy now"}
                     </button>
                   </>
@@ -831,7 +867,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
 
             {purchasesAllowed && !fromWall && itemCount > 0 ? (
               <p className={styles.cartFeedback}>
-                {itemCount} item{itemCount === 1 ? "" : "s"} already in your cart.{" "}
+                {itemCount === 1 ? "1 print" : `${itemCount} prints`} already in your cart.{" "}
                 <Link href="/cart">View cart</Link>
               </p>
             ) : null}
