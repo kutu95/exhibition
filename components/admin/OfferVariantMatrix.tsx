@@ -156,9 +156,6 @@ export function OfferVariantMatrix({ drafts, selection }: OfferVariantMatrixProp
           <button type="button" onClick={selection.selectFineArt}>
             Fine Art
           </button>
-          <button type="button" onClick={selection.selectCanvas}>
-            Canvas
-          </button>
         </div>
       </div>
       <table className={styles.table}>

@@ -163,7 +163,8 @@ const resolvePixelDimensions = async (row: ProductRebuildRow): Promise<{
 };
 
 /**
- * Soft-deactivate all print variants and insert the 9-SKU offer matrix for each print product.
+ * Soft-deactivate all print variants and insert the 12-SKU offer matrix for each print product
+ * (A4/A3/A2/A0 × Tier 1 / Tier 2 / Framed).
  */
 export const rebuildAllPrintOfferVariants = async (): Promise<RebuildPrintOptionsResult> => {
   const pricing = await getOfferPricingBundle();

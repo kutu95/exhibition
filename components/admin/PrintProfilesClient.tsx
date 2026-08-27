@@ -312,7 +312,7 @@ export function PrintProfilesClient({
 
   const rebuildAll = async () => {
     const confirmed = window.confirm(
-      `Rebuild ALL print products to the ${OFFER_COMBOS.length}-SKU offer (Photographic / Fine Art / Framed / Canvas)?\n\nThis deactivates existing variants and creates new ones. Past orders keep old variant rows. Save pricing first.`,
+      `Rebuild ALL print products to the ${OFFER_COMBOS.length}-SKU offer (A4/A3/A2/A0 × Tier 1 / Tier 2 / Framed)?\n\nThis deactivates existing variants and creates new ones. Past orders keep old variant rows. Save pricing first.`,
     );
     if (!confirmed) return;
 
@@ -417,16 +417,14 @@ export function PrintProfilesClient({
           Fixed catalogue recipe: {OFFER_SIZES.map((s) => s.label).join(" / ")} ×{" "}
           {OFFER_CLASSES.map((id) =>
             id === "photographic"
-              ? "Photographic Print (PosterFactory)"
+              ? "Tier 1 (Ilford Pearl)"
               : id === "fine_art"
-                ? "Fine Art Print (Pixel Perfect)"
-                : id === "framed"
-                  ? "Framed Print (PosterFactory)"
-                  : "Canvas (Pixel Perfect)",
+                ? "Tier 2 (Canson Rag)"
+                : "Framed Print",
           ).join(" / ")}{" "}
-          ({OFFER_COMBOS.length} SKUs). Fine art paper: {OFFER_FINE_ART_PAPER_LABEL}. Photographic and framed
-          supplier costs are edited in the PosterFactory table below. Retail uses the media markup unless a
-          PosterFactory retail override is set.
+          ({OFFER_COMBOS.length} SKUs). Fine art paper: {OFFER_FINE_ART_PAPER_LABEL}. Tier 1 and Tier 2
+          price from Blue Wren area rates. Framed = Tier 1 media + existing frame calculator (unchanged
+          until Blue Wren mouldings are quoted). PosterFactory table below is reference only.
         </p>
 
         <h3 className={styles.papersHeading}>Media markup</h3>
@@ -463,7 +461,7 @@ export function PrintProfilesClient({
             <tbody>
               {(["photographic", "framed"] as const).flatMap((classId) => {
                 const product = posterfactory[classId];
-                return (["small", "medium", "large"] as const).map((sizeId, index) => {
+                return (["a4", "a3", "a2", "a0"] as const).map((sizeId, index) => {
                   const row = product.sizes[sizeId];
                   return (
                     <tr key={`${classId}-${sizeId}`}>

@@ -326,7 +326,7 @@ export function ImportPhotoWizardClient({
       return "Master TIFF pixel dimensions are required to build the print offer.";
     }
     if (step === 3 && offerDrafts.length === 0) {
-      return "Could not price the standard Photographic / Fine Art / Framed / Canvas offer. Check Print Templates pricing.";
+      return "Could not price the standard Tier 1 / Tier 2 / Framed offer. Check Print Templates pricing.";
     }
     if (step === 3 && !sizesValid) {
       return "Select at least one print option, and check any price overrides.";
@@ -483,7 +483,7 @@ export function ImportPhotoWizardClient({
                 (with an embedded ICC profile).
               </li>
               <li>
-                You add title, slug, edition size, then choose which Photographic / Fine Art / Frame / Canvas options to offer. Each
+                You add title, slug, edition size, then choose which Tier 1 / Tier 2 / Framed options to offer. Each
                 selected combo becomes an aspect-true custom-size variant priced as roundUp(base + markup × lab cost) —
                 currently base ${basePriceAud.toFixed(2)} and {markupFactor}× markup (editable on{" "}
                 <Link href="/admin/print-profiles">Print Templates</Link>). You can uncheck options or override retail
@@ -644,7 +644,7 @@ export function ImportPhotoWizardClient({
         <section className={styles.panel}>
           <h2>4. Print offer</h2>
           <p className={styles.explain}>
-            Defaults are Small / Medium / Large × Archival matte (unframed or framed) × Ready-to-hang canvas. Uncheck
+            Defaults are A4 / A3 / A2 / A0 × Tier 1 / Tier 2 / Framed. Uncheck
             anything this print should not offer, and override retail if you need a different price. Framed uses Pixel
             Perfect Standard moulding (20–42mm face) + Perspex for shipping. Formula pricing uses current media and
             frame markups from <Link href="/admin/print-profiles">Print Templates</Link>.

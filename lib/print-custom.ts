@@ -1,6 +1,5 @@
 import {
   PAPER_OPTIONS,
-  PIXEL_PERFECT_SQ_IN_RATES_AUD,
   ratePerSqInForPaper,
   seedManagedPapers,
   type ManagedPaper,
@@ -32,6 +31,16 @@ export const SHOW_CUSTOM_PRINT_PAGE = true;
 
 export const CUSTOM_LONG_EDGE_MIN_MM = 200;
 export const CUSTOM_LONG_EDGE_DEFAULT_MM = 594;
+
+/** ISO long-edge snap targets for the custom size slider (A5–A0). */
+export const CUSTOM_ISO_LONG_EDGE_SNAPS_MM = [
+  { id: "a5", label: "A5", mm: 210 },
+  { id: "a4", label: "A4", mm: 297 },
+  { id: "a3", label: "A3", mm: 420 },
+  { id: "a2", label: "A2", mm: 594 },
+  { id: "a1", label: "A1", mm: 841 },
+  { id: "a0", label: "A0", mm: 1189 },
+] as const;
 
 /**
  * Pixel Perfect Epson P20070 roll width (64″). One print edge must stay within this;
@@ -134,21 +143,21 @@ export const listCustomMediaOptions = (papers: ManagedPaper[] = seedManagedPaper
       kind: "paper" as const,
     }));
 
-  const fallback = PAPER_OPTIONS.filter((paper) => paper.rateTier !== null).map((paper) => ({
+  const fallback = PAPER_OPTIONS.filter((paper) => paper.ratePerSqInAud !== null).map((paper) => ({
     id: paper.id,
     label: paper.label,
     printType: paper.printType,
-    ratePerSqInAud: PIXEL_PERFECT_SQ_IN_RATES_AUD[paper.rateTier!],
+    ratePerSqInAud: paper.ratePerSqInAud,
     kind: "paper" as const,
   }));
 
-  const media = fromStore.length > 0 ? fromStore : fallback;
-
+  // Blue Wren media only — canvas sheet and canvas + image wrap are both listed papers.
+  // Legacy RTH package calculator remains available for stretched canvas quotes.
   return [
-    ...media,
+    ...(fromStore.length > 0 ? fromStore : fallback),
     {
       id: CUSTOM_RTH_CANVAS_ID,
-      label: "Ready-to-hang canvas (stretched)",
+      label: "Ready-to-hang canvas (stretched) — legacy package quote",
       printType: "rth_canvas",
       ratePerSqInAud: null,
       kind: "rth_canvas",
@@ -281,7 +290,7 @@ export const computeCustomPrintPricing = (
 
   const labCostAud = Math.round((mediaLabAud + frameLabAud) * 100) / 100;
   const retailAud = Math.round((mediaRetailAud + frameRetailAud) * 100) / 100;
-  const paperType = isRth ? "Canson PhotoArt Canvas" : media.label;
+  const paperType = isRth ? "Canson Photoart Pro Canvas" : media.label;
   const printType = isRth ? "canvas" : media.printType;
   const isFramed = frameStyle !== "none";
   const frameType = isFramed ? frameStyle : null;

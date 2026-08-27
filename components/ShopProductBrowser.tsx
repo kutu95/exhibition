@@ -22,9 +22,9 @@ const pickDefaultVariant = (product: ProductWithVariantsAndImages) => {
   const active = product.product_variants.filter((variant) => variant.is_active);
   const pool = active.length > 0 ? active : product.product_variants;
   if (pool.length === 0) return null;
-  const photographic = findVariantForOfferCombo(pool, { sizeId: "medium", classId: "photographic" });
+  const photographic = findVariantForOfferCombo(pool, { sizeId: "a3", classId: "photographic" });
   if (photographic) return photographic;
-  const fineArt = findVariantForOfferCombo(pool, { sizeId: "medium", classId: "fine_art" });
+  const fineArt = findVariantForOfferCombo(pool, { sizeId: "a3", classId: "fine_art" });
   if (fineArt) return fineArt;
   return pool.reduce((best, variant) => (variant.price_aud < best.price_aud ? variant : best));
 };

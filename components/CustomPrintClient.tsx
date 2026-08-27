@@ -19,6 +19,7 @@ import { buildOrderItemEditQuery } from "../lib/order-item-edit-params";
 import {
   computeCustomPrintPricing,
   CUSTOM_FRAME_OPTIONS,
+  CUSTOM_ISO_LONG_EDGE_SNAPS_MM,
   CUSTOM_LONG_EDGE_DEFAULT_MM,
   CUSTOM_LONG_EDGE_MIN_MM,
   CUSTOM_RTH_CANVAS_ID,
@@ -99,7 +100,10 @@ export function CustomPrintClient({
   const isEditingOrderItem = Boolean(isAdmin && editOrderId && editItemId);
 
   const defaultMedia =
-    mediaOptions.find((item) => item.id === "hm-photo-rag") ?? mediaOptions[0] ?? null;
+    mediaOptions.find((item) => item.id === "canson-rag-photographique") ??
+    mediaOptions.find((item) => item.id === "ilford-galerie-smooth-pearl") ??
+    mediaOptions[0] ??
+    null;
 
   const [longEdgeMm, setLongEdgeMm] = useState(CUSTOM_LONG_EDGE_DEFAULT_MM);
   const [longEdgeDraft, setLongEdgeDraft] = useState(String(CUSTOM_LONG_EDGE_DEFAULT_MM));
@@ -493,14 +497,31 @@ export function CustomPrintClient({
               />
               <span className={styles.muted}>mm</span>
             </div>
+            <div className={styles.snapRow} role="group" aria-label="ISO paper long-edge snaps">
+              {CUSTOM_ISO_LONG_EDGE_SNAPS_MM.map((snap) => {
+                const available = snap.mm >= CUSTOM_LONG_EDGE_MIN_MM && snap.mm <= maxLongEdgeMm;
+                const active = longEdgeMm === snap.mm;
+                return (
+                  <button
+                    key={snap.id}
+                    type="button"
+                    className={`${styles.snapButton}${active ? ` ${styles.snapButtonActive}` : ""}`}
+                    disabled={!available}
+                    onClick={() => commitLongEdgeMm(snap.mm)}
+                  >
+                    {snap.label}
+                  </button>
+                );
+              })}
+            </div>
             <p className={styles.dimension}>{formatShopDimensions(size.width_mm, size.height_mm)}</p>
           </label>
 
           <fieldset className={styles.fieldset}>
             <legend className={styles.legend}>Media</legend>
-            <MediaGroup title="Fine art papers" options={fineArt} mediaId={mediaId} onChange={setMediaId} />
-            <MediaGroup title="Photo papers" options={photo} mediaId={mediaId} onChange={setMediaId} />
-            <MediaGroup title="Canvas sheet" options={canvasPapers} mediaId={mediaId} onChange={setMediaId} />
+            <MediaGroup title="Tier 2 — Canson Rag" options={fineArt} mediaId={mediaId} onChange={setMediaId} />
+            <MediaGroup title="Tier 1 — Ilford Pearl" options={photo} mediaId={mediaId} onChange={setMediaId} />
+            <MediaGroup title="Canvas (not Tier 1 or 2)" options={canvasPapers} mediaId={mediaId} onChange={setMediaId} />
             <MediaGroup title="Ready to hang" options={rth} mediaId={mediaId} onChange={setMediaId} />
           </fieldset>
 

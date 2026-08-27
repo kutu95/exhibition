@@ -69,7 +69,10 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
   const variants = product.product_variants;
 
   const offerVariants = useMemo(() => {
-    return variants.filter((variant) => parseOfferAxesFromVariant(variant) !== null);
+    return variants.filter((variant) => {
+      const axes = parseOfferAxesFromVariant(variant);
+      return axes !== null && (OFFER_CLASSES as readonly string[]).includes(axes.classId);
+    });
   }, [variants]);
 
   const useOfferChooser = offerVariants.length > 0;
@@ -82,22 +85,22 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
 
   const defaultAxes = useMemo(() => {
     if (preselectedAxes) return preselectedAxes;
-    const mediumPhoto = findVariantForOfferCombo(offerVariants, {
-      sizeId: "medium",
+    const defaultPhoto = findVariantForOfferCombo(offerVariants, {
+      sizeId: "a3",
       classId: "photographic",
     });
-    if (mediumPhoto) {
-      return parseOfferAxesFromVariant(mediumPhoto)!;
+    if (defaultPhoto) {
+      return parseOfferAxesFromVariant(defaultPhoto)!;
     }
-    const mediumFineArt = findVariantForOfferCombo(offerVariants, {
-      sizeId: "medium",
+    const defaultFineArt = findVariantForOfferCombo(offerVariants, {
+      sizeId: "a3",
       classId: "fine_art",
     });
-    if (mediumFineArt) {
-      return parseOfferAxesFromVariant(mediumFineArt)!;
+    if (defaultFineArt) {
+      return parseOfferAxesFromVariant(defaultFineArt)!;
     }
     const first = offerVariants[0] ? parseOfferAxesFromVariant(offerVariants[0]) : null;
-    return first ?? { sizeId: "medium" as OfferSizeId, classId: "photographic" as OfferClassId };
+    return first ?? { sizeId: "a3" as OfferSizeId, classId: "photographic" as OfferClassId };
   }, [offerVariants, preselectedAxes]);
 
   const [sizeId, setSizeId] = useState<OfferSizeId>(defaultAxes.sizeId);

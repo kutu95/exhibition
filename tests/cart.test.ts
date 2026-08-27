@@ -40,7 +40,7 @@ describe("mixed-provider cart", () => {
     const first = tryAddToCart({
       variant_id: "photo-1",
       product_title: "Jetty",
-      variant_label: "Medium · Photographic Print",
+      variant_label: "A2 · Tier 1",
       price_aud: 9600,
       slug: "jetty",
       image_url: "/images/jetty.jpg",
@@ -50,7 +50,7 @@ describe("mixed-provider cart", () => {
     const second = tryAddToCart({
       variant_id: "framed-1",
       product_title: "Jetty",
-      variant_label: "Medium · Framed Print",
+      variant_label: "A2 · Framed Print",
       price_aud: 29700,
       slug: "jetty",
       image_url: "/images/jetty.jpg",
@@ -66,7 +66,7 @@ describe("mixed-provider cart", () => {
       tryAddToCart({
         variant_id: "fa-1",
         product_title: "Jetty",
-        variant_label: "Small · Fine Art Print",
+        variant_label: "A4 · Tier 2",
         price_aud: 18000,
         slug: "jetty",
         image_url: "/images/jetty.jpg",
@@ -77,7 +77,7 @@ describe("mixed-provider cart", () => {
       tryAddToCart({
         variant_id: "fa-2",
         product_title: "Harbour",
-        variant_label: "Large · Fine Art Print",
+        variant_label: "A0 · Tier 2",
         price_aud: 42000,
         slug: "harbour",
         image_url: "/images/harbour.jpg",
@@ -91,7 +91,7 @@ describe("mixed-provider cart", () => {
     tryAddToCart({
       variant_id: "photo-1",
       product_title: "Jetty",
-      variant_label: "Medium · Photographic Print",
+      variant_label: "A2 · Tier 1",
       price_aud: 9600,
       slug: "jetty",
       image_url: "/images/jetty.jpg",
@@ -100,7 +100,7 @@ describe("mixed-provider cart", () => {
     const blocked = tryAddToCart({
       variant_id: "fa-1",
       product_title: "Jetty",
-      variant_label: "Medium · Fine Art Print",
+      variant_label: "A2 · Tier 2",
       price_aud: 22000,
       slug: "jetty",
       image_url: "/images/jetty.jpg",
@@ -120,7 +120,7 @@ describe("mixed-provider cart", () => {
     tryAddToCart({
       variant_id: "fa-1",
       product_title: "Jetty",
-      variant_label: "Medium · Fine Art Print",
+      variant_label: "A2 · Tier 2",
       price_aud: 22000,
       slug: "jetty",
       image_url: "/images/jetty.jpg",
@@ -129,7 +129,7 @@ describe("mixed-provider cart", () => {
     const blocked = tryAddToCart({
       variant_id: "photo-1",
       product_title: "Jetty",
-      variant_label: "Medium · Photographic Print",
+      variant_label: "A2 · Tier 1",
       price_aud: 9600,
       slug: "jetty",
       image_url: "/images/jetty.jpg",
@@ -143,7 +143,7 @@ describe("mixed-provider cart", () => {
     tryAddToCart({
       variant_id: "photo-1",
       product_title: "Jetty",
-      variant_label: "Medium · Photographic Print",
+      variant_label: "A2 · Tier 1",
       price_aud: 9600,
       slug: "jetty",
       image_url: "/images/jetty.jpg",
@@ -152,7 +152,7 @@ describe("mixed-provider cart", () => {
     replaceCartWithItem({
       variant_id: "fa-1",
       product_title: "Jetty",
-      variant_label: "Medium · Fine Art Print",
+      variant_label: "A2 · Tier 2",
       price_aud: 22000,
       slug: "jetty",
       image_url: "/images/jetty.jpg",

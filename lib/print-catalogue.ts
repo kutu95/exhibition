@@ -1,6 +1,16 @@
+import {
+  BLUE_WREN_CANVAS_IMAGEWRAP_LABEL,
+  BLUE_WREN_CANVAS_IMAGEWRAP_RATE_PER_SQ_IN,
+  BLUE_WREN_CANVAS_LABEL,
+  BLUE_WREN_RAG_CANVAS_RATE_PER_SQ_IN,
+  BLUE_WREN_RAG_PHOTOGRAPHIQUE_LABEL,
+  BLUE_WREN_SMOOTH_PEARL_LABEL,
+  BLUE_WREN_SMOOTH_PEARL_RATE_PER_SQ_IN,
+} from "./bluewren";
+
 export type PrintTypeCode = "fine_art" | "photo" | "canvas" | "metal";
 
-/** Pixel Perfect April 2025 square-inch rate tiers (AUD incl. GST). */
+/** @deprecated Pixel Perfect April 2025 tiers — kept for legacy quote fallbacks. */
 export type PixelPerfectRateTier = "standard_inkjet" | "premium_inkjet" | null;
 
 export type PrintTypeOption = {
@@ -13,7 +23,9 @@ export type PaperOption = {
   id: string;
   label: string;
   printType: PrintTypeCode;
-  /** @deprecated Prefer ManagedPaper.ratePerSqInAud; kept for seed conversion. */
+  /** Explicit Blue Wren (or other) sq-in rate; null = quote-only. */
+  ratePerSqInAud: number | null;
+  /** @deprecated Prefer ratePerSqInAud. */
   rateTier: PixelPerfectRateTier;
 };
 
@@ -28,10 +40,8 @@ export type ManagedPaper = {
 };
 
 /**
+ * @deprecated Prefer Blue Wren rates on PAPER_OPTIONS / seedManagedPapers.
  * Pixel Perfect print formula: inches × inches × rate.
- * Source: https://pixelperfect.com.au/files/Pixel_Perfect_Pricelist.pdf (April 2025)
- * - standard_inkjet ($0.181): Matte papers / Canvas / Kodak Gloss / Kodak Matt / Ilford Smooth
- * - premium_inkjet ($0.217): Photo Paper / Natural Line / Pearl Metallic / Hahn Rag Pearl / Hahn Rag Metallic
  */
 export const PIXEL_PERFECT_SQ_IN_RATES_AUD: Record<Exclude<PixelPerfectRateTier, null>, number> = {
   standard_inkjet: 0.181,
@@ -40,77 +50,54 @@ export const PIXEL_PERFECT_SQ_IN_RATES_AUD: Record<Exclude<PixelPerfectRateTier,
 
 export const PIXEL_PERFECT_PRICELIST_NOTE = "Pixel Perfect pricelist April 2025 (per sq in, GST incl.)";
 
-/** Curated from Pixel Perfect's published fine art and C-type paper lists. */
+/** Shop + custom print media — Blue Wren artist sheet only. */
 export const PRINT_TYPES: PrintTypeOption[] = [
   {
-    code: "fine_art",
-    label: "Fine Art Giclée",
-    description: "Pigment inkjet on archival cotton / art papers",
+    code: "photo",
+    label: "Tier 1",
+    description: "Ilford Galerie Smooth Pearl",
   },
   {
-    code: "photo",
-    label: "C-type Photo",
-    description: "Silver-halide photographic papers (Kodak / Fuji)",
+    code: "fine_art",
+    label: "Tier 2",
+    description: "Canson Rag Photographique",
   },
   {
     code: "canvas",
     label: "Canvas",
-    description: "Gallery canvas and ready-to-hang substrates",
-  },
-  {
-    code: "metal",
-    label: "Metal",
-    description: "ChromaLuxe and metal print panels",
+    description: "Canson Photoart Pro Canvas (not Tier 1 or Tier 2)",
   },
 ];
 
 export const PAPER_OPTIONS: PaperOption[] = [
-  // Fine art — Hahnemühle & Canson (pixelperfect.com.au)
-  { id: "hm-photo-rag", label: "Hahnemühle Photo Rag 308gsm", printType: "fine_art", rateTier: "standard_inkjet" },
   {
-    id: "hm-photo-rag-bright-white",
-    label: "Hahnemühle Photo Rag Bright White",
-    printType: "fine_art",
+    id: "ilford-galerie-smooth-pearl",
+    label: BLUE_WREN_SMOOTH_PEARL_LABEL,
+    printType: "photo",
+    ratePerSqInAud: BLUE_WREN_SMOOTH_PEARL_RATE_PER_SQ_IN,
     rateTier: "standard_inkjet",
   },
-  { id: "hm-photo-rag-pearl", label: "Hahnemühle Photo Rag Pearl", printType: "fine_art", rateTier: "premium_inkjet" },
-  {
-    id: "hm-photo-rag-metallic",
-    label: "Hahnemühle Photo Rag Metallic",
-    printType: "fine_art",
-    rateTier: "premium_inkjet",
-  },
-  { id: "hm-museum-etching", label: "Hahnemühle Museum Etching", printType: "fine_art", rateTier: "standard_inkjet" },
   {
     id: "canson-rag-photographique",
-    label: "Canson Rag Photographique",
+    label: BLUE_WREN_RAG_PHOTOGRAPHIQUE_LABEL,
     printType: "fine_art",
-    rateTier: "standard_inkjet",
-  },
-  { id: "hm-bamboo", label: "Hahnemühle Bamboo 290gsm", printType: "fine_art", rateTier: "premium_inkjet" },
-  { id: "hm-hemp", label: "Hahnemühle Hemp 290gsm", printType: "fine_art", rateTier: "premium_inkjet" },
-  { id: "hm-agave", label: "Hahnemühle Agave 290gsm", printType: "fine_art", rateTier: "premium_inkjet" },
-  {
-    id: "inkjetpro-textured",
-    label: "INKJETpro Highly Textured Fine Art",
-    printType: "fine_art",
+    ratePerSqInAud: BLUE_WREN_RAG_CANVAS_RATE_PER_SQ_IN,
     rateTier: "standard_inkjet",
   },
   {
-    id: "kodak-inkjet-lustre",
-    label: "Kodak Professional Inkjet Lustre",
-    printType: "fine_art",
+    id: "canson-photoart-pro-canvas",
+    label: BLUE_WREN_CANVAS_LABEL,
+    printType: "canvas",
+    ratePerSqInAud: BLUE_WREN_RAG_CANVAS_RATE_PER_SQ_IN,
     rateTier: "standard_inkjet",
   },
-  // C-type
-  { id: "kodak-lustre", label: "Kodak Lustre", printType: "photo", rateTier: "premium_inkjet" },
-  { id: "kodak-matt", label: "Kodak Matt", printType: "photo", rateTier: "standard_inkjet" },
-  { id: "kodak-gloss", label: "Kodak Gloss", printType: "photo", rateTier: "standard_inkjet" },
-  { id: "fuji-flex", label: "Fuji Flex", printType: "photo", rateTier: "premium_inkjet" },
-  { id: "fuji-pearl-metallic", label: "Fuji Pearl Metallic", printType: "photo", rateTier: "premium_inkjet" },
-  // Canvas / metal
-  { id: "canson-photoart-canvas", label: "Canson PhotoArt Canvas", printType: "canvas", rateTier: "standard_inkjet" },
-  { id: "chromaluxe-metal", label: "ChromaLuxe Metal Panel", printType: "metal", rateTier: null },
+  {
+    id: "canson-photoart-pro-canvas-imagewrap",
+    label: BLUE_WREN_CANVAS_IMAGEWRAP_LABEL,
+    printType: "canvas",
+    ratePerSqInAud: BLUE_WREN_CANVAS_IMAGEWRAP_RATE_PER_SQ_IN,
+    rateTier: "standard_inkjet",
+  },
 ];
 
 export type LongEdgePreset = {
@@ -213,13 +200,13 @@ export const suggestTierForLongEdge = (longEdgeMm: number, printType: PrintTypeC
 export const tierGuidance = (tierLabel: string): string | null =>
   TIER_OPTIONS.find((tier) => tier.label === tierLabel)?.summary ?? null;
 
-/** Seed managed papers from the curated catalogue + Pixel Perfect tier rates. */
+/** Seed managed papers from the Blue Wren media list. */
 export const seedManagedPapers = (): ManagedPaper[] =>
   PAPER_OPTIONS.map((paper, index) => ({
     id: paper.id,
     label: paper.label,
     printType: paper.printType,
-    ratePerSqInAud: paper.rateTier ? PIXEL_PERFECT_SQ_IN_RATES_AUD[paper.rateTier] : null,
+    ratePerSqInAud: paper.ratePerSqInAud,
     isActive: true,
     sortOrder: index,
   }));
@@ -285,8 +272,7 @@ export const ratePerSqInForPaper = (
 ): number | null => {
   const match = findPaperByLabel(paperLabel, papers);
   if (!match) {
-    // Unknown label: fall back to standard inkjet seed rate for backwards compatibility.
-    return PIXEL_PERFECT_SQ_IN_RATES_AUD.standard_inkjet;
+    return BLUE_WREN_SMOOTH_PEARL_RATE_PER_SQ_IN;
   }
   return match.ratePerSqInAud;
 };

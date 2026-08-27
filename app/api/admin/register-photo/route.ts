@@ -47,7 +47,7 @@ const formSchema = z.object({
 });
 
 const offerSelectionItemSchema = z.object({
-  sizeId: z.enum(["small", "medium", "large"]),
+  sizeId: z.enum(["a4", "a3", "a2", "a0"]),
   classId: z.enum(["photographic", "fine_art", "framed", "canvas"]),
   price_aud: z.number().int().nonnegative().optional(),
 });

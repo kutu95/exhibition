@@ -1,9 +1,11 @@
+import { BLUE_WREN_SMOOTH_PEARL_RATE_PER_SQ_IN } from "./bluewren";
 import { supabaseAdmin } from "./supabase/admin";
 
 export const POSTERFACTORY_CONTENT_KEY = "posterfactory_offer";
 
 export type PosterFactoryClassId = "photographic" | "framed";
-export type PosterFactorySizeId = "small" | "medium" | "large";
+/** Aligned with shop offer sizes (long-edge bands). */
+export type PosterFactorySizeId = "a4" | "a3" | "a2" | "a0";
 
 export type PosterFactorySizePrice = {
   supplierCostAud: number;
@@ -25,57 +27,54 @@ export type PosterFactoryCatalogue = {
   framed: PosterFactoryProduct;
 };
 
-/**
- * Smooth Pearl cost rate from PosterFactory A2 $32 ÷ A2 area (≈8.28¢/sq in).
- * Small/Large are ISO A3/A1 area × that rate; Medium is the published A2 price.
- */
-export const POSTERFACTORY_SMOOTH_PEARL_RATE_PER_SQ_IN = 0.0828;
-
-/** ISO sheet areas used for Smooth Pearl size bands (sq in). */
-const SMOOTH_PEARL_SHEET_SQ_IN = {
-  small: (297 / 25.4) * (420 / 25.4), // A3
-  medium: (420 / 25.4) * (594 / 25.4), // A2
-  large: (594 / 25.4) * (841 / 25.4), // A1
-} as const;
-
-const smoothPearlCostAud = (sizeId: PosterFactorySizeId): number => {
-  if (sizeId === "medium") return 32;
-  return Math.round(SMOOTH_PEARL_SHEET_SQ_IN[sizeId] * POSTERFACTORY_SMOOTH_PEARL_RATE_PER_SQ_IN * 100) / 100;
+/** ISO A-series sheet areas (sq in) for seeded photographic costs. */
+const ISO_SHEET_SQ_IN: Record<PosterFactorySizeId, number> = {
+  a4: (210 / 25.4) * (297 / 25.4),
+  a3: (297 / 25.4) * (420 / 25.4),
+  a2: (420 / 25.4) * (594 / 25.4),
+  a0: (841 / 25.4) * (1189 / 25.4),
 };
 
+const smoothPearlCostAud = (sizeId: PosterFactorySizeId): number =>
+  Math.round(ISO_SHEET_SQ_IN[sizeId] * BLUE_WREN_SMOOTH_PEARL_RATE_PER_SQ_IN * 100) / 100;
+
 /**
- * Seed supplier costs (AUD incl. GST).
- * Photographic Smooth Pearl uses published A2 $32 and A3/A1 derived from 8.28¢/sq in.
- * Photo+Frame “from $99” is published; Medium/Large framed remain estimates until confirmed.
+ * Seed reference costs (AUD incl. GST).
+ * Shop Tier 1 / Tier 2 price from Blue Wren $/m² area rates on actual print size.
+ * Framed shop SKUs use Tier 1 media + the existing Pixel Perfect frame calculator
+ * (not these package rows) until Blue Wren mouldings are quoted.
+ * Photographic size rows below are ISO-sheet reference only.
  */
 export const SEED_POSTERFACTORY_CATALOGUE: PosterFactoryCatalogue = {
   photographic: {
     classId: "photographic",
-    label: "Photographic Print",
-    paper: "Ilford Smooth Pearl 310gsm",
-    productCode: "ilford-smooth-pearl-310gsm",
+    label: "Tier 1",
+    paper: "Ilford Galerie Smooth Pearl",
+    productCode: "ilford-galerie-smooth-pearl",
     productUrl: "https://posterfactory.com.au/product/ilford-smooth-pearl-310gsm/",
     sizes: {
-      small: { supplierCostAud: smoothPearlCostAud("small"), retailPriceAud: null, isActive: true },
-      medium: { supplierCostAud: smoothPearlCostAud("medium"), retailPriceAud: null, isActive: true },
-      large: { supplierCostAud: smoothPearlCostAud("large"), retailPriceAud: null, isActive: true },
+      a4: { supplierCostAud: smoothPearlCostAud("a4"), retailPriceAud: null, isActive: true },
+      a3: { supplierCostAud: smoothPearlCostAud("a3"), retailPriceAud: null, isActive: true },
+      a2: { supplierCostAud: smoothPearlCostAud("a2"), retailPriceAud: null, isActive: true },
+      a0: { supplierCostAud: smoothPearlCostAud("a0"), retailPriceAud: null, isActive: true },
     },
   },
   framed: {
     classId: "framed",
     label: "Framed Print",
-    paper: "Ilford Smooth Pearl 310gsm",
+    paper: "Ilford Galerie Smooth Pearl",
     productCode: "photo-frame-opti-shield",
     productUrl: "https://posterfactory.com.au/product/photo-and-frame-with-3mm-opti-shield/",
     sizes: {
-      small: { supplierCostAud: 99, retailPriceAud: null, isActive: true },
-      medium: { supplierCostAud: 149, retailPriceAud: null, isActive: true },
-      large: { supplierCostAud: 229, retailPriceAud: null, isActive: true },
+      a4: { supplierCostAud: 79, retailPriceAud: null, isActive: true },
+      a3: { supplierCostAud: 99, retailPriceAud: null, isActive: true },
+      a2: { supplierCostAud: 149, retailPriceAud: null, isActive: true },
+      a0: { supplierCostAud: 349, retailPriceAud: null, isActive: true },
     },
   },
 };
 
-const SIZE_IDS: PosterFactorySizeId[] = ["small", "medium", "large"];
+const SIZE_IDS: PosterFactorySizeId[] = ["a4", "a3", "a2", "a0"];
 
 const parseMoney = (value: unknown): number | null => {
   if (value === null || value === undefined || value === "") return null;
@@ -119,9 +118,10 @@ const parseProduct = (
         ? record.productUrl.trim()
         : fallback.productUrl,
     sizes: {
-      small: parseSizePrice(sizesRaw.small, fallback.sizes.small),
-      medium: parseSizePrice(sizesRaw.medium, fallback.sizes.medium),
-      large: parseSizePrice(sizesRaw.large, fallback.sizes.large),
+      a4: parseSizePrice(sizesRaw.a4, fallback.sizes.a4),
+      a3: parseSizePrice(sizesRaw.a3, fallback.sizes.a3),
+      a2: parseSizePrice(sizesRaw.a2, fallback.sizes.a2),
+      a0: parseSizePrice(sizesRaw.a0, fallback.sizes.a0),
     },
   };
 };
@@ -185,7 +185,22 @@ export const getPosterFactoryCatalogue = async (): Promise<PosterFactoryCatalogu
   }
 
   try {
-    return parsePosterFactoryCatalogue(JSON.parse(data.content_value) as unknown);
+    const raw = JSON.parse(data.content_value) as unknown;
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      const photographic = (raw as Record<string, unknown>).photographic;
+      const sizes =
+        photographic && typeof photographic === "object" && !Array.isArray(photographic)
+          ? (photographic as Record<string, unknown>).sizes
+          : null;
+      if (sizes && typeof sizes === "object" && !Array.isArray(sizes)) {
+        const keys = sizes as Record<string, unknown>;
+        if (("small" in keys || "medium" in keys || "large" in keys) && !("a4" in keys)) {
+          await upsertCatalogueContent(SEED_POSTERFACTORY_CATALOGUE);
+          return SEED_POSTERFACTORY_CATALOGUE;
+        }
+      }
+    }
+    return parsePosterFactoryCatalogue(raw);
   } catch {
     return SEED_POSTERFACTORY_CATALOGUE;
   }

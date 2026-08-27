@@ -887,7 +887,7 @@ export function ProductEditorForm({
                   onClick={() => {
                     void (async () => {
                       const confirmed = window.confirm(
-                        "Rebuild this product’s print options to the standard Photographic / Fine Art / Framed / Canvas offer? Existing active variants will be deactivated.",
+                        "Rebuild this product’s print options to the standard A4/A3/A2/A0 × Tier 1 / Tier 2 / Framed offer? Existing active variants will be deactivated.",
                       );
                       if (!confirmed) return;
                       setRebuildingOffer(true);
@@ -930,7 +930,7 @@ export function ProductEditorForm({
           {isNewPrint ? (
             <div className={styles.offerSetup}>
               <p className={styles.muted}>
-                Standard Photographic / Fine Art / Framed / Canvas options. Uncheck any this print should not offer, or override retail.
+                Standard A4 / A3 / A2 / A0 × Tier 1 / Tier 2 / Framed options. Uncheck any this print should not offer, or override retail.
                 Formula prices use markups from <Link href="/admin/print-profiles">Print Templates</Link>. Enter the
                 master pixel size so millimetres stay aspect-true.
               </p>

@@ -53,6 +53,12 @@ export async function GET(request: Request) {
   }
 }
 
+const sizePriceSchema = z.object({
+  supplierCostAud: z.number().min(0),
+  retailPriceAud: z.number().min(0).nullable(),
+  isActive: z.boolean(),
+});
+
 const patchSchema = z.object({
   markup_factor: z.number().min(1).max(20).optional(),
   base_price_aud: z.number().min(0).max(100_000).optional(),
@@ -84,21 +90,10 @@ const patchSchema = z.object({
         productCode: z.string(),
         productUrl: z.string(),
         sizes: z.object({
-          small: z.object({
-            supplierCostAud: z.number().min(0),
-            retailPriceAud: z.number().min(0).nullable(),
-            isActive: z.boolean(),
-          }),
-          medium: z.object({
-            supplierCostAud: z.number().min(0),
-            retailPriceAud: z.number().min(0).nullable(),
-            isActive: z.boolean(),
-          }),
-          large: z.object({
-            supplierCostAud: z.number().min(0),
-            retailPriceAud: z.number().min(0).nullable(),
-            isActive: z.boolean(),
-          }),
+          a4: sizePriceSchema,
+          a3: sizePriceSchema,
+          a2: sizePriceSchema,
+          a0: sizePriceSchema,
         }),
       }),
       framed: z.object({
@@ -108,21 +103,10 @@ const patchSchema = z.object({
         productCode: z.string(),
         productUrl: z.string(),
         sizes: z.object({
-          small: z.object({
-            supplierCostAud: z.number().min(0),
-            retailPriceAud: z.number().min(0).nullable(),
-            isActive: z.boolean(),
-          }),
-          medium: z.object({
-            supplierCostAud: z.number().min(0),
-            retailPriceAud: z.number().min(0).nullable(),
-            isActive: z.boolean(),
-          }),
-          large: z.object({
-            supplierCostAud: z.number().min(0),
-            retailPriceAud: z.number().min(0).nullable(),
-            isActive: z.boolean(),
-          }),
+          a4: sizePriceSchema,
+          a3: sizePriceSchema,
+          a2: sizePriceSchema,
+          a0: sizePriceSchema,
         }),
       }),
     })

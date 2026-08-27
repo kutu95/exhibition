@@ -27,10 +27,12 @@ import {
 } from "../lib/print-size";
 
 describe("print catalogue", () => {
-  it("lists fine art papers for fine_art print type", () => {
-    const papers = papersForPrintType("fine_art");
-    expect(papers.length).toBeGreaterThan(5);
-    expect(papers.some((paper) => paper.label.includes("Photo Rag"))).toBe(true);
+  it("lists Blue Wren media by print type", () => {
+    const fineArt = papersForPrintType("fine_art");
+    expect(fineArt).toHaveLength(1);
+    expect(fineArt[0]?.label).toBe("Canson Rag Photographique");
+    expect(papersForPrintType("photo").some((p) => p.label.includes("Smooth Pearl"))).toBe(true);
+    expect(papersForPrintType("canvas")).toHaveLength(2);
   });
 
   it("formats variant labels", () => {
@@ -54,10 +56,10 @@ describe("print catalogue", () => {
     expect(paperSelectValue("My bespoke stock")).toBe("__other__");
   });
 
-  it("assigns Pixel Perfect rate tiers", () => {
-    expect(rateTierForPaper("Hahnemühle Photo Rag 308gsm")).toBe("standard_inkjet");
-    expect(rateTierForPaper("Hahnemühle Photo Rag Pearl")).toBe("premium_inkjet");
-    expect(rateTierForPaper("ChromaLuxe Metal Panel")).toBeNull();
+  it("assigns rate tiers for Blue Wren media", () => {
+    expect(rateTierForPaper("Canson Rag Photographique")).toBe("standard_inkjet");
+    expect(rateTierForPaper("Ilford Galerie Smooth Pearl")).toBe("standard_inkjet");
+    expect(rateTierForPaper("Unknown stock")).toBe("standard_inkjet");
   });
 
   it("suggests a size-based tier from long edge", () => {
@@ -106,12 +108,16 @@ describe("print size helpers", () => {
     expect(formatLabDimensions(420, 594)).toBe("420 × 594 mm · 42.0 × 59.4 cm · 16.54 × 23.39 in");
   });
 
-  it("estimates Pixel Perfect lab cost from size and paper", () => {
-    // 14x11" example from their FAQ: 14 × 11 × 0.181 = 27.87
-    const estimate = estimatePixelPerfectLabCost(inchesToMm(14), inchesToMm(11), "Hahnemühle Photo Rag 308gsm");
+  it("estimates lab cost from size and Blue Wren paper rate", () => {
+    // 14×11" on Smooth Pearl at ~8.26¢/in²
+    const estimate = estimatePixelPerfectLabCost(
+      inchesToMm(14),
+      inchesToMm(11),
+      "Ilford Galerie Smooth Pearl",
+    );
     expect(estimate).not.toBeNull();
-    expect(estimate!.labCostAud).toBeCloseTo(27.87, 1);
-    expect(estimate!.ratePerSqInAud).toBe(0.181);
+    expect(estimate!.ratePerSqInAud).toBeCloseTo(0.0826, 3);
+    expect(estimate!.labCostAud).toBeCloseTo(14 * 11 * estimate!.ratePerSqInAud, 1);
   });
 
   it("computes margin against retail price", () => {

@@ -126,6 +126,33 @@
   gap: 0.5rem;
 }
 
+.snapRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.snapButton {
+  border: 1px solid rgba(10, 22, 40, 0.25);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+}
+
+.snapButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.snapButtonActive {
+  border-color: var(--color-rust);
+  color: var(--color-rust);
+}
+
 .longEdgeRow input[type="number"] {
   width: 6rem;
   border: 1px solid rgba(10, 22, 40, 0.25);

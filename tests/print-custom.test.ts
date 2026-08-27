@@ -21,9 +21,13 @@ const baseArgs = {
 };
 
 describe("custom print pricing", () => {
-  it("lists papers plus ready-to-hang canvas", () => {
+  it("lists Blue Wren papers plus legacy ready-to-hang canvas package", () => {
     const media = listCustomMediaOptions();
-    expect(media.some((item) => item.id === "hm-photo-rag")).toBe(true);
+    expect(media.some((item) => item.id === "ilford-galerie-smooth-pearl")).toBe(true);
+    expect(media.some((item) => item.id === "canson-rag-photographique")).toBe(true);
+    expect(media.some((item) => item.id === "canson-photoart-pro-canvas")).toBe(true);
+    expect(media.some((item) => item.id === "canson-photoart-pro-canvas-imagewrap")).toBe(true);
+    expect(media.some((item) => item.id === "hm-photo-rag")).toBe(false);
     expect(media.some((item) => item.id === CUSTOM_RTH_CANVAS_ID)).toBe(true);
   });
 
@@ -33,14 +37,14 @@ describe("custom print pricing", () => {
       ...baseArgs,
       widthMm: size.width_mm,
       heightMm: size.height_mm,
-      mediaId: "hm-photo-rag",
+      mediaId: "canson-rag-photographique",
       frameStyle: "none",
     })!;
     const deluxe = computeCustomPrintPricing({
       ...baseArgs,
       widthMm: size.width_mm,
       heightMm: size.height_mm,
-      mediaId: "hm-photo-rag",
+      mediaId: "canson-rag-photographique",
       frameStyle: "deluxe_perspex",
     })!;
     expect(unframed.frameLabAud).toBe(0);
@@ -83,7 +87,7 @@ describe("custom print pricing", () => {
       ...baseArgs,
       widthMm: size.width_mm,
       heightMm: size.height_mm,
-      mediaId: "hm-photo-rag",
+      mediaId: "canson-rag-photographique",
       frameStyle: "none",
     });
     expect(priced).not.toBeNull();
