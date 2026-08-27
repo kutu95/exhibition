@@ -74,9 +74,9 @@ export const OFFER_CLASS_LABEL: Record<OfferClassId, string> = {
 
 export const OFFER_CLASS_SUMMARY: Record<OfferClassId, string> = {
   photographic: "Ilford Galerie Smooth Pearl — print only.",
-  photographic_mounted: "Tier 1 print mounted on board (2× Blue Wren print cost).",
+  photographic_mounted: "Tier 1 print mounted on board.",
   fine_art: "Canson Rag Photographique — print only.",
-  fine_art_mounted: "Tier 2 print mounted on board (2× Blue Wren print cost).",
+  fine_art_mounted: "Tier 2 print mounted on board.",
   framed: "Ready-to-hang framed Tier 1 print.",
   fine_art_framed: "Ready-to-hang framed Tier 2 print.",
   canvas: "Canson Photoart Pro Canvas — flat sheet, no wrap.",
@@ -87,15 +87,15 @@ export const OFFER_CLASS_DETAILS: Record<OfferClassId, string> = {
   photographic:
     "Tier 1 print on Ilford Galerie Smooth Pearl — excellent colour, detail and reduced glare.",
   photographic_mounted:
-    "Tier 1 print on Ilford Galerie Smooth Pearl, mounted on board. Mount cost is currently 2× the Blue Wren print rate until mounts are quoted separately.",
+    "Tier 1 print on Ilford Galerie Smooth Pearl, mounted on board for a clean, ready-to-present finish.",
   fine_art:
     "Tier 2 print on Canson Rag Photographique — premium archival cotton rag.",
   fine_art_mounted:
-    "Tier 2 print on Canson Rag Photographique, mounted on board. Mount cost is currently 2× the Blue Wren print rate until mounts are quoted separately.",
+    "Tier 2 print on Canson Rag Photographique, mounted on board for a clean, ready-to-present finish.",
   framed:
-    "Framed Tier 1 print on Ilford Galerie Smooth Pearl. Frame cost uses the existing frame calculator until Blue Wren mouldings are quoted.",
+    "Framed Tier 1 print on Ilford Galerie Smooth Pearl — ready to hang.",
   fine_art_framed:
-    "Framed Tier 2 print on Canson Rag Photographique. Frame cost uses the existing frame calculator until Blue Wren mouldings are quoted.",
+    "Framed Tier 2 print on Canson Rag Photographique — ready to hang.",
   canvas:
     "Canson Photoart Pro Canvas as a flat sheet (no stretcher / image wrap).",
   canvas_wrap:
@@ -123,7 +123,7 @@ export const OFFER_PRESENTATION_LABEL: Record<OfferPresentationId, string> = {
 
 export const OFFER_PRESENTATION_SUMMARY: Record<OfferPresentationId, string> = {
   print: "Unmounted sheet.",
-  mounted: "Mounted on board (2× print cost).",
+  mounted: "Mounted on board.",
   framed: "Ready-to-hang frame.",
   wrap: "Stretched with image wrap.",
 };
@@ -459,15 +459,15 @@ const fulfilmentNotesForClass = (combo: OfferCombo, widthMm: number, heightMm: n
     case "photographic":
       return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL} (Blue Wren).`;
     case "photographic_mounted":
-      return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL} + mountboard (2× Blue Wren print cost).`;
+      return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL} with mountboard (Blue Wren).`;
     case "fine_art":
       return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL} (Blue Wren).`;
     case "fine_art_mounted":
-      return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL} + mountboard (2× Blue Wren print cost).`;
+      return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL} with mountboard (Blue Wren).`;
     case "framed":
-      return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL}; frame cost from existing frame calculator until Blue Wren mouldings quoted.`;
+      return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL}, framed (Blue Wren).`;
     case "fine_art_framed":
-      return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL}; frame cost from existing frame calculator until Blue Wren mouldings quoted.`;
+      return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL}, framed (Blue Wren).`;
     case "canvas":
       return `${label}. ${sizeNote} ${OFFER_CANVAS_PAPER_LABEL} sheet (no wrap).`;
     case "canvas_wrap":
