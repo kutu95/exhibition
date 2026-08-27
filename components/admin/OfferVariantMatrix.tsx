@@ -104,7 +104,12 @@ export const useOfferSelection = (drafts: OfferVariantDraft[]): OfferSelectionSt
       setIncludedKeys(
         new Set(
           drafts
-            .filter((draft) => draft.combo.classId === "photographic" || draft.combo.classId === "framed")
+            .filter(
+              (draft) =>
+                draft.combo.classId === "photographic" ||
+                draft.combo.classId === "photographic_mounted" ||
+                draft.combo.classId === "framed",
+            )
             .map((draft) => offerComboKey(draft.combo)),
         ),
       ),
@@ -112,7 +117,10 @@ export const useOfferSelection = (drafts: OfferVariantDraft[]): OfferSelectionSt
       setIncludedKeys(
         new Set(
           drafts
-            .filter((draft) => draft.combo.classId === "fine_art")
+            .filter(
+              (draft) =>
+                draft.combo.classId === "fine_art" || draft.combo.classId === "fine_art_mounted",
+            )
             .map((draft) => offerComboKey(draft.combo)),
         ),
       ),
@@ -120,7 +128,9 @@ export const useOfferSelection = (drafts: OfferVariantDraft[]): OfferSelectionSt
       setIncludedKeys(
         new Set(
           drafts
-            .filter((draft) => draft.combo.classId === "canvas")
+            .filter(
+              (draft) => draft.combo.classId === "canvas" || draft.combo.classId === "canvas_wrap",
+            )
             .map((draft) => offerComboKey(draft.combo)),
         ),
       ),

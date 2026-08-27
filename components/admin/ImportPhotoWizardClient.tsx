@@ -644,7 +644,7 @@ export function ImportPhotoWizardClient({
         <section className={styles.panel}>
           <h2>4. Print offer</h2>
           <p className={styles.explain}>
-            Defaults are A4 / A3 / A2 / A0 × Tier 1 / Tier 2 / Framed. Uncheck
+            Defaults are A4 / A3 / A2 / A0 × Tier 1/2 print & mount, Tier 1 framed, Canvas sheet & wrap. Uncheck
             anything this print should not offer, and override retail if you need a different price. Framed uses Pixel
             Perfect Standard moulding (20–42mm face) + Perspex for shipping. Formula pricing uses current media and
             frame markups from <Link href="/admin/print-profiles">Print Templates</Link>.

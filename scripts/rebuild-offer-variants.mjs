@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Soft-rebuild every print product to the shop offer matrix
- * (Tier 1 / Tier 2 / Framed × A4/A3/A2/A0).
+ * (Tier 1/2 print & mount, Tier 1 framed, Canvas sheet & wrap × A4/A3/A2/A0).
  *
  * Usage: node --import tsx scripts/rebuild-offer-variants.mjs
  */

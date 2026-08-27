@@ -312,7 +312,7 @@ export function PrintProfilesClient({
 
   const rebuildAll = async () => {
     const confirmed = window.confirm(
-      `Rebuild ALL print products to the ${OFFER_COMBOS.length}-SKU offer (A4/A3/A2/A0 × Tier 1 / Tier 2 / Framed)?\n\nThis deactivates existing variants and creates new ones. Past orders keep old variant rows. Save pricing first.`,
+      `Rebuild ALL print products to the ${OFFER_COMBOS.length}-SKU offer (A4/A3/A2/A0 × Tier 1/2 print/mount, Tier 1 framed, Canvas sheet/wrap)?\n\nThis deactivates existing variants and creates new ones. Past orders keep old variant rows. Save pricing first.`,
     );
     if (!confirmed) return;
 
@@ -414,17 +414,11 @@ export function PrintProfilesClient({
       <section className={styles.panel}>
         <h2>Buyer print offer</h2>
         <p className={styles.muted}>
-          Fixed catalogue recipe: {OFFER_SIZES.map((s) => s.label).join(" / ")} ×{" "}
-          {OFFER_CLASSES.map((id) =>
-            id === "photographic"
-              ? "Tier 1 (Ilford Pearl)"
-              : id === "fine_art"
-                ? "Tier 2 (Canson Rag)"
-                : "Framed Print",
-          ).join(" / ")}{" "}
+          Fixed catalogue recipe: {OFFER_SIZES.map((s) => s.label).join(" / ")} × Medium (Tier 1 / Tier 2 /
+          Canvas) × Finish (print / mountboard / framed / image wrap where valid){" "}
           ({OFFER_COMBOS.length} SKUs). Fine art paper: {OFFER_FINE_ART_PAPER_LABEL}. Tier 1 and Tier 2
-          price from Blue Wren area rates. Framed = Tier 1 media + existing frame calculator (unchanged
-          until Blue Wren mouldings are quoted). PosterFactory table below is reference only.
+          price from Blue Wren area rates; mounts are 2× print cost; canvas wrap uses the image-wrap rate.
+          Framed = Tier 1 media + existing frame calculator. PosterFactory table below is reference only.
         </p>
 
         <h3 className={styles.papersHeading}>Media markup</h3>

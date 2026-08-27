@@ -113,7 +113,7 @@ Create or edit products and variants manually. Each variant can pick a **print t
 | Variant row | Price, dimensions, paper, DPI, **`master_filename`**, offer axes (`tier_label` / `finish` / `is_framed`), framing (`fit_mode` / `size_lock`) | `exhibition.product_variants` |
 | Offer pricing | Media + frame markups; frame & RTH canvas united-inch tables | `site_content` keys `print_price_*`, `print_frame_*`, `print_rth_canvas_rates` |
 | Reprice all | Recalculates active offer variant prices from current factors | `POST /api/admin/print-pricing/reprice-all` |
-| Rebuild all | Soft-deactivates old variants; inserts 12-SKU offer per print product (A4/A3/A2/A0 × Tier 1 / Tier 2 / Framed) | `POST /api/admin/print-pricing/rebuild-all` |
+| Rebuild all | Soft-deactivates old variants; inserts 28-SKU offer per print product (A4/A3/A2/A0 × Tier 1/2 print/mount, framed, canvas sheet/wrap) | `POST /api/admin/print-pricing/rebuild-all` |
 
 The public site **does not** serve master TIFFs to shoppers.
 

@@ -1,4 +1,6 @@
 import {
+  BLUE_WREN_CANVAS_IMAGEWRAP_LABEL,
+  BLUE_WREN_CANVAS_IMAGEWRAP_RATE_PER_SQ_IN,
   BLUE_WREN_CANVAS_LABEL,
   BLUE_WREN_MOUNT_LAB_MULTIPLIER,
   BLUE_WREN_RAG_CANVAS_RATE_PER_SQ_IN,
@@ -9,11 +11,9 @@ import {
 import type { FulfilmentClass, FulfilmentProvider } from "./fulfilment";
 import {
   computeFrameRetailAud,
-  computeRthCanvasRetailAud,
   type FrameRateBand,
   type RthCanvasRateBand,
   SEED_FRAME_RATES,
-  SEED_RTH_CANVAS_RATES,
 } from "./print-frame-pricing";
 import {
   computeRetailFromLabCost,
@@ -26,17 +26,32 @@ import {
 } from "./posterfactory";
 
 export type OfferSizeId = "a4" | "a3" | "a2" | "a0";
-export type OfferClassId = "photographic" | "fine_art" | "framed" | "canvas";
+export type OfferClassId =
+  | "photographic"
+  | "photographic_mounted"
+  | "fine_art"
+  | "fine_art_mounted"
+  | "framed"
+  | "canvas"
+  | "canvas_wrap";
+
+/** Buyer-facing medium axis (substrate family). */
+export type OfferMediaId = "tier1" | "tier2" | "canvas";
+/** Buyer-facing finish axis (depends on medium). */
+export type OfferPresentationId = "print" | "mounted" | "framed" | "wrap";
 
 export const OFFER_PHOTOGRAPHIC_PAPER_LABEL = BLUE_WREN_SMOOTH_PEARL_LABEL;
 export const OFFER_FINE_ART_PAPER_LABEL = BLUE_WREN_RAG_PHOTOGRAPHIQUE_LABEL;
 export const OFFER_CANVAS_PAPER_LABEL = BLUE_WREN_CANVAS_LABEL;
+export const OFFER_CANVAS_WRAP_PAPER_LABEL = BLUE_WREN_CANVAS_IMAGEWRAP_LABEL;
 /** @deprecated Use OFFER_FINE_ART_PAPER_LABEL. Legacy matte paper kept for historical variants. */
 export const OFFER_MATTE_PAPER_LABEL = "Hahnemühle Photo Rag 308gsm";
 /** Blue Wren Smooth Pearl rate ($128/m²). */
 export const OFFER_PHOTOGRAPHIC_RATE_PER_SQ_IN = BLUE_WREN_SMOOTH_PEARL_RATE_PER_SQ_IN;
 /** Blue Wren Rag Photographique / canvas sheet rate ($200/m²). */
 export const OFFER_FINE_ART_RATE_PER_SQ_IN = BLUE_WREN_RAG_CANVAS_RATE_PER_SQ_IN;
+/** Blue Wren canvas + image wrap approximate $/in². */
+export const OFFER_CANVAS_WRAP_RATE_PER_SQ_IN = BLUE_WREN_CANVAS_IMAGEWRAP_RATE_PER_SQ_IN;
 /**
  * Mountboard presentation: lab cost = Blue Wren print cost × this multiplier
  * (print + mount charged as 2× the paper rate until Blue Wren quotes mounts separately).
@@ -47,33 +62,121 @@ export const OFFER_FRAME_TYPE_PIXEL_PERFECT = "standard_perspex";
 
 export const OFFER_CLASS_LABEL: Record<OfferClassId, string> = {
   photographic: "Tier 1",
+  photographic_mounted: "Tier 1 · Mountboard",
   fine_art: "Tier 2",
-  framed: "Framed Print",
+  fine_art_mounted: "Tier 2 · Mountboard",
+  framed: "Tier 1 · Framed",
   canvas: "Canvas",
+  canvas_wrap: "Canvas · Image wrap",
 };
 
 export const OFFER_CLASS_SUMMARY: Record<OfferClassId, string> = {
-  photographic: "Ilford Galerie Smooth Pearl — best-value photographic print.",
-  fine_art: "Canson Rag Photographique — premium archival fine-art print.",
-  framed: "Ready-to-hang framed Tier 1 print (Ilford Galerie Smooth Pearl).",
-  canvas: "Canson Photoart Pro Canvas — not Tier 1 or Tier 2; sheet or image wrap.",
+  photographic: "Ilford Galerie Smooth Pearl — print only.",
+  photographic_mounted: "Tier 1 print mounted on board (2× Blue Wren print cost).",
+  fine_art: "Canson Rag Photographique — print only.",
+  fine_art_mounted: "Tier 2 print mounted on board (2× Blue Wren print cost).",
+  framed: "Ready-to-hang framed Tier 1 print.",
+  canvas: "Canson Photoart Pro Canvas — flat sheet, no wrap.",
+  canvas_wrap: "Canvas stretched with image wrap over the edges.",
 };
 
 export const OFFER_CLASS_DETAILS: Record<OfferClassId, string> = {
   photographic:
     "Tier 1 print on Ilford Galerie Smooth Pearl — excellent colour, detail and reduced glare.",
+  photographic_mounted:
+    "Tier 1 print on Ilford Galerie Smooth Pearl, mounted on board. Mount cost is currently 2× the Blue Wren print rate until mounts are quoted separately.",
   fine_art:
     "Tier 2 print on Canson Rag Photographique — premium archival cotton rag.",
+  fine_art_mounted:
+    "Tier 2 print on Canson Rag Photographique, mounted on board. Mount cost is currently 2× the Blue Wren print rate until mounts are quoted separately.",
   framed:
     "Framed Tier 1 print on Ilford Galerie Smooth Pearl. Frame cost uses the existing frame calculator until Blue Wren mouldings are quoted.",
   canvas:
-    "Canvas is separate from Tier 1 / Tier 2. Canson Photoart Pro Canvas as a flat sheet or image-wrapped.",
+    "Canson Photoart Pro Canvas as a flat sheet (no stretcher / image wrap).",
+  canvas_wrap:
+    "Canson Photoart Pro Canvas with image wrap — print continues around the stretcher edges.",
 };
 
-/** Paper quality tier for shop media. Canvas is intentionally un-tiered. */
+export const OFFER_MEDIA_LABEL: Record<OfferMediaId, string> = {
+  tier1: "Tier 1",
+  tier2: "Tier 2",
+  canvas: "Canvas",
+};
+
+export const OFFER_MEDIA_SUMMARY: Record<OfferMediaId, string> = {
+  tier1: "Ilford Galerie Smooth Pearl",
+  tier2: "Canson Rag Photographique",
+  canvas: "Canson Photoart Pro Canvas",
+};
+
+export const OFFER_PRESENTATION_LABEL: Record<OfferPresentationId, string> = {
+  print: "Print only",
+  mounted: "Mountboard",
+  framed: "Framed",
+  wrap: "Image wrap",
+};
+
+export const OFFER_PRESENTATION_SUMMARY: Record<OfferPresentationId, string> = {
+  print: "Unmounted sheet.",
+  mounted: "Mounted on board (2× print cost).",
+  framed: "Ready-to-hang frame.",
+  wrap: "Stretched with image wrap.",
+};
+
+/** Valid finishes for each medium. */
+export const OFFER_MEDIA_PRESENTATIONS: Record<OfferMediaId, OfferPresentationId[]> = {
+  tier1: ["print", "mounted", "framed"],
+  tier2: ["print", "mounted"],
+  canvas: ["print", "wrap"],
+};
+
+export const OFFER_MEDIA_IDS: OfferMediaId[] = ["tier1", "tier2", "canvas"];
+
+export const classIdFromMediaPresentation = (
+  media: OfferMediaId,
+  presentation: OfferPresentationId,
+): OfferClassId | null => {
+  if (media === "tier1") {
+    if (presentation === "print") return "photographic";
+    if (presentation === "mounted") return "photographic_mounted";
+    if (presentation === "framed") return "framed";
+    return null;
+  }
+  if (media === "tier2") {
+    if (presentation === "print") return "fine_art";
+    if (presentation === "mounted") return "fine_art_mounted";
+    return null;
+  }
+  if (presentation === "print") return "canvas";
+  if (presentation === "wrap") return "canvas_wrap";
+  return null;
+};
+
+export const mediaPresentationFromClassId = (
+  classId: OfferClassId,
+): { media: OfferMediaId; presentation: OfferPresentationId } => {
+  switch (classId) {
+    case "photographic":
+      return { media: "tier1", presentation: "print" };
+    case "photographic_mounted":
+      return { media: "tier1", presentation: "mounted" };
+    case "framed":
+      return { media: "tier1", presentation: "framed" };
+    case "fine_art":
+      return { media: "tier2", presentation: "print" };
+    case "fine_art_mounted":
+      return { media: "tier2", presentation: "mounted" };
+    case "canvas":
+      return { media: "canvas", presentation: "print" };
+    case "canvas_wrap":
+      return { media: "canvas", presentation: "wrap" };
+  }
+};
+
+/** Paper quality tier. Canvas is intentionally un-tiered. */
 export const offerPaperTier = (classId: OfferClassId): 1 | 2 | null => {
-  if (classId === "photographic" || classId === "framed") return 1;
-  if (classId === "fine_art") return 2;
+  if (classId === "photographic" || classId === "photographic_mounted" || classId === "framed") return 1;
+  if (classId === "fine_art" || classId === "fine_art_mounted") return 2;
   return null;
 };
 
@@ -89,16 +192,22 @@ export const blueWrenMountedLabAud = (printLabAud: number): number =>
 
 export const OFFER_CLASS_PROVIDER: Record<OfferClassId, FulfilmentProvider> = {
   photographic: "posterfactory",
+  photographic_mounted: "posterfactory",
   fine_art: "pixelperfect",
+  fine_art_mounted: "pixelperfect",
   framed: "posterfactory",
   canvas: "pixelperfect",
+  canvas_wrap: "pixelperfect",
 };
 
 export const OFFER_CLASS_FULFILMENT: Record<OfferClassId, FulfilmentClass> = {
   photographic: "standard",
+  photographic_mounted: "standard",
   fine_art: "fine_art",
+  fine_art_mounted: "fine_art",
   framed: "framed",
   canvas: "canvas",
+  canvas_wrap: "canvas",
 };
 
 export const OFFER_SIZE_LABEL: Record<OfferSizeId, string> = {
@@ -114,7 +223,7 @@ export type OfferSizeDef = {
   longEdgeMm: number;
 };
 
-/** Fixed shop sizes by long edge (aspect-preserving). Canvas is not in this matrix. */
+/** Fixed shop sizes by long edge (aspect-preserving). */
 export const OFFER_SIZES: OfferSizeDef[] = [
   { id: "a4", label: OFFER_SIZE_LABEL.a4, longEdgeMm: 297 },
   { id: "a3", label: OFFER_SIZE_LABEL.a3, longEdgeMm: 420 },
@@ -122,14 +231,22 @@ export const OFFER_SIZES: OfferSizeDef[] = [
   { id: "a0", label: OFFER_SIZE_LABEL.a0, longEdgeMm: 1189 },
 ];
 
-export const OFFER_CLASSES: OfferClassId[] = ["photographic", "fine_art", "framed"];
+export const OFFER_CLASSES: OfferClassId[] = [
+  "photographic",
+  "photographic_mounted",
+  "fine_art",
+  "fine_art_mounted",
+  "framed",
+  "canvas",
+  "canvas_wrap",
+];
 
 export type OfferCombo = {
   sizeId: OfferSizeId;
   classId: OfferClassId;
 };
 
-/** 12-SKU matrix: A4/A3/A2/A0 × Tier 1 / Tier 2 / Framed. Canvas is custom-only. */
+/** 28-SKU matrix: A4/A3/A2/A0 × 7 media/finish options. */
 export const OFFER_COMBOS: OfferCombo[] = OFFER_SIZES.flatMap((size) =>
   OFFER_CLASSES.map((classId) => ({ sizeId: size.id, classId })),
 );
@@ -174,32 +291,30 @@ export const computeOfferVariantPricing = (args: {
   rthCanvasRates?: RthCanvasRateBand[];
   photographicRatePerSqIn?: number;
   fineArtRatePerSqIn?: number;
+  canvasWrapRatePerSqIn?: number;
   posterfactory?: PosterFactoryCatalogue;
 }): OfferVariantPricing | null => {
-  const rthRates = args.rthCanvasRates ?? SEED_RTH_CANVAS_RATES;
   const photographicRate = args.photographicRatePerSqIn ?? OFFER_PHOTOGRAPHIC_RATE_PER_SQ_IN;
   const fineArtRate = args.fineArtRatePerSqIn ?? OFFER_FINE_ART_RATE_PER_SQ_IN;
+  const canvasWrapRate = args.canvasWrapRatePerSqIn ?? OFFER_CANVAS_WRAP_RATE_PER_SQ_IN;
 
-  if (args.classId === "canvas") {
-    const rth = computeRthCanvasRetailAud({
-      widthMm: args.widthMm,
-      heightMm: args.heightMm,
-      rthRates,
-      markupFactor: args.mediaMarkupFactor,
-      basePriceAud: args.mediaBasePriceAud,
-    });
-    if (!rth) return null;
+  const pricedFromLab = (mediaLabAud: number): OfferVariantPricing => {
+    const mediaRetailAud = computeRetailFromLabCost(
+      mediaLabAud,
+      args.mediaMarkupFactor,
+      args.mediaBasePriceAud,
+    );
     return {
-      labCostAud: rth.labCostAud,
-      labCostCents: Math.round(rth.labCostAud * 100),
-      retailAud: rth.retailAud,
-      retailCents: Math.round(rth.retailAud * 100),
-      mediaLabAud: rth.labCostAud,
+      labCostAud: mediaLabAud,
+      labCostCents: Math.round(mediaLabAud * 100),
+      retailAud: mediaRetailAud,
+      retailCents: Math.round(mediaRetailAud * 100),
+      mediaLabAud,
       frameLabAud: 0,
-      mediaRetailAud: rth.retailAud,
+      mediaRetailAud,
       frameRetailAud: 0,
     };
-  }
+  };
 
   if (args.classId === "framed") {
     const frameRates = args.frameRates ?? SEED_FRAME_RATES;
@@ -231,24 +346,30 @@ export const computeOfferVariantPricing = (args: {
     };
   }
 
-  const rate = args.classId === "photographic" ? photographicRate : fineArtRate;
-  const mediaLabAud = blueWrenPrintLabAud(args.widthMm, args.heightMm, rate);
-  const mediaRetailAud = computeRetailFromLabCost(
-    mediaLabAud,
-    args.mediaMarkupFactor,
-    args.mediaBasePriceAud,
-  );
+  if (args.classId === "photographic") {
+    return pricedFromLab(blueWrenPrintLabAud(args.widthMm, args.heightMm, photographicRate));
+  }
+  if (args.classId === "photographic_mounted") {
+    return pricedFromLab(
+      blueWrenMountedLabAud(blueWrenPrintLabAud(args.widthMm, args.heightMm, photographicRate)),
+    );
+  }
+  if (args.classId === "fine_art") {
+    return pricedFromLab(blueWrenPrintLabAud(args.widthMm, args.heightMm, fineArtRate));
+  }
+  if (args.classId === "fine_art_mounted") {
+    return pricedFromLab(
+      blueWrenMountedLabAud(blueWrenPrintLabAud(args.widthMm, args.heightMm, fineArtRate)),
+    );
+  }
+  if (args.classId === "canvas") {
+    return pricedFromLab(blueWrenPrintLabAud(args.widthMm, args.heightMm, fineArtRate));
+  }
+  if (args.classId === "canvas_wrap") {
+    return pricedFromLab(blueWrenPrintLabAud(args.widthMm, args.heightMm, canvasWrapRate));
+  }
 
-  return {
-    labCostAud: mediaLabAud,
-    labCostCents: Math.round(mediaLabAud * 100),
-    retailAud: mediaRetailAud,
-    retailCents: Math.round(mediaRetailAud * 100),
-    mediaLabAud,
-    frameLabAud: 0,
-    mediaRetailAud,
-    frameRetailAud: 0,
-  };
+  return null;
 };
 
 export type OfferVariantDraft = {
@@ -280,38 +401,49 @@ export type OfferVariantDraft = {
 };
 
 const paperForClass = (classId: OfferClassId, catalogue: PosterFactoryCatalogue): string => {
-  if (classId === "photographic") return catalogue.photographic.paper;
-  if (classId === "framed") return catalogue.framed.paper;
+  if (classId === "photographic" || classId === "photographic_mounted" || classId === "framed") {
+    return catalogue.photographic.paper;
+  }
   if (classId === "canvas") return OFFER_CANVAS_PAPER_LABEL;
+  if (classId === "canvas_wrap") return OFFER_CANVAS_WRAP_PAPER_LABEL;
   return OFFER_FINE_ART_PAPER_LABEL;
 };
 
 const printTypeForClass = (classId: OfferClassId): "fine_art" | "photo" | "canvas" => {
-  if (classId === "canvas") return "canvas";
-  if (classId === "fine_art") return "fine_art";
+  if (classId === "canvas" || classId === "canvas_wrap") return "canvas";
+  if (classId === "fine_art" || classId === "fine_art_mounted") return "fine_art";
   return "photo";
 };
 
 const supplierCodeForClass = (classId: OfferClassId, catalogue: PosterFactoryCatalogue): string | null => {
-  if (classId === "photographic") return catalogue.photographic.productCode;
+  if (classId === "photographic" || classId === "photographic_mounted") {
+    return catalogue.photographic.productCode;
+  }
   if (classId === "framed") return catalogue.framed.productCode;
-  if (classId === "fine_art") return "canson-rag-photographique";
+  if (classId === "fine_art" || classId === "fine_art_mounted") return "canson-rag-photographique";
+  if (classId === "canvas_wrap") return "canson-photoart-pro-canvas-imagewrap";
   return "canson-photoart-pro-canvas";
 };
 
 const fulfilmentNotesForClass = (combo: OfferCombo, widthMm: number, heightMm: number, longEdgeMm: number): string => {
   const label = formatOfferVariantLabel(combo);
   const sizeNote = `Custom size ${widthMm}x${heightMm}mm (lock long_edge ${longEdgeMm}mm).`;
-  if (combo.classId === "photographic") {
-    return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL} (Blue Wren).`;
+  switch (combo.classId) {
+    case "photographic":
+      return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL} (Blue Wren).`;
+    case "photographic_mounted":
+      return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL} + mountboard (2× Blue Wren print cost).`;
+    case "fine_art":
+      return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL} (Blue Wren).`;
+    case "fine_art_mounted":
+      return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL} + mountboard (2× Blue Wren print cost).`;
+    case "framed":
+      return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL}; frame cost from existing frame calculator until Blue Wren mouldings quoted.`;
+    case "canvas":
+      return `${label}. ${sizeNote} ${OFFER_CANVAS_PAPER_LABEL} sheet (no wrap).`;
+    case "canvas_wrap":
+      return `${label}. ${sizeNote} ${OFFER_CANVAS_WRAP_PAPER_LABEL}.`;
   }
-  if (combo.classId === "framed") {
-    return `${label}. ${sizeNote} Print on ${OFFER_PHOTOGRAPHIC_PAPER_LABEL}; frame cost from existing frame calculator until Blue Wren mouldings quoted.`;
-  }
-  if (combo.classId === "canvas") {
-    return `${label}. ${sizeNote} ${OFFER_CANVAS_PAPER_LABEL} — confirm sheet vs image wrap with Blue Wren.`;
-  }
-  return `${label}. ${sizeNote} Print on ${OFFER_FINE_ART_PAPER_LABEL} (Blue Wren).`;
 };
 
 export const buildOfferVariantsForProduct = (args: {
@@ -440,14 +572,6 @@ const parseSizeId = (variant: {
   return null;
 };
 
-const classIdFromFulfilmentClass = (value: string | null | undefined): OfferClassId | null => {
-  if (value === "standard") return "photographic";
-  if (value === "fine_art") return "fine_art";
-  if (value === "framed") return "framed";
-  if (value === "canvas") return "canvas";
-  return null;
-};
-
 /** Match an active variant to offer axes (for storefront chooser). */
 export const parseOfferAxesFromVariant = (variant: {
   fulfilment_class?: string | null;
@@ -464,68 +588,65 @@ export const parseOfferAxesFromVariant = (variant: {
   const finishRaw = (variant.finish ?? "").toLowerCase();
   const printType = (variant.print_type ?? "").toLowerCase();
   const unframedLabel = /\bunframed\b/i.test(variant.variant_label ?? "");
-  const canvasLike =
-    finishRaw.includes("canvas") || label.includes("ready-to-hang canvas") || printType === "canvas";
+  const combined = `${finishRaw} ${label}`;
 
-  if (canvasLike) {
-    return { sizeId, classId: "canvas" };
-  }
-
-  const fromClass = classIdFromFulfilmentClass(variant.fulfilment_class);
-  if (fromClass === "canvas") {
-    return { sizeId, classId: "canvas" };
-  }
-  if (unframedLabel && fromClass === "framed") {
-    return { sizeId, classId: "fine_art" };
-  }
-  if (fromClass) {
-    return { sizeId, classId: fromClass };
+  // Prefer exact finish labels from the current matrix.
+  for (const classId of OFFER_CLASSES) {
+    if (finishRaw === OFFER_CLASS_LABEL[classId].toLowerCase()) {
+      return { sizeId, classId };
+    }
   }
 
+  if (combined.includes("image wrap") || combined.includes("canvas · image wrap")) {
+    return { sizeId, classId: "canvas_wrap" };
+  }
+  if (combined.includes("mountboard") || combined.includes("mounted")) {
+    if (combined.includes("tier 2") || combined.includes("fine art") || printType === "fine_art") {
+      return { sizeId, classId: "fine_art_mounted" };
+    }
+    return { sizeId, classId: "photographic_mounted" };
+  }
   if (
-    finishRaw.includes("tier 1") ||
-    finishRaw.includes("photographic") ||
-    label.includes("tier 1") ||
-    label.includes("photographic print") ||
-    (printType === "photo" && !Boolean(variant.is_framed) && !label.includes("canvas"))
+    finishRaw.includes("canvas") ||
+    label.includes(" · canvas") ||
+    label.endsWith("canvas") ||
+    printType === "canvas"
   ) {
-    if (Boolean(variant.is_framed) || /\bframed print\b/i.test(variant.variant_label ?? "")) {
-      return { sizeId, classId: "framed" };
-    }
-    if (
-      finishRaw.includes("tier 1") ||
-      finishRaw.includes("photographic") ||
-      label.includes("tier 1") ||
-      label.includes("photographic print")
-    ) {
-      return { sizeId, classId: "photographic" };
-    }
+    return { sizeId, classId: "canvas" };
   }
 
   if (
     !unframedLabel &&
-    (finishRaw.includes("framed print") ||
-      label.includes("framed print") ||
+    (finishRaw.includes("framed") ||
+      label.includes("framed") ||
       Boolean(variant.is_framed) ||
-      /(^|[^n])framed\b/i.test(variant.variant_label ?? "") ||
       /\bstandard frame\b/i.test(variant.variant_label ?? ""))
   ) {
     return { sizeId, classId: "framed" };
   }
 
-  if (
-    finishRaw.includes("tier 2") ||
-    finishRaw.includes("fine art") ||
-    label.includes("tier 2") ||
-    label.includes("fine art print") ||
-    printType === "fine_art"
-  ) {
+  if (finishRaw.includes("tier 2") || label.includes("tier 2") || printType === "fine_art") {
     return { sizeId, classId: "fine_art" };
+  }
+  if (
+    finishRaw.includes("tier 1") ||
+    finishRaw.includes("photographic") ||
+    label.includes("tier 1") ||
+    label.includes("photographic print") ||
+    printType === "photo"
+  ) {
+    return { sizeId, classId: "photographic" };
   }
 
   if (finishRaw.includes("archival matte") || label.includes("archival matte") || unframedLabel) {
     return { sizeId, classId: "fine_art" };
   }
+
+  const fromClass = variant.fulfilment_class;
+  if (fromClass === "standard") return { sizeId, classId: "photographic" };
+  if (fromClass === "fine_art") return { sizeId, classId: "fine_art" };
+  if (fromClass === "framed") return { sizeId, classId: "framed" };
+  if (fromClass === "canvas") return { sizeId, classId: "canvas" };
 
   return null;
 };
@@ -553,17 +674,4 @@ export const findVariantForOfferCombo = <
     }
   }
   return null;
-};
-
-/** @deprecated Finish axis replaced by OfferClassId. Kept for older UI copy. */
-export type OfferFinishId = "archival_matte" | "rth_canvas";
-/** @deprecated Presentation is now the Framed Print class. */
-export type OfferPresentationId = "unframed" | "framed";
-export const OFFER_FINISH_LABEL: Record<OfferFinishId, string> = {
-  archival_matte: "Archival matte",
-  rth_canvas: "Ready-to-hang canvas",
-};
-export const OFFER_PRESENTATION_LABEL: Record<OfferPresentationId, string> = {
-  unframed: "Unframed",
-  framed: "Standard frame",
 };
