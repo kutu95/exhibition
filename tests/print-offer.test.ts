@@ -142,9 +142,21 @@ describe("print offer matrix", () => {
     );
   });
 
-  it("returns null for variants outside the offer matrix", () => {
-    expect(describeVariantForBuyer({ variant_label: "600mm custom print" })).toBeNull();
-  });
+    it("returns null for variants outside the offer matrix", () => {
+      expect(describeVariantForBuyer({ variant_label: "600mm custom print" })).toBeNull();
+    });
+
+    it("adds the frame colour to custom labels, which are already buyer-facing", () => {
+      expect(
+        describeVariantForBuyer(
+          { variant_label: "Custom 59 × 40 cm · Photographic · Framed" },
+          "black",
+        ),
+      ).toBe("Custom 59 × 40 cm · Photographic · Framed · black frame");
+      expect(
+        describeVariantForBuyer({ variant_label: "Custom 59 × 40 cm · Canvas · Stretched" }, "black"),
+      ).toBeNull();
+    });
 
   it("resolves a combo from a variant list", () => {
     const drafts = buildOfferVariantsForProduct({

@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   return buildMetadata({
     title: `Custom print · ${slug}`,
-    description: "Choose custom size, media, and framing for this exhibition print.",
+    description: "Choose any size, paper, and finish for this exhibition print.",
     noIndex: true,
   });
 }
@@ -131,13 +131,14 @@ export default async function CustomPrintPage({ params, searchParams }: PageProp
       pixelWidth={pixelWidth}
       pixelHeight={pixelHeight}
       editionSize={edition}
-      mediaMarkupFactor={pricing.markupFactor}
-      mediaBasePriceAud={pricing.basePriceAud}
-      frameMarkupFactor={pricing.frameMarkupFactor}
-      frameBasePriceAud={pricing.frameBasePriceAud}
-      frameRates={pricing.frameRates}
-      rthCanvasRates={pricing.rthCanvasRates}
-      papers={pricing.papers}
+      rates={{
+        mediaMarkupFactor: pricing.markupFactor,
+        mediaBasePriceAud: pricing.basePriceAud,
+        frameMarkupFactor: pricing.frameMarkupFactor,
+        frameBasePriceAud: pricing.frameBasePriceAud,
+        frameRates: pricing.frameRates,
+        rthCanvasRates: pricing.rthCanvasRates,
+      }}
       isAdmin={isAdmin}
       editOrderId={firstParam(query[ORDER_EDIT_ORDER_PARAM])}
       editItemId={firstParam(query[ORDER_EDIT_ITEM_PARAM])}

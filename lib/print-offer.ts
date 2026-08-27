@@ -469,7 +469,7 @@ export type OfferVariantDraft = {
   long_edge_mm: number;
 };
 
-const paperForClass = (classId: OfferClassId, catalogue: PosterFactoryCatalogue): string => {
+export const paperForClass = (classId: OfferClassId, catalogue: PosterFactoryCatalogue): string => {
   if (classId === "photographic" || classId === "photographic_mounted" || classId === "framed") {
     return catalogue.photographic.paper;
   }
@@ -478,7 +478,7 @@ const paperForClass = (classId: OfferClassId, catalogue: PosterFactoryCatalogue)
   return OFFER_FINE_ART_PAPER_LABEL;
 };
 
-const printTypeForClass = (classId: OfferClassId): "fine_art" | "photo" | "canvas" => {
+export const printTypeForClass = (classId: OfferClassId): "fine_art" | "photo" | "canvas" => {
   if (classId === "canvas" || classId === "canvas_wrap") return "canvas";
   if (
     classId === "fine_art" ||
@@ -490,7 +490,10 @@ const printTypeForClass = (classId: OfferClassId): "fine_art" | "photo" | "canva
   return "photo";
 };
 
-const supplierCodeForClass = (classId: OfferClassId, catalogue: PosterFactoryCatalogue): string | null => {
+export const supplierCodeForClass = (
+  classId: OfferClassId,
+  catalogue: PosterFactoryCatalogue,
+): string | null => {
   if (classId === "photographic" || classId === "photographic_mounted") {
     return catalogue.photographic.productCode;
   }
@@ -753,15 +756,23 @@ export type BuyerFacingVariant = {
  * Shopper-readable description of a stored variant. `variant_label` stays as the
  * internal fulfilment label ("A3 · Tier 1") because lab paperwork, admin and the
  * variant parser all key off it; use this anywhere a customer will read it.
- * Returns null for variants outside the offer matrix (e.g. custom sizes) so
- * callers can fall back to the stored label.
+ * Returns null for variants it cannot describe so callers can fall back to the
+ * stored label.
  */
 export const describeVariantForBuyer = (
   variant: BuyerFacingVariant,
   frameColour?: string | null,
 ): string | null => {
   const combo = parseOfferAxesFromVariant(variant);
-  if (!combo) return null;
+  if (!combo) {
+    // Custom-size labels are already written in buyer language, so only the
+    // frame colour is missing.
+    const label = variant.variant_label ?? "";
+    if (frameColour && /^Custom .*· Framed$/.test(label)) {
+      return `${label} · ${frameColour} frame`;
+    }
+    return null;
+  }
 
   const { paper, presentation } = paperPresentationFromClassId(combo.classId);
   const parts = [

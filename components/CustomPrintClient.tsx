@@ -3,35 +3,39 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
-import {
-  type FrameColourId,
-  FramedPreview,
-  mapCustomFrameToPreview,
-} from "./FramedPreview";
+import { type FrameColourId, FramedPreview } from "./FramedPreview";
+import { FavouriteButton } from "./FavouriteButton";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "./StudioOrderDestinationDialog";
 import { adminClientFetch, adminClientFetchError } from "../lib/admin-client-fetch";
 import { readCart } from "../lib/cart";
 import { buildOrderItemEditQuery } from "../lib/order-item-edit-params";
 import {
-  computeCustomPrintPricing,
-  CUSTOM_FRAME_OPTIONS,
   CUSTOM_ISO_LONG_EDGE_SNAPS_MM,
   CUSTOM_LONG_EDGE_DEFAULT_MM,
   CUSTOM_LONG_EDGE_MIN_MM,
-  CUSTOM_RTH_CANVAS_ID,
-  deriveCustomSizeFromLongEdge,
-  listCustomMediaOptions,
   maxCustomLongEdgeMm,
-  type CustomFrameStyleId,
-  type CustomMediaOption,
 } from "../lib/print-custom";
-import { FRAME_NOTE_PERSPEX } from "../lib/print-frame-styles";
-import type { FrameRateBand, RthCanvasRateBand } from "../lib/print-frame-pricing";
-import type { ManagedPaper } from "../lib/print-catalogue";
+import {
+  availableCustomPapers,
+  availableCustomPresentations,
+  priceCustomOffer,
+  type CustomOfferRates,
+} from "../lib/print-custom-offer";
+import { FRAME_NOTE_ACRYLIC, OFFER_FRAMED_SAMPLE_IMAGE } from "../lib/print-frame-styles";
+import {
+  isFramedOfferClass,
+  offerPresentationLabel,
+  offerPresentationSummary,
+  OFFER_PAPER_DETAILS,
+  OFFER_PAPER_LABEL,
+  OFFER_PAPER_SUMMARY,
+  type OfferPaperId,
+  type OfferPresentationId,
+} from "../lib/print-offer";
 import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { OpenStudioOrder } from "../lib/studio-orders";
@@ -50,31 +54,34 @@ type CustomPrintClientProps = {
   pixelWidth: number;
   pixelHeight: number;
   editionSize: number | null;
-  mediaMarkupFactor: number;
-  mediaBasePriceAud: number;
-  frameMarkupFactor: number;
-  frameBasePriceAud: number;
-  frameRates: FrameRateBand[];
-  rthCanvasRates: RthCanvasRateBand[];
-  papers: ManagedPaper[];
+  rates: CustomOfferRates;
   /** When true (admin session cookie), show studio order and prepare/download TIFF. */
   isAdmin?: boolean;
   editOrderId?: string | null;
   editItemId?: string | null;
 };
 
+/**
+ * Same three mouldings as the fixed sizes. Pixel Perfect offers more colours on
+ * custom work, but keeping the two pages identical avoids a shopper choosing a
+ * colour on one page that the other cannot supply.
+ */
 const FRAME_COLOUR_OPTIONS: { id: FrameColourId; label: string }[] = [
   { id: "black", label: "Black" },
-  { id: "silver", label: "Silver" },
-  { id: "teak", label: "Teak" },
-  { id: "gold", label: "Gold" },
   { id: "white", label: "White" },
+  { id: "timber", label: "Timber" },
 ];
 
 const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   const wIn = Math.round(mmToInches(widthMm) * 10) / 10;
   const hIn = Math.round(mmToInches(heightMm) * 10) / 10;
-  return `${Math.round(widthMm)} × ${Math.round(heightMm)} mm · ${wIn} × ${hIn} in`;
+  return `${Math.round(widthMm / 10)} × ${Math.round(heightMm / 10)} cm · ${wIn} × ${hIn} in`;
+};
+
+const formatPriceDelta = (cents: number): string => {
+  const magnitude = Math.abs(cents);
+  const body = magnitude % 100 === 0 ? `$${magnitude / 100}` : formatAUD(magnitude);
+  return `${cents > 0 ? "+" : "−"}${body}`;
 };
 
 export function CustomPrintClient({
@@ -82,33 +89,29 @@ export function CustomPrintClient({
   pixelWidth,
   pixelHeight,
   editionSize,
-  mediaMarkupFactor,
-  mediaBasePriceAud,
-  frameMarkupFactor,
-  frameBasePriceAud,
-  frameRates,
+  rates,
   isAdmin = false,
-  rthCanvasRates,
-  papers,
   editOrderId = null,
   editItemId = null,
 }: CustomPrintClientProps) {
   const router = useRouter();
   const { addItem, itemCount } = useCart();
   const purchasesAllowed = usePurchasesAllowed();
-  const mediaOptions = useMemo(() => listCustomMediaOptions(papers), [papers]);
   const isEditingOrderItem = Boolean(isAdmin && editOrderId && editItemId);
 
-  const defaultMedia =
-    mediaOptions.find((item) => item.id === "canson-rag-photographique") ??
-    mediaOptions.find((item) => item.id === "ilford-galerie-smooth-pearl") ??
-    mediaOptions[0] ??
-    null;
+  const maxLongEdgeMm = useMemo(
+    () => maxCustomLongEdgeMm(pixelWidth, pixelHeight),
+    [pixelHeight, pixelWidth],
+  );
 
-  const [longEdgeMm, setLongEdgeMm] = useState(CUSTOM_LONG_EDGE_DEFAULT_MM);
-  const [longEdgeDraft, setLongEdgeDraft] = useState(String(CUSTOM_LONG_EDGE_DEFAULT_MM));
-  const [mediaId, setMediaId] = useState(defaultMedia?.id ?? "");
-  const [frameStyle, setFrameStyle] = useState<CustomFrameStyleId>("none");
+  const [longEdgeMm, setLongEdgeMm] = useState(
+    Math.min(CUSTOM_LONG_EDGE_DEFAULT_MM, maxLongEdgeMm),
+  );
+  const [longEdgeDraft, setLongEdgeDraft] = useState(
+    String(Math.min(CUSTOM_LONG_EDGE_DEFAULT_MM, maxLongEdgeMm)),
+  );
+  const [paperId, setPaperId] = useState<OfferPaperId>("tier1");
+  const [presentationId, setPresentationId] = useState<OfferPresentationId>("print");
   const [frameColour, setFrameColour] = useState<FrameColourId>("black");
   const [busy, setBusy] = useState<"cart" | "buy" | "print" | "studio" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -116,55 +119,96 @@ export function CustomPrintClient({
   const [openStudioOrders, setOpenStudioOrders] = useState<OpenStudioOrder[]>([]);
   const [studioOrderMessage, setStudioOrderMessage] = useState<string | null>(null);
 
-  const maxLongEdgeMm = useMemo(
-    () => maxCustomLongEdgeMm(pixelWidth, pixelHeight),
-    [pixelHeight, pixelWidth],
-  );
-
   const commitLongEdgeMm = (next: number) => {
     const clamped = Math.min(maxLongEdgeMm, Math.max(CUSTOM_LONG_EDGE_MIN_MM, Math.round(next)));
     setLongEdgeMm(clamped);
     setLongEdgeDraft(String(clamped));
   };
 
-  const size = useMemo(
-    () => deriveCustomSizeFromLongEdge(longEdgeMm, pixelWidth, pixelHeight),
-    [longEdgeMm, pixelHeight, pixelWidth],
+  const quoteFor = useCallback(
+    (args: { longEdgeMm?: number; paper?: OfferPaperId; presentation?: OfferPresentationId }) =>
+      priceCustomOffer({
+        longEdgeMm: args.longEdgeMm ?? longEdgeMm,
+        paper: args.paper ?? paperId,
+        presentation: args.presentation ?? presentationId,
+        pixelWidth,
+        pixelHeight,
+        rates,
+      }),
+    [longEdgeMm, paperId, pixelHeight, pixelWidth, presentationId, rates],
   );
 
-  const selectedMedia: CustomMediaOption | null =
-    mediaOptions.find((item) => item.id === mediaId) ?? null;
-  const isRth = selectedMedia?.kind === "rth_canvas";
-  const effectiveFrame: CustomFrameStyleId = isRth ? "none" : frameStyle;
+  const quote = useMemo(() => quoteFor({}), [quoteFor]);
 
-  const pricing = useMemo(() => {
-    if (!mediaId) return null;
-    return computeCustomPrintPricing({
-      widthMm: size.width_mm,
-      heightMm: size.height_mm,
-      mediaId,
-      frameStyle: effectiveFrame,
-      mediaMarkupFactor,
-      mediaBasePriceAud,
-      frameMarkupFactor,
-      frameBasePriceAud,
-      frameRates,
-      rthCanvasRates,
-      papers,
+  const availablePapers = useMemo(
+    () => availableCustomPapers({ longEdgeMm, pixelWidth, pixelHeight, rates }),
+    [longEdgeMm, pixelHeight, pixelWidth, rates],
+  );
+
+  const availablePresentations = useMemo(
+    () =>
+      availableCustomPresentations({
+        longEdgeMm,
+        paper: paperId,
+        pixelWidth,
+        pixelHeight,
+        rates,
+      }),
+    [longEdgeMm, paperId, pixelHeight, pixelWidth, rates],
+  );
+
+  // Growing the print past the widest moulding band drops framing, which would
+  // otherwise leave the buyer on an unpriceable selection with no visible cause.
+  useEffect(() => {
+    if (availablePresentations.length === 0) return;
+    if (!availablePresentations.includes(presentationId)) {
+      setPresentationId(availablePresentations[0]!);
+    }
+  }, [availablePresentations, presentationId]);
+
+  const selectPaper = (nextPaper: OfferPaperId) => {
+    setPaperId(nextPaper);
+    const finishes = availableCustomPresentations({
+      longEdgeMm,
+      paper: nextPaper,
+      pixelWidth,
+      pixelHeight,
+      rates,
     });
-  }, [
-    effectiveFrame,
-    frameBasePriceAud,
-    frameMarkupFactor,
-    frameRates,
-    mediaBasePriceAud,
-    mediaId,
-    mediaMarkupFactor,
-    papers,
-    rthCanvasRates,
-    size.height_mm,
-    size.width_mm,
-  ]);
+    if (finishes.length > 0 && !finishes.includes(presentationId)) {
+      setPresentationId(finishes[0]!);
+    }
+  };
+
+  const isFramed = quote ? isFramedOfferClass(quote.classId) : false;
+
+  /** Cost of swapping one axis while the others stay put. */
+  const deltaLabel = (
+    isSelected: boolean,
+    candidate: { paper?: OfferPaperId; presentation?: OfferPresentationId },
+  ): string => {
+    if (isSelected) return "Selected";
+    if (!quote) return "Unavailable";
+    const candidateQuote = quoteFor(candidate);
+    if (!candidateQuote) return "Unavailable";
+    const delta = candidateQuote.retailCents - quote.retailCents;
+    if (delta === 0) return "Same price";
+    return formatPriceDelta(delta);
+  };
+
+  const frameColourLabel =
+    FRAME_COLOUR_OPTIONS.find((option) => option.id === frameColour)?.label ?? "";
+
+  const matchingSnap = CUSTOM_ISO_LONG_EDGE_SNAPS_MM.find((snap) => snap.mm === longEdgeMm);
+
+  const selectionSummary = quote
+    ? [
+        `Custom ${Math.round(quote.widthMm / 10)} × ${Math.round(quote.heightMm / 10)} cm`,
+        OFFER_PAPER_LABEL[paperId],
+        offerPresentationLabel(paperId, presentationId),
+        ...(isFramed ? [`${frameColourLabel.toLowerCase()} frame`] : []),
+      ].join(" · ")
+    : null;
 
   const createVariant = async () => {
     const response = await fetch("/api/shop/custom-print", {
@@ -173,8 +217,8 @@ export function CustomPrintClient({
       body: JSON.stringify({
         product_id: product.id,
         long_edge_mm: longEdgeMm,
-        media_id: mediaId,
-        frame_style: effectiveFrame,
+        paper: paperId,
+        presentation: presentationId,
         pixel_width: pixelWidth,
         pixel_height: pixelHeight,
       }),
@@ -197,22 +241,30 @@ export function CustomPrintClient({
     };
   };
 
+  const cartLineFor = (created: {
+    variant_id: string;
+    variant_label: string;
+    price_aud: number;
+    fulfilment_provider?: "posterfactory" | "pixelperfect" | null;
+  }) => ({
+    variant_id: created.variant_id,
+    product_title: product.title,
+    variant_label: created.variant_label,
+    price_aud: created.price_aud,
+    slug: product.slug,
+    image_url: product.image_url,
+    quantity: 1 as const,
+    fulfilment_provider: created.fulfilment_provider ?? "pixelperfect",
+    frame_colour: isFramed ? frameColour : null,
+  });
+
   const handleAddToCart = async () => {
-    if (!purchasesAllowed || !pricing) return;
+    if (!purchasesAllowed || !quote) return;
     setBusy("cart");
     setError(null);
     try {
       const created = await createVariant();
-      const result = addItem({
-        variant_id: created.variant_id,
-        product_title: product.title,
-        variant_label: created.variant_label,
-        price_aud: created.price_aud,
-        slug: product.slug,
-        image_url: product.image_url,
-        quantity: 1,
-        fulfilment_provider: created.fulfilment_provider ?? "pixelperfect",
-      });
+      const result = addItem(cartLineFor(created));
       if (!result.ok) return;
       router.push("/cart");
     } catch (err) {
@@ -223,21 +275,12 @@ export function CustomPrintClient({
   };
 
   const handleBuyNow = async () => {
-    if (!purchasesAllowed || !pricing) return;
+    if (!purchasesAllowed || !quote) return;
     setBusy("buy");
     setError(null);
     try {
       const created = await createVariant();
-      const result = addItem({
-        variant_id: created.variant_id,
-        product_title: product.title,
-        variant_label: created.variant_label,
-        price_aud: created.price_aud,
-        slug: product.slug,
-        image_url: product.image_url,
-        quantity: 1,
-        fulfilment_provider: created.fulfilment_provider ?? "pixelperfect",
-      });
+      const result = addItem(cartLineFor(created));
       if (!result.ok) {
         setBusy(null);
         return;
@@ -292,7 +335,7 @@ export function CustomPrintClient({
   };
 
   const handleStudioOrder = async () => {
-    if (!isAdmin || !pricing) return;
+    if (!isAdmin || !quote) return;
     setBusy("studio");
     setError(null);
     setStudioOrderMessage(null);
@@ -308,7 +351,7 @@ export function CustomPrintClient({
   };
 
   const confirmStudioOrder = async (existingOrderId: string | null) => {
-    if (!pricing) return;
+    if (!quote) return;
     setBusy("studio");
     setError(null);
     try {
@@ -350,7 +393,7 @@ export function CustomPrintClient({
   };
 
   const saveEditedOrderItem = async () => {
-    if (!editOrderId || !editItemId || !pricing) return;
+    if (!editOrderId || !editItemId || !quote) return;
     setBusy("save");
     setError(null);
     try {
@@ -380,13 +423,6 @@ export function CustomPrintClient({
     }
   };
 
-  const fineArt = mediaOptions.filter((item) => item.kind === "paper" && item.printType === "fine_art");
-  const photo = mediaOptions.filter((item) => item.kind === "paper" && item.printType === "photo");
-  const canvasPapers = mediaOptions.filter(
-    (item) => item.kind === "paper" && item.printType === "canvas",
-  );
-  const rth = mediaOptions.filter((item) => item.kind === "rth_canvas");
-
   return (
     <section className={`section container ${styles.wrap}`}>
       <p className={styles.back}>
@@ -397,14 +433,14 @@ export function CustomPrintClient({
               : `/shop/${product.slug}`
           }
         >
-          ← Back to standard options
+          ← Back to standard sizes
         </Link>
       </p>
 
       <div className={styles.layout}>
         <div className={styles.visual}>
           <FramedPreview
-            frame={mapCustomFrameToPreview(effectiveFrame)}
+            frame={isFramed ? "standard" : "none"}
             frameColour={frameColour}
             longEdgeMm={longEdgeMm}
             className={styles.imageWrap}
@@ -429,185 +465,285 @@ export function CustomPrintClient({
           {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
           <h1 className={styles.title}>{product.title}</h1>
           {product.description ? <p className={styles.description}>{product.description}</p> : null}
-          <p className={styles.subtitle}>Custom print</p>
           {editionSize ? <p className={styles.edition}>Edition of {editionSize}</p> : null}
 
           <div className={styles.priceSticky}>
-            <p className={styles.price}>
-              {pricing ? formatAUD(pricing.retailCents) : "Price unavailable"}
-            </p>
-            {pricing ? (
-              <p className={styles.priceBreakdown}>
-                Media {formatAUD(Math.round(pricing.mediaRetailAud * 100))}
-                {pricing.frameRetailAud > 0
-                  ? ` · Frame ${formatAUD(Math.round(pricing.frameRetailAud * 100))}`
-                  : ""}
+            <div className={styles.priceRow}>
+              <p className={styles.price}>
+                {quote ? formatAUD(quote.retailCents) : "Price unavailable"}
               </p>
-            ) : (
-              <p className={styles.muted}>
-                This combination is outside online pricing (try a smaller size or Standard frame).
-              </p>
-            )}
+              {isEditingOrderItem ? null : (
+                <FavouriteButton
+                  productId={product.id}
+                  productTitle={product.title}
+                  size="compact"
+                  className={styles.favouriteButton}
+                />
+              )}
+            </div>
+            {selectionSummary ? <p className={styles.offerSummary}>{selectionSummary}</p> : null}
           </div>
 
-          <label className={styles.field}>
-            <span className={styles.legend}>Long edge</span>
-            <input
-              type="range"
-              min={CUSTOM_LONG_EDGE_MIN_MM}
-              max={maxLongEdgeMm}
-              step={1}
-              value={Math.min(longEdgeMm, maxLongEdgeMm)}
-              onChange={(event) => {
-                const next = Number.parseInt(event.target.value, 10);
-                setLongEdgeMm(next);
-                setLongEdgeDraft(String(next));
-              }}
-            />
-            <div className={styles.longEdgeRow}>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={longEdgeDraft}
-                aria-label="Long edge in millimetres"
-                onChange={(event) => {
-                  const raw = event.target.value.replace(/[^\d]/g, "");
-                  setLongEdgeDraft(raw);
-                  if (raw === "") return;
-                  const next = Number.parseInt(raw, 10);
-                  if (!Number.isFinite(next)) return;
-                  if (next >= CUSTOM_LONG_EDGE_MIN_MM && next <= maxLongEdgeMm) {
-                    setLongEdgeMm(next);
+          <div className={styles.offerChooser}>
+            <fieldset className={styles.step}>
+              <legend className={styles.stepLegend}>
+                <span className={styles.stepNumber} aria-hidden>
+                  1
+                </span>
+                <span className={styles.stepTitle}>Size</span>
+                <Link
+                  className={styles.stepAside}
+                  href={
+                    isEditingOrderItem && editOrderId && editItemId
+                      ? `/shop/${product.slug}?${buildOrderItemEditQuery(editOrderId, editItemId)}`
+                      : `/shop/${product.slug}`
                   }
-                }}
-                onBlur={() => {
-                  const next = Number.parseInt(longEdgeDraft, 10);
-                  if (Number.isFinite(next)) {
-                    commitLongEdgeMm(next);
-                    return;
-                  }
-                  setLongEdgeDraft(String(longEdgeMm));
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.currentTarget.blur();
-                  }
-                }}
-              />
-              <span className={styles.muted}>mm</span>
-            </div>
-            <div className={styles.snapRow} role="group" aria-label="ISO paper long-edge snaps">
-              {CUSTOM_ISO_LONG_EDGE_SNAPS_MM.map((snap) => {
-                const available = snap.mm >= CUSTOM_LONG_EDGE_MIN_MM && snap.mm <= maxLongEdgeMm;
-                const active = longEdgeMm === snap.mm;
-                return (
-                  <button
-                    key={snap.id}
-                    type="button"
-                    className={`${styles.snapButton}${active ? ` ${styles.snapButtonActive}` : ""}`}
-                    disabled={!available}
-                    onClick={() => commitLongEdgeMm(snap.mm)}
-                  >
-                    {snap.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className={styles.dimension}>{formatShopDimensions(size.width_mm, size.height_mm)}</p>
-          </label>
+                >
+                  Standard sizes
+                </Link>
+              </legend>
 
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.legend}>Media</legend>
-            <MediaGroup title="Tier 2 — Canson Rag" options={fineArt} mediaId={mediaId} onChange={setMediaId} />
-            <MediaGroup title="Tier 1 — Ilford Pearl" options={photo} mediaId={mediaId} onChange={setMediaId} />
-            <MediaGroup title="Canvas (not Tier 1 or 2)" options={canvasPapers} mediaId={mediaId} onChange={setMediaId} />
-            <MediaGroup title="Ready to hang" options={rth} mediaId={mediaId} onChange={setMediaId} />
-          </fieldset>
-
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.legend}>Framing</legend>
-            {isRth ? (
-              <p className={styles.muted}>Ready-to-hang canvas includes stretch and wire — framing is not offered.</p>
-            ) : (
-              <>
-                <p className={styles.frameNote}>{FRAME_NOTE_PERSPEX}</p>
-                <div className={styles.options}>
-                  {CUSTOM_FRAME_OPTIONS.map((option) => (
+              <div className={styles.chipRow} data-columns="3">
+                {CUSTOM_ISO_LONG_EDGE_SNAPS_MM.map((snap) => {
+                  const snapQuote =
+                    snap.mm >= CUSTOM_LONG_EDGE_MIN_MM && snap.mm <= maxLongEdgeMm
+                      ? quoteFor({ longEdgeMm: snap.mm })
+                      : null;
+                  const active = longEdgeMm === snap.mm;
+                  return (
                     <label
-                      key={option.id}
-                      className={`${styles.option} ${option.sampleImage ? styles.optionWithSample : ""} ${
-                        effectiveFrame === option.id ? styles.optionActive : ""
+                      key={snap.id}
+                      className={`${styles.chip} ${active ? styles.chipActive : ""} ${
+                        snapQuote ? "" : styles.chipDisabled
                       }`}
                     >
                       <input
                         type="radio"
-                        name="frame"
-                        checked={effectiveFrame === option.id}
-                        onChange={() => setFrameStyle(option.id)}
+                        name="custom-size-snap"
+                        className={styles.chipInput}
+                        checked={active}
+                        disabled={!snapQuote}
+                        onChange={() => commitLongEdgeMm(snap.mm)}
                       />
-                      {option.sampleImage ? (
-                        <span className={styles.optionSample}>
-                          <img
-                            src={option.sampleImage}
-                            alt={`${option.label} moulding sample`}
-                            width={112}
-                            height={112}
-                            className={styles.optionSampleImage}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </span>
-                      ) : null}
-                      <span>
-                        <span className={styles.optionTitle}>{option.label}</span>
-                        <span className={styles.optionMeta}>{option.summary}</span>
+                      <span className={styles.chipTitle}>{snap.label}</span>
+                      <span className={styles.chipMeta}>
+                        {snapQuote ? formatAUD(snapQuote.retailCents) : "—"}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className={styles.sizeSlider}>
+                <label className={styles.sizeSliderLabel} htmlFor="custom-long-edge-range">
+                  Or set any long edge
+                </label>
+                <input
+                  id="custom-long-edge-range"
+                  type="range"
+                  min={CUSTOM_LONG_EDGE_MIN_MM}
+                  max={maxLongEdgeMm}
+                  step={1}
+                  value={Math.min(longEdgeMm, maxLongEdgeMm)}
+                  onChange={(event) => {
+                    const next = Number.parseInt(event.target.value, 10);
+                    setLongEdgeMm(next);
+                    setLongEdgeDraft(String(next));
+                  }}
+                />
+                <div className={styles.longEdgeRow}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={longEdgeDraft}
+                    aria-label="Long edge in millimetres"
+                    onChange={(event) => {
+                      const raw = event.target.value.replace(/[^\d]/g, "");
+                      setLongEdgeDraft(raw);
+                      if (raw === "") return;
+                      const next = Number.parseInt(raw, 10);
+                      if (!Number.isFinite(next)) return;
+                      if (next >= CUSTOM_LONG_EDGE_MIN_MM && next <= maxLongEdgeMm) {
+                        setLongEdgeMm(next);
+                      }
+                    }}
+                    onBlur={() => {
+                      const next = Number.parseInt(longEdgeDraft, 10);
+                      if (Number.isFinite(next)) {
+                        commitLongEdgeMm(next);
+                        return;
+                      }
+                      setLongEdgeDraft(String(longEdgeMm));
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.currentTarget.blur();
+                      }
+                    }}
+                  />
+                  <span className={styles.muted}>mm long edge</span>
+                </div>
+              </div>
+
+              <p className={styles.scaleRow}>
+                <span className={styles.scaleTrack} aria-hidden>
+                  <span
+                    className={styles.scaleFill}
+                    style={{ width: `${Math.round((longEdgeMm / maxLongEdgeMm) * 100)}%` }}
+                  />
+                </span>
+                <span className={styles.scaleLabel}>
+                  {quote ? formatShopDimensions(quote.widthMm, quote.heightMm) : null}
+                  {matchingSnap ? ` · same size as ${matchingSnap.label}` : ""}
+                </span>
+              </p>
+            </fieldset>
+
+            <fieldset className={styles.step}>
+              <legend className={styles.stepLegend}>
+                <span className={styles.stepNumber} aria-hidden>
+                  2
+                </span>
+                <span className={styles.stepTitle}>Paper</span>
+              </legend>
+              <div className={styles.chipRow} data-columns="3">
+                {availablePapers.map((id) => {
+                  const finishes = availableCustomPresentations({
+                    longEdgeMm,
+                    paper: id,
+                    pixelWidth,
+                    pixelHeight,
+                    rates,
+                  });
+                  const nearestFinish = finishes.includes(presentationId)
+                    ? presentationId
+                    : finishes[0];
+                  return (
+                    <label
+                      key={id}
+                      className={`${styles.chip} ${paperId === id ? styles.chipActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="custom-paper"
+                        className={styles.chipInput}
+                        checked={paperId === id}
+                        onChange={() => selectPaper(id)}
+                      />
+                      <span className={styles.chipTitle}>{OFFER_PAPER_LABEL[id]}</span>
+                      <span className={styles.chipMeta}>
+                        {deltaLabel(paperId === id, { paper: id, presentation: nearestFinish })}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className={styles.stepNote}>{OFFER_PAPER_SUMMARY[paperId]}</p>
+              <details className={styles.offerDetails}>
+                <summary>About this paper</summary>
+                <p>{OFFER_PAPER_DETAILS[paperId]}</p>
+              </details>
+            </fieldset>
+
+            {availablePresentations.length > 0 ? (
+              <fieldset className={styles.step}>
+                <legend className={styles.stepLegend}>
+                  <span className={styles.stepNumber} aria-hidden>
+                    3
+                  </span>
+                  <span className={styles.stepTitle}>Finish</span>
+                </legend>
+                <div className={styles.chipRow} data-columns="3">
+                  {availablePresentations.map((id) => (
+                    <label
+                      key={id}
+                      className={`${styles.chip} ${presentationId === id ? styles.chipActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="custom-finish"
+                        className={styles.chipInput}
+                        checked={presentationId === id}
+                        onChange={() => setPresentationId(id)}
+                      />
+                      <span className={styles.chipTitle}>{offerPresentationLabel(paperId, id)}</span>
+                      <span className={styles.chipMeta}>
+                        {deltaLabel(presentationId === id, { presentation: id })}
                       </span>
                     </label>
                   ))}
                 </div>
-                {effectiveFrame !== "none" ? (
-                  <fieldset className={styles.fieldset}>
-                    <legend className={styles.legend}>Frame colour</legend>
-                    <div className={styles.frameColourOptions}>
-                      {FRAME_COLOUR_OPTIONS.map((option) => (
-                        <label
-                          key={option.id}
-                          className={`${styles.frameColourOption} ${
-                            frameColour === option.id ? styles.frameColourOptionActive : ""
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="custom-frame-colour"
-                            checked={frameColour === option.id}
-                            onChange={() => setFrameColour(option.id)}
-                          />
-                          <span
-                            className={styles.frameColourSwatch}
-                            data-frame-colour={option.id}
-                            aria-hidden
-                          />
-                          <span>{option.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                ) : null}
-              </>
-            )}
-          </fieldset>
+                <p className={styles.stepNote}>
+                  {offerPresentationSummary(paperId, presentationId)}
+                </p>
+              </fieldset>
+            ) : null}
+
+            {isFramed ? (
+              <fieldset className={styles.step}>
+                <legend className={styles.stepLegend}>
+                  <span className={styles.stepNumber} aria-hidden>
+                    4
+                  </span>
+                  <span className={styles.stepTitle}>Frame colour</span>
+                </legend>
+                <div className={styles.chipRow} data-columns="3">
+                  {FRAME_COLOUR_OPTIONS.map((option) => (
+                    <label
+                      key={option.id}
+                      className={`${styles.chip} ${frameColour === option.id ? styles.chipActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="custom-frame-colour"
+                        className={styles.chipInput}
+                        checked={frameColour === option.id}
+                        onChange={() => setFrameColour(option.id)}
+                      />
+                      <span
+                        className={styles.frameColourSwatch}
+                        data-frame-colour={option.id}
+                        aria-hidden
+                      />
+                      <span className={styles.chipTitle}>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className={styles.frameNoteRow}>
+                  <img
+                    src={OFFER_FRAMED_SAMPLE_IMAGE}
+                    alt="The three frame mouldings: black, white and timber"
+                    width={64}
+                    height={64}
+                    className={styles.frameSampleImage}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <p className={styles.stepNote}>{FRAME_NOTE_ACRYLIC}</p>
+                </div>
+              </fieldset>
+            ) : null}
+          </div>
+
+          {!quote ? (
+            <p className={styles.muted}>
+              This combination is outside online pricing. Try a smaller size, or a finish without a
+              frame.
+            </p>
+          ) : null}
 
           <div className={styles.actions}>
             {isEditingOrderItem ? (
               <div className={styles.adminPrint}>
                 <p className={styles.adminHint}>
-                  Updating this print on the existing order. Choose size, paper, and frame, then save.
+                  Updating this print on the existing order. Choose size, paper, and finish, then
+                  save.
                 </p>
                 <button
                   className={`button-solid ${styles.button}`}
                   type="button"
-                  disabled={!pricing || busy !== null}
+                  disabled={!quote || busy !== null}
                   onClick={() => void saveEditedOrderItem()}
                 >
                   {busy === "save" ? "Saving…" : "Save to order"}
@@ -625,7 +761,7 @@ export function CustomPrintClient({
                     <button
                       className={`button-solid ${styles.button}`}
                       type="button"
-                      disabled={!pricing || busy !== null}
+                      disabled={!quote || busy !== null}
                       onClick={() => void handleAddToCart()}
                     >
                       {busy === "cart" ? "Adding…" : "Add to cart"}
@@ -633,13 +769,13 @@ export function CustomPrintClient({
                     <button
                       className={`button-outline ${styles.button}`}
                       type="button"
-                      disabled={!pricing || busy !== null}
+                      disabled={!quote || busy !== null}
                       onClick={() => void handleBuyNow()}
                     >
                       {busy === "buy"
                         ? "Redirecting…"
                         : itemCount > 0
-                          ? "Buy now (includes cart)"
+                          ? `Buy now (${itemCount + 1} prints)`
                           : "Buy now"}
                     </button>
                   </>
@@ -653,7 +789,7 @@ export function CustomPrintClient({
                     <button
                       className={`button-outline ${styles.button}`}
                       type="button"
-                      disabled={!pricing || busy !== null || studioOrderDialogOpen}
+                      disabled={!quote || busy !== null || studioOrderDialogOpen}
                       onClick={() => void handleStudioOrder()}
                     >
                       {busy === "studio" ? "Creating studio order…" : "Order for studio"}
@@ -687,14 +823,14 @@ export function CustomPrintClient({
 
           {error ? <p className={styles.error}>{error}</p> : null}
           <p className={styles.meta}>
-            Made to order · Shipped with Perspex if framed (not glass) · Free shipping within Australia
+            Made to order · Printed to your size from the master file · Free shipping within Australia
           </p>
         </aside>
       </div>
       <StudioOrderDestinationDialog
         open={studioOrderDialogOpen}
         title="Order for studio"
-        description={`No payment and no edition number. Add this custom print (${formatShopDimensions(size.width_mm, size.height_mm)}${selectedMedia ? ` · ${selectedMedia.label}` : ""}) to an open studio order, or start a new one.`}
+        description={`No payment and no edition number. Add this custom print (${selectionSummary ?? ""}) to an open studio order, or start a new one.`}
         orders={openStudioOrders}
         confirmLabel="Create"
         busy={busy === "studio"}
@@ -704,45 +840,5 @@ export function CustomPrintClient({
         onConfirm={(orderId) => void confirmStudioOrder(orderId)}
       />
     </section>
-  );
-}
-
-function MediaGroup({
-  title,
-  options,
-  mediaId,
-  onChange,
-}: {
-  title: string;
-  options: CustomMediaOption[];
-  mediaId: string;
-  onChange: (id: string) => void;
-}) {
-  if (options.length === 0) return null;
-  return (
-    <div className={styles.mediaGroup}>
-      <h3 className={styles.mediaGroupTitle}>{title}</h3>
-      <div className={styles.options}>
-        {options.map((option) => (
-          <label
-            key={option.id}
-            className={`${styles.option} ${mediaId === option.id ? styles.optionActive : ""}`}
-          >
-            <input
-              type="radio"
-              name="media"
-              checked={mediaId === option.id}
-              onChange={() => onChange(option.id)}
-            />
-            <span>
-              <span className={styles.optionTitle}>{option.label}</span>
-              {option.id === CUSTOM_RTH_CANVAS_ID ? (
-                <span className={styles.optionMeta}>Print, stretch, and wire included</span>
-              ) : null}
-            </span>
-          </label>
-        ))}
-      </div>
-    </div>
   );
 }

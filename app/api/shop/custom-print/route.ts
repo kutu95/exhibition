@@ -14,8 +14,8 @@ export const runtime = "nodejs";
 const bodySchema = z.object({
   product_id: z.string().uuid(),
   long_edge_mm: z.number().min(CUSTOM_LONG_EDGE_MIN_MM).max(CUSTOM_LONG_EDGE_MAX_MM),
-  media_id: z.string().min(1).max(80),
-  frame_style: z.enum(["none", "standard_perspex", "deluxe_perspex"]),
+  paper: z.enum(["tier1", "tier2", "canvas"]),
+  presentation: z.enum(["print", "mounted", "framed", "wrap"]),
   pixel_width: z.number().int().positive().optional(),
   pixel_height: z.number().int().positive().optional(),
 });
@@ -34,8 +34,8 @@ export async function POST(request: Request) {
     const created = await createCustomPrintVariant({
       productId: parsed.data.product_id,
       longEdgeMm: parsed.data.long_edge_mm,
-      mediaId: parsed.data.media_id,
-      frameStyle: parsed.data.frame_style,
+      paper: parsed.data.paper,
+      presentation: parsed.data.presentation,
       pixelWidth: parsed.data.pixel_width,
       pixelHeight: parsed.data.pixel_height,
     });
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       }
       if (error.message === "CUSTOM_PRICE_UNAVAILABLE" || error.message === "INVALID_LONG_EDGE") {
         return NextResponse.json(
-          { error: "That size, media, or frame combination cannot be priced online. Try a smaller size or simpler frame." },
+          { error: "That size and finish cannot be priced online. Try a smaller size, or a finish without a frame." },
           { status: 400 },
         );
       }

@@ -1,20 +1,23 @@
 import { withTransaction } from "./postgres";
 import { getOfferPricingBundle } from "./print-offer-bundle";
 import {
-  computeCustomPrintPricing,
   CUSTOM_LONG_EDGE_ABS_MAX_MM,
   CUSTOM_LONG_EDGE_MIN_MM,
-  deriveCustomSizeFromLongEdge,
   maxCustomLongEdgeMm,
-  type CustomFrameStyleId,
 } from "./print-custom";
+import {
+  customOfferVariantFields,
+  priceCustomOffer,
+  CUSTOM_OFFER_PROVIDER,
+} from "./print-custom-offer";
+import type { OfferPaperId, OfferPresentationId } from "./print-offer";
 import { getMasterFileDimensions } from "./master-files";
 
 export type CreateCustomPrintVariantInput = {
   productId: string;
   longEdgeMm: number;
-  mediaId: string;
-  frameStyle: CustomFrameStyleId;
+  paper: OfferPaperId;
+  presentation: OfferPresentationId;
   /** Optional override when master file is unavailable. */
   pixelWidth?: number | null;
   pixelHeight?: number | null;
@@ -26,7 +29,7 @@ export type CreateCustomPrintVariantResult = {
   price_aud: number;
   width_mm: number;
   height_mm: number;
-  fulfilment_provider: "pixelperfect";
+  fulfilment_provider: typeof CUSTOM_OFFER_PROVIDER;
 };
 
 type ProductContext = {
@@ -125,24 +128,27 @@ export const createCustomPrintVariant = async (
       throw new Error("INVALID_LONG_EDGE");
     }
 
-    const size = deriveCustomSizeFromLongEdge(input.longEdgeMm, pixelWidth, pixelHeight);
-    const priced = computeCustomPrintPricing({
-      widthMm: size.width_mm,
-      heightMm: size.height_mm,
-      mediaId: input.mediaId,
-      frameStyle: input.frameStyle,
-      mediaMarkupFactor: pricing.markupFactor,
-      mediaBasePriceAud: pricing.basePriceAud,
-      frameMarkupFactor: pricing.frameMarkupFactor,
-      frameBasePriceAud: pricing.frameBasePriceAud,
-      frameRates: pricing.frameRates,
-      rthCanvasRates: pricing.rthCanvasRates,
-      papers: pricing.papers,
+    const quote = priceCustomOffer({
+      longEdgeMm: input.longEdgeMm,
+      paper: input.paper,
+      presentation: input.presentation,
+      pixelWidth,
+      pixelHeight,
+      rates: {
+        mediaMarkupFactor: pricing.markupFactor,
+        mediaBasePriceAud: pricing.basePriceAud,
+        frameMarkupFactor: pricing.frameMarkupFactor,
+        frameBasePriceAud: pricing.frameBasePriceAud,
+        frameRates: pricing.frameRates,
+        rthCanvasRates: pricing.rthCanvasRates,
+      },
     });
 
-    if (!priced) {
+    if (!quote) {
       throw new Error("CUSTOM_PRICE_UNAVAILABLE");
     }
+
+    const fields = customOfferVariantFields(quote, pricing.posterfactory);
 
     const { rows: inserted } = await client.query<{ id: string }>(
       `
@@ -189,8 +195,8 @@ export const createCustomPrintVariant = async (
         values (
           $1, $2, $3, $4, 0, $5, $6, $7, $8, $9,
           null, null, null, null, true,
-          'Custom', $10, $11, $12, 300, $13,
-          null, null, null, null, 'pixelperfect', $14, 'pixelperfect', $16, $17, $15,
+          $10, $11, $12, $13, 300, $14,
+          null, null, null, null, $16, $15, $16, $17, $18, $19,
           null, null, null, null,
           'custom_size', 0, 'long_edge'
         )
@@ -198,22 +204,24 @@ export const createCustomPrintVariant = async (
       `,
       [
         product.id,
-        priced.variantLabel,
-        priced.widthMm,
-        priced.heightMm,
-        priced.paperType,
-        priced.printType,
-        priced.retailCents,
+        fields.variant_label,
+        fields.width_mm,
+        fields.height_mm,
+        fields.paper_type,
+        fields.print_type,
+        fields.price_aud,
         product.max_edition_size ?? 25,
         product.master_filename,
-        priced.mediaLabel,
-        priced.isFramed,
-        priced.frameType,
-        priced.labCostCents,
-        priced.fulfilmentNotes,
-        size.aspect_ratio,
-        priced.fulfilment_class,
-        priced.supplier_product_code,
+        fields.tier_label,
+        fields.finish,
+        fields.is_framed,
+        fields.frame_type,
+        fields.lab_cost_aud,
+        fields.fulfilment_notes,
+        fields.fulfilment_provider,
+        fields.fulfilment_class,
+        fields.supplier_product_code,
+        fields.aspect_ratio,
       ],
     );
 
@@ -222,11 +230,11 @@ export const createCustomPrintVariant = async (
 
     return {
       variant_id: variantId,
-      variant_label: priced.variantLabel,
-      price_aud: priced.retailCents,
-      width_mm: priced.widthMm,
-      height_mm: priced.heightMm,
-      fulfilment_provider: "pixelperfect",
+      variant_label: fields.variant_label,
+      price_aud: fields.price_aud,
+      width_mm: fields.width_mm,
+      height_mm: fields.height_mm,
+      fulfilment_provider: CUSTOM_OFFER_PROVIDER,
     };
   });
 };

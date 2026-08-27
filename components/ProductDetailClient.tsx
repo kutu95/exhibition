@@ -43,7 +43,7 @@ import {
   type OfferSizeId,
 } from "../lib/print-offer";
 import { SHOW_CUSTOM_PRINT_PAGE } from "../lib/print-custom";
-import { OFFER_FRAMED_SAMPLE_IMAGE } from "../lib/print-frame-styles";
+import { FRAME_NOTE_ACRYLIC, OFFER_FRAMED_SAMPLE_IMAGE } from "../lib/print-frame-styles";
 import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
@@ -62,9 +62,6 @@ const POSTERFACTORY_FRAME_COLOURS: { id: FrameColourId; label: string }[] = [
   { id: "white", label: "White" },
   { id: "timber", label: "Timber" },
 ];
-
-const FRAME_NOTE_OPTISHIELD =
-  "Framed prints use 3mm Opti-shield (acrylic) instead of glass so they can be shipped safely.";
 
 const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   const wIn = Math.round(mmToInches(widthMm) * 10) / 10;
@@ -777,7 +774,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                     loading="lazy"
                     decoding="async"
                   />
-                  <p className={styles.stepNote}>{FRAME_NOTE_OPTISHIELD}</p>
+                  <p className={styles.stepNote}>{FRAME_NOTE_ACRYLIC}</p>
                 </div>
               </fieldset>
             ) : null}

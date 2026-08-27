@@ -76,3 +76,11 @@ export const OFFER_FRAMED_SAMPLE_IMAGE = OFFER_FRAMED_FRAME.sampleImage!;
 
 export const FRAME_NOTE_PERSPEX =
   "Framed prints use Perspex instead of glass so they can be shipped safely.";
+
+/**
+ * Buyer-facing glazing note. Fixed sizes are glazed with Opti-shield and custom
+ * sizes with Perspex; both are acrylic, so the storefront says the one thing a
+ * shopper needs to know rather than naming a different brand on each page.
+ */
+export const FRAME_NOTE_ACRYLIC =
+  "Framed prints are glazed with acrylic instead of glass so they can be shipped safely.";
