@@ -1,5 +1,6 @@
 import type { ProductWithVariantsAndImages } from "./supabase/types";
 import { siteConfig } from "./metadata";
+import { describeVariantForBuyer } from "./print-offer";
 
 const logoUrl = `${siteConfig.url}/logo.png`;
 const defaultImageUrl = `${siteConfig.url}${siteConfig.ogImage.default}`;
@@ -267,7 +268,7 @@ export function buildProduct(product: ProductWithVariantsAndImages): Record<stri
       .filter((variant) => variant.is_active)
       .map((variant) => ({
         "@type": "Offer",
-        name: variant.variant_label,
+        name: describeVariantForBuyer(variant) ?? variant.variant_label,
         price: (variant.price_aud / 100).toFixed(2),
         priceCurrency: "AUD",
         availability: "https://schema.org/InStock",
