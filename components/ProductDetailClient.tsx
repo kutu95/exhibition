@@ -202,12 +202,17 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
   }, [offerVariants]);
 
   const availableMediaIds = useMemo(() => {
-    return OFFER_MEDIA_IDS.filter((media) =>
-      OFFER_MEDIA_PRESENTATIONS[media].some((presentation) => {
+    return OFFER_MEDIA_IDS.filter((media) => {
+      const presentations = OFFER_MEDIA_PRESENTATIONS[media];
+      if (presentations.length === 0) {
+        const classIdFor = classIdFromMediaPresentation(media, "print");
+        return classIdFor !== null && availableClassIds.includes(classIdFor);
+      }
+      return presentations.some((presentation) => {
         const classIdFor = classIdFromMediaPresentation(media, presentation);
         return classIdFor !== null && availableClassIds.includes(classIdFor);
-      }),
-    );
+      });
+    });
   }, [availableClassIds]);
 
   const availablePresentations = useMemo(() => {
@@ -223,6 +228,12 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
       const classIdFor = classIdFromMediaPresentation(nextMedia, presentation);
       return classIdFor !== null && availableClassIds.includes(classIdFor);
     });
+    if (finishes.length === 0) {
+      const nextClass = classIdFromMediaPresentation(nextMedia, "print");
+      setPresentationId(nextMedia === "canvas_wrap" ? "wrap" : "print");
+      if (nextClass) setClassId(nextClass);
+      return;
+    }
     const nextPresentation = finishes.includes(presentationId) ? presentationId : finishes[0] ?? "print";
     setPresentationId(nextPresentation);
     const nextClass = classIdFromMediaPresentation(nextMedia, nextPresentation);
@@ -546,15 +557,20 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
               <legend>Medium</legend>
               <div className={styles.offerOptions}>
                 {availableMediaIds.map((id) => {
+                  const presentations = OFFER_MEDIA_PRESENTATIONS[id];
                   const sampleClass =
-                    classIdFromMediaPresentation(
-                      id,
-                      OFFER_MEDIA_PRESENTATIONS[id].find((presentation) => {
-                        const mapped = classIdFromMediaPresentation(id, presentation);
-                        return mapped !== null && availableClassIds.includes(mapped);
-                      }) ?? "print",
-                    ) ?? "photographic";
-                  const sample = priceForCombo({ sizeId, classId: sampleClass });
+                    presentations.length === 0
+                      ? classIdFromMediaPresentation(id, "print")
+                      : classIdFromMediaPresentation(
+                          id,
+                          presentations.find((presentation) => {
+                            const mapped = classIdFromMediaPresentation(id, presentation);
+                            return mapped !== null && availableClassIds.includes(mapped);
+                          }) ?? "print",
+                        );
+                  const sample = sampleClass
+                    ? priceForCombo({ sizeId, classId: sampleClass })
+                    : null;
                   return (
                     <label
                       key={id}
@@ -572,57 +588,6 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                       <span className={styles.offerOptionCopy}>
                         <span className={styles.offerOptionTitle}>{OFFER_MEDIA_LABEL[id]}</span>
                         <span className={styles.offerOptionMeta}>{OFFER_MEDIA_SUMMARY[id]}</span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            <fieldset className={styles.offerFieldset}>
-              <legend>Finish</legend>
-              <div className={styles.offerOptions}>
-                {availablePresentations.map((id) => {
-                  const mappedClass = classIdFromMediaPresentation(mediaId, id);
-                  const sample = mappedClass ? priceForCombo({ sizeId, classId: mappedClass }) : null;
-                  const presentationLabel =
-                    mediaId === "canvas" && id === "print"
-                      ? "Canvas sheet"
-                      : OFFER_PRESENTATION_LABEL[id];
-                  const presentationSummary =
-                    mediaId === "canvas" && id === "print"
-                      ? "Flat sheet, no stretcher or wrap."
-                      : OFFER_PRESENTATION_SUMMARY[id];
-                  return (
-                    <label
-                      key={id}
-                      className={`${styles.offerOption} ${id === "framed" ? styles.offerOptionWithSample : ""} ${
-                        presentationId === id ? styles.offerOptionActive : ""
-                      } ${!sample ? styles.offerOptionDisabled : ""}`}
-                    >
-                      <input
-                        type="radio"
-                        name="offer-finish"
-                        checked={presentationId === id}
-                        disabled={!sample}
-                        onChange={() => selectPresentation(id)}
-                      />
-                      {id === "framed" ? (
-                        <span className={styles.offerOptionSample}>
-                          <img
-                            src={OFFER_FRAMED_SAMPLE_IMAGE}
-                            alt="Framed print sample"
-                            width={96}
-                            height={96}
-                            className={styles.offerOptionSampleImage}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </span>
-                      ) : null}
-                      <span className={styles.offerOptionCopy}>
-                        <span className={styles.offerOptionTitle}>{presentationLabel}</span>
-                        <span className={styles.offerOptionMeta}>{presentationSummary}</span>
                         {sample ? (
                           <span className={styles.offerOptionMeta}>{formatAUD(sample.price_aud)}</span>
                         ) : null}
@@ -631,11 +596,64 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                   );
                 })}
               </div>
+            </fieldset>
+
+            {availablePresentations.length > 0 ? (
+              <fieldset className={styles.offerFieldset}>
+                <legend>Finish</legend>
+                <div className={styles.offerOptions}>
+                  {availablePresentations.map((id) => {
+                    const mappedClass = classIdFromMediaPresentation(mediaId, id);
+                    const sample = mappedClass ? priceForCombo({ sizeId, classId: mappedClass }) : null;
+                    return (
+                      <label
+                        key={id}
+                        className={`${styles.offerOption} ${id === "framed" ? styles.offerOptionWithSample : ""} ${
+                          presentationId === id ? styles.offerOptionActive : ""
+                        } ${!sample ? styles.offerOptionDisabled : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="offer-finish"
+                          checked={presentationId === id}
+                          disabled={!sample}
+                          onChange={() => selectPresentation(id)}
+                        />
+                        {id === "framed" ? (
+                          <span className={styles.offerOptionSample}>
+                            <img
+                              src={OFFER_FRAMED_SAMPLE_IMAGE}
+                              alt="Framed print sample"
+                              width={96}
+                              height={96}
+                              className={styles.offerOptionSampleImage}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </span>
+                        ) : null}
+                        <span className={styles.offerOptionCopy}>
+                          <span className={styles.offerOptionTitle}>{OFFER_PRESENTATION_LABEL[id]}</span>
+                          <span className={styles.offerOptionMeta}>{OFFER_PRESENTATION_SUMMARY[id]}</span>
+                          {sample ? (
+                            <span className={styles.offerOptionMeta}>{formatAUD(sample.price_aud)}</span>
+                          ) : null}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <details className={styles.offerDetails}>
+                  <summary>More details</summary>
+                  <p>{OFFER_CLASS_DETAILS[classId]}</p>
+                </details>
+              </fieldset>
+            ) : (
               <details className={styles.offerDetails}>
                 <summary>More details</summary>
                 <p>{OFFER_CLASS_DETAILS[classId]}</p>
               </details>
-            </fieldset>
+            )}
 
             <fieldset className={styles.offerFieldset}>
               <legend className={styles.sizeLegend}>
@@ -649,7 +667,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
                         : `/shop/${product.slug}/custom`
                     }
                   >
-                    Custom
+                    Custom Size
                   </Link>
                 ) : null}
               </legend>

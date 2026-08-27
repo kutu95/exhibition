@@ -37,7 +37,7 @@ export type OfferClassId =
   | "canvas_wrap";
 
 /** Buyer-facing medium axis (substrate family). */
-export type OfferMediaId = "tier1" | "tier2" | "canvas";
+export type OfferMediaId = "tier1" | "tier2" | "canvas" | "canvas_wrap";
 /** Buyer-facing finish axis (depends on medium). */
 export type OfferPresentationId = "print" | "mounted" | "framed" | "wrap";
 
@@ -105,13 +105,15 @@ export const OFFER_CLASS_DETAILS: Record<OfferClassId, string> = {
 export const OFFER_MEDIA_LABEL: Record<OfferMediaId, string> = {
   tier1: "Tier 1",
   tier2: "Tier 2",
-  canvas: "Canvas",
+  canvas: "Canvas sheet",
+  canvas_wrap: "Canvas · Image wrap",
 };
 
 export const OFFER_MEDIA_SUMMARY: Record<OfferMediaId, string> = {
   tier1: "Ilford Galerie Smooth Pearl",
   tier2: "Canson Rag Photographique",
-  canvas: "Canson Photoart Pro Canvas",
+  canvas: "Flat canvas sheet — no stretcher or wrap.",
+  canvas_wrap: "Stretched canvas with the image wrapping the edges.",
 };
 
 export const OFFER_PRESENTATION_LABEL: Record<OfferPresentationId, string> = {
@@ -128,14 +130,15 @@ export const OFFER_PRESENTATION_SUMMARY: Record<OfferPresentationId, string> = {
   wrap: "Stretched with image wrap.",
 };
 
-/** Valid finishes for each medium. */
+/** Valid finishes for each medium. Canvas options are chosen as mediums (no extra finish step). */
 export const OFFER_MEDIA_PRESENTATIONS: Record<OfferMediaId, OfferPresentationId[]> = {
   tier1: ["print", "mounted", "framed"],
   tier2: ["print", "mounted", "framed"],
-  canvas: ["print", "wrap"],
+  canvas: [],
+  canvas_wrap: [],
 };
 
-export const OFFER_MEDIA_IDS: OfferMediaId[] = ["tier1", "tier2", "canvas"];
+export const OFFER_MEDIA_IDS: OfferMediaId[] = ["tier1", "tier2", "canvas", "canvas_wrap"];
 
 export const isFramedOfferClass = (classId: OfferClassId): boolean =>
   classId === "framed" || classId === "fine_art_framed";
@@ -156,8 +159,8 @@ export const classIdFromMediaPresentation = (
     if (presentation === "framed") return "fine_art_framed";
     return null;
   }
-  if (presentation === "print") return "canvas";
-  if (presentation === "wrap") return "canvas_wrap";
+  if (media === "canvas") return "canvas";
+  if (media === "canvas_wrap") return "canvas_wrap";
   return null;
 };
 
@@ -180,7 +183,7 @@ export const mediaPresentationFromClassId = (
     case "canvas":
       return { media: "canvas", presentation: "print" };
     case "canvas_wrap":
-      return { media: "canvas", presentation: "wrap" };
+      return { media: "canvas_wrap", presentation: "wrap" };
   }
 };
 

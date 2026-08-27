@@ -46,7 +46,11 @@ describe("print offer matrix", () => {
     expect(classIdFromMediaPresentation("tier2", "mounted")).toBe("fine_art_mounted");
     expect(classIdFromMediaPresentation("tier2", "framed")).toBe("fine_art_framed");
     expect(classIdFromMediaPresentation("canvas", "print")).toBe("canvas");
-    expect(classIdFromMediaPresentation("canvas", "wrap")).toBe("canvas_wrap");
+    expect(classIdFromMediaPresentation("canvas_wrap", "wrap")).toBe("canvas_wrap");
+    expect(mediaPresentationFromClassId("canvas_wrap")).toEqual({
+      media: "canvas_wrap",
+      presentation: "wrap",
+    });
     expect(mediaPresentationFromClassId("fine_art_framed")).toEqual({
       media: "tier2",
       presentation: "framed",
