@@ -1,5 +1,14 @@
 .card {
   border: 1px solid rgba(10, 22, 40, 0.22);
+  position: relative;
+}
+
+/* Admin-only affordance, floated over the top-right of the photo. */
+.adminOverlay {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
 }
 
 .imageWrap {

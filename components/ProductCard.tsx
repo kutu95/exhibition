@@ -5,14 +5,16 @@ import Link from "next/link";
 
 import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
 import { centsToAUD } from "../lib/utils/currency";
+import { ProductOrdersButton } from "./admin/ProductOrdersButton";
 import { FavouriteButton } from "./FavouriteButton";
 import styles from "./ProductCard.module.css";
 
 type ProductCardProps = {
   product: ProductWithVariantsAndImages;
+  isAdmin?: boolean;
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, isAdmin = false }: ProductCardProps) {
   const primaryImage = product.product_images[0]?.image_url;
 
   if (!primaryImage) {
@@ -38,6 +40,11 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         </div>
       </Link>
+      {isAdmin ? (
+        <div className={styles.adminOverlay}>
+          <ProductOrdersButton productId={product.id} productTitle={product.title} />
+        </div>
+      ) : null}
       <div className={styles.content}>
         <div className={styles.titleRow}>
           <Link href={`/shop/${product.slug}`} className={styles.titleLink}>

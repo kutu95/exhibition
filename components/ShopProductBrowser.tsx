@@ -188,7 +188,7 @@ export function ShopProductBrowser({ products, isAdmin = false, galleries = [] }
       ) : null}
 
       {filteredProducts.length > 0 ? (
-        <ProductGrid products={filteredProducts} />
+        <ProductGrid products={filteredProducts} isAdmin={isAdmin} />
       ) : (
         <p>
           {favouritesOnly
