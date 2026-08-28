@@ -18,6 +18,7 @@ import {
   parseOfferAxesFromVariant,
 } from "../lib/print-offer";
 import { mmToInches, computeRetailFromLabCost } from "../lib/print-size";
+import { PRINT_PRICE_PER_PRINT_AUD } from "../lib/print-markup";
 
 const pricingArgs = {
   editionSize: 10,
@@ -200,6 +201,27 @@ describe("print offer matrix", () => {
 });
 
 describe("offer pricing", () => {
+  it("adds $25 to every print on top of lab × markup", () => {
+    const args = {
+      widthMm: 594,
+      heightMm: 420,
+      classId: "photographic" as const,
+      sizeId: "a2" as const,
+      mediaMarkupFactor: 3,
+      mediaBasePriceAud: 0,
+      frameMarkupFactor: 3,
+      frameBasePriceAud: 0,
+    };
+    const print = computeOfferVariantPricing(args)!;
+    const markedUp = computeRetailFromLabCost(print.labCostAud, 3, 0);
+    expect(print.retailAud).toBe(markedUp + PRINT_PRICE_PER_PRINT_AUD);
+
+    const framed = computeOfferVariantPricing({ ...args, classId: "framed" })!;
+    const framedMedia = computeRetailFromLabCost(framed.mediaLabAud, 3, 0);
+    expect(framed.mediaRetailAud).toBe(framedMedia + PRINT_PRICE_PER_PRINT_AUD);
+    expect(framed.retailAud).toBe(framed.mediaRetailAud + framed.frameRetailAud);
+  });
+
   it("prices Tier 1 from Blue Wren Smooth Pearl area rate", () => {
     const widthMm = 594;
     const heightMm = 420;
@@ -216,7 +238,7 @@ describe("offer pricing", () => {
     const expectedLab =
       Math.round(mmToInches(widthMm) * mmToInches(heightMm) * OFFER_PHOTOGRAPHIC_RATE_PER_SQ_IN * 100) / 100;
     expect(photo.labCostAud).toBe(expectedLab);
-    expect(photo.retailAud).toBe(computeRetailFromLabCost(expectedLab, 3, 0));
+    expect(photo.retailAud).toBe(computeRetailFromLabCost(expectedLab, 3, 0) + PRINT_PRICE_PER_PRINT_AUD);
   });
 
   it("uses existing frame calculator plus Tier 1 media for framed", () => {

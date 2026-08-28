@@ -20,6 +20,7 @@ import {
   deriveAspectPreservingSizeMm,
   mmToInches,
 } from "./print-size";
+import { PRINT_PRICE_PER_PRINT_AUD } from "./print-markup";
 import {
   SEED_POSTERFACTORY_CATALOGUE,
   type PosterFactoryCatalogue,
@@ -367,11 +368,12 @@ export const computeOfferVariantPricing = (args: {
   const canvasWrapRate = args.canvasWrapRatePerSqIn ?? OFFER_CANVAS_WRAP_RATE_PER_SQ_IN;
 
   const pricedFromLab = (mediaLabAud: number): OfferVariantPricing => {
-    const mediaRetailAud = computeRetailFromLabCost(
-      mediaLabAud,
-      args.mediaMarkupFactor,
-      args.mediaBasePriceAud,
-    );
+    const mediaRetailAud =
+      computeRetailFromLabCost(
+        mediaLabAud,
+        args.mediaMarkupFactor,
+        args.mediaBasePriceAud,
+      ) + PRINT_PRICE_PER_PRINT_AUD;
     return {
       labCostAud: mediaLabAud,
       labCostCents: Math.round(mediaLabAud * 100),
@@ -388,11 +390,12 @@ export const computeOfferVariantPricing = (args: {
     const frameRates = args.frameRates ?? SEED_FRAME_RATES;
     const mediaRate = args.classId === "fine_art_framed" ? fineArtRate : photographicRate;
     const mediaLabAud = blueWrenPrintLabAud(args.widthMm, args.heightMm, mediaRate);
-    const mediaRetailAud = computeRetailFromLabCost(
-      mediaLabAud,
-      args.mediaMarkupFactor,
-      args.mediaBasePriceAud,
-    );
+    const mediaRetailAud =
+      computeRetailFromLabCost(
+        mediaLabAud,
+        args.mediaMarkupFactor,
+        args.mediaBasePriceAud,
+      ) + PRINT_PRICE_PER_PRINT_AUD;
     const frame = computeFrameRetailAud({
       widthMm: args.widthMm,
       heightMm: args.heightMm,

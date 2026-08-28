@@ -4,6 +4,8 @@ export const PRINT_PRICE_MARKUP_CONTENT_KEY = "print_price_markup_factor";
 export const PRINT_PRICE_BASE_CONTENT_KEY = "print_price_base_aud";
 export const DEFAULT_PRINT_PRICE_MARKUP_FACTOR = 3;
 export const DEFAULT_PRINT_PRICE_BASE_AUD = 0;
+/** Flat AUD added to every print after lab × markup (shop and custom sizes). */
+export const PRINT_PRICE_PER_PRINT_AUD = 25;
 
 export type PrintPricingSettings = {
   markupFactor: number;
