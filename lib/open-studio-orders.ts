@@ -28,7 +28,7 @@ export const listOpenStudioOrders = async (): Promise<OpenStudioOrder[]> => {
         o.id as order_id,
         o.order_number,
         o.created_at::text as created_at,
-        count(oi.id)::int as print_count
+        sum(coalesce(oi.quantity, 1))::int as print_count
       from exhibition.orders o
       join exhibition.order_items oi on oi.order_id = o.id
       where o.notes like '%' || $1 || '%'

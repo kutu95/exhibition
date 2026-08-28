@@ -88,6 +88,26 @@ describe("product orders", () => {
     expect(summaries[0].is_studio).toBe(true);
   });
 
+  it("hides cancelled orders", () => {
+    const cancelled = {
+      id: "o-4",
+      order_number: "GEO-0004",
+      customer_name: "Alan",
+      customer_email: "alan@example.com",
+      status: "cancelled",
+      created_at: "2026-08-25T00:00:00.000Z",
+      notes: null,
+    };
+    const cancelledItem = { ...items[0], id: "i-4", order_id: "o-4" };
+    const summaries = groupProductOrders({
+      orders: [...orders, cancelled],
+      items: [...items, cancelledItem],
+      variants,
+    });
+
+    expect(summaries.map((summary) => summary.order_number)).toEqual(["GEO-0002", "GEO-0001"]);
+  });
+
   it("falls back to a placeholder label when the variant is missing", () => {
     const summaries = groupProductOrders({ orders, items, variants: [] });
 

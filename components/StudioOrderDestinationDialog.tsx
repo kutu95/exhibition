@@ -8,6 +8,9 @@ import styles from "./StudioOrderDestinationDialog.module.css";
 
 const NEW_ORDER_VALUE = "";
 
+/** Matches the ceiling on /api/admin/orders/manual. */
+export const STUDIO_ORDER_MAX_QUANTITY = 10;
+
 export const loadOpenStudioOrders = async (): Promise<OpenStudioOrder[]> => {
   const response = await adminClientFetch("/api/admin/orders/studio-open");
   if (!response.ok) {
@@ -25,9 +28,10 @@ type StudioOrderDestinationDialogProps = {
   confirmLabel?: string;
   allowNew?: boolean;
   excludeOrderId?: string;
+  askQuantity?: boolean;
   busy?: boolean;
   onCancel: () => void;
-  onConfirm: (orderId: string | null) => void;
+  onConfirm: (orderId: string | null, quantity: number) => void;
 };
 
 export function StudioOrderDestinationDialog({
@@ -38,17 +42,20 @@ export function StudioOrderDestinationDialog({
   confirmLabel = "Continue",
   allowNew = true,
   excludeOrderId,
+  askQuantity = false,
   busy = false,
   onCancel,
   onConfirm,
 }: StudioOrderDestinationDialogProps) {
   const visibleOrders = orders.filter((order) => order.order_id !== excludeOrderId);
   const [selected, setSelected] = useState(NEW_ORDER_VALUE);
+  const [quantity, setQuantity] = useState("1");
 
   useEffect(() => {
     if (!open) return;
     const first = visibleOrders[0];
     setSelected(first?.order_id ?? NEW_ORDER_VALUE);
+    setQuantity("1");
   }, [open, excludeOrderId, orders]);
 
   useEffect(() => {
@@ -62,6 +69,10 @@ export function StudioOrderDestinationDialog({
 
   if (!open) return null;
 
+  const parsedQuantity = Number.parseInt(quantity, 10);
+  const clampedQuantity = Number.isNaN(parsedQuantity)
+    ? 1
+    : Math.min(Math.max(parsedQuantity, 1), STUDIO_ORDER_MAX_QUANTITY);
   const canConfirm = allowNew || Boolean(selected);
 
   return (
@@ -106,6 +117,25 @@ export function StudioOrderDestinationDialog({
             <p className={styles.empty}>No other open studio orders to move these prints onto.</p>
           ) : null}
         </div>
+        {askQuantity ? (
+          <label className={styles.quantity}>
+            <span>Copies</span>
+            <input
+              type="number"
+              min={1}
+              max={STUDIO_ORDER_MAX_QUANTITY}
+              step={1}
+              value={quantity}
+              disabled={busy}
+              onChange={(event) => setQuantity(event.target.value)}
+            />
+            <span className={styles.quantityHint}>
+              {clampedQuantity > 1
+                ? `The lab prints ${clampedQuantity} copies from the one file.`
+                : "One print."}
+            </span>
+          </label>
+        ) : null}
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} disabled={busy} onClick={onCancel}>
             Cancel
@@ -114,7 +144,7 @@ export function StudioOrderDestinationDialog({
             type="button"
             className={styles.primary}
             disabled={busy || !canConfirm}
-            onClick={() => onConfirm(selected || null)}
+            onClick={() => onConfirm(selected || null, clampedQuantity)}
           >
             {busy ? "Working…" : confirmLabel}
           </button>

@@ -137,11 +137,6 @@ const finishOption = (item: LabOrderEmailItem): string => {
   return "Print only — unmounted and unframed";
 };
 
-const trimOption = (item: LabOrderEmailItem): string =>
-  isFramed(item) || isMounted(item)
-    ? "Leave untrimmed — small white handling border for framing or mounting"
-    : "Trim to the ordered size";
-
 const studioFields = (dpi: number): EmailField[] => [
   { label: "Studio", value: siteContact.name },
   { label: "Email address", value: siteContact.email },
@@ -173,8 +168,10 @@ const printFields = (item: LabOrderEmailItem): EmailField[] => {
     { label: "Paper", value: labPaperLabel(item.paper_type) },
     { label: "Finish", value: finishOption(item) },
     { label: "Size", value: formatLabSizeMm(item.width_mm, item.height_mm) },
-    { label: "Quantity", value: String(item.quantity) },
-    { label: "Trimming", value: trimOption(item) },
+    {
+      label: "Quantity",
+      value: item.quantity > 1 ? `${item.quantity} — print ${item.quantity} copies from the one file` : "1",
+    },
   ];
 };
 

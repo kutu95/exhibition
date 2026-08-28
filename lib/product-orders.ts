@@ -52,7 +52,8 @@ export type ProductOrderSummary = {
 
 /**
  * Collapse order items for one photograph into a per-order summary, newest first.
- * Orders with no matching item are dropped.
+ * Orders with no matching item are dropped, as are cancelled orders — studio orders
+ * emptied by moving prints elsewhere are cancelled, and they are only noise here.
  */
 export const groupProductOrders = (args: {
   orders: ProductOrderRow[];
@@ -80,6 +81,7 @@ export const groupProductOrders = (args: {
 
   return args.orders
     .flatMap((order) => {
+      if (order.status === "cancelled") return [];
       const items = itemsByOrder.get(order.id);
       if (!items || items.length === 0) return [];
       const sortedItems = [...items].sort((a, b) => a.variant_label.localeCompare(b.variant_label));

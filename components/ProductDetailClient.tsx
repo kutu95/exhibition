@@ -410,7 +410,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
     }
   };
 
-  const confirmStudioOrder = async (existingOrderId: string | null) => {
+  const confirmStudioOrder = async (existingOrderId: string | null, quantity: number) => {
     if (!selectedVariant) return;
 
     try {
@@ -423,7 +423,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         body: JSON.stringify({
           mode: "studio",
           variant_id: selectedVariant.id,
-          quantity: 1,
+          quantity,
           ...(existingOrderId ? { existing_order_id: existingOrderId } : {}),
         }),
       });
@@ -443,10 +443,11 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
       }
 
       setStudioOrderDialogOpen(false);
+      const copies = quantity > 1 ? ` (${quantity} copies)` : "";
       setStudioOrderMessage(
         body?.added_to_existing
-          ? `Added to studio order ${body.order_number ?? ""}.`
-          : `Studio order ${body?.order_number ?? ""} created.`,
+          ? `Added to studio order ${body.order_number ?? ""}${copies}.`
+          : `Studio order ${body?.order_number ?? ""} created${copies}.`,
       );
     } catch (studioError) {
       setError(adminClientFetchError(studioError));
@@ -905,9 +906,10 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         description={`No payment and no edition number. Add "${selectedVariant?.variant_label ?? "this print"}" to an open studio order, or start a new one.`}
         orders={openStudioOrders}
         confirmLabel="Create"
+        askQuantity
         busy={isStudioOrdering}
         onCancel={() => { if (!isStudioOrdering) setStudioOrderDialogOpen(false); }}
-        onConfirm={(orderId) => void confirmStudioOrder(orderId)}
+        onConfirm={(orderId, quantity) => void confirmStudioOrder(orderId, quantity)}
       />
     </section>
   );

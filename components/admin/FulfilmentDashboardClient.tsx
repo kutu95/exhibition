@@ -237,6 +237,10 @@ const groupItemsByOrder = (items: FulfilmentDashboardItem[]): OrderGroup[] => {
 
 const formatStatusLabel = (status: string): string => status.replaceAll("_", " ");
 
+/** A row can be several copies of the one file, so count prints by quantity. */
+const printCount = (items: FulfilmentDashboardItem[]): number =>
+  items.reduce((total, item) => total + (item.quantity ?? 1), 0);
+
 const statusSummary = (items: FulfilmentDashboardItem[]): string => {
   const counts = new Map<string, number>();
   items.forEach((item) => {
@@ -353,13 +357,13 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     if (studioItems.length === 0) return null;
     const countsByOrder = new Map<string, number>();
     studioItems.forEach((item) => {
-      countsByOrder.set(item.order_number, (countsByOrder.get(item.order_number) ?? 0) + 1);
+      countsByOrder.set(item.order_number, (countsByOrder.get(item.order_number) ?? 0) + (item.quantity ?? 1));
     });
     const orderSummary = [...countsByOrder.entries()]
       .map(([orderNumber, count]) => `${orderNumber}: ${count}`)
       .join(" · ");
     return {
-      count: studioItems.length,
+      count: printCount(studioItems),
       items: studioItems,
       orderSummary,
       ...buildLabOrderEmail(studioItems.map(labOrderEmailItem)),
@@ -686,7 +690,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                       </span>
                       <span>·</span>
                       <span>
-                        {group.items.length} print{group.items.length === 1 ? "" : "s"}
+                        {printCount(group.items)} print{printCount(group.items) === 1 ? "" : "s"}
                       </span>
                       <span>·</span>
                       <span>Ordered {formatDateTime(orderedAt)}</span>

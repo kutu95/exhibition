@@ -615,7 +615,11 @@ export function ProductEditorForm({
     }
   };
 
-  const createStudioOrder = async (variant: VariantInput, existingOrderId: string | null) => {
+  const createStudioOrder = async (
+    variant: VariantInput,
+    existingOrderId: string | null,
+    quantity: number,
+  ) => {
     if (!variant.id) {
       setError("Save the product before creating a studio order.");
       return;
@@ -633,7 +637,7 @@ export function ProductEditorForm({
       body: JSON.stringify({
         mode: "studio",
         variant_id: variant.id,
-        quantity: 1,
+        quantity,
         ...(existingOrderId ? { existing_order_id: existingOrderId } : {}),
       }),
     });
@@ -1190,12 +1194,13 @@ export function ProductEditorForm({
         description={`No payment and no edition number. Add "${studioOrderDialog?.variant.variant_label ?? "this print"}" to an open studio order, or start a new one.`}
         orders={studioOrderDialog?.orders ?? []}
         confirmLabel="Create"
+        askQuantity
         busy={Boolean(creatingStudioOrderVariantId)}
         onCancel={() => {
           if (!creatingStudioOrderVariantId) setStudioOrderDialog(null);
         }}
-        onConfirm={(orderId) => {
-          if (studioOrderDialog) void createStudioOrder(studioOrderDialog.variant, orderId);
+        onConfirm={(orderId, quantity) => {
+          if (studioOrderDialog) void createStudioOrder(studioOrderDialog.variant, orderId, quantity);
         }}
       />
     </div>

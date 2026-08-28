@@ -350,7 +350,7 @@ export function CustomPrintClient({
     }
   };
 
-  const confirmStudioOrder = async (existingOrderId: string | null) => {
+  const confirmStudioOrder = async (existingOrderId: string | null, quantity: number) => {
     if (!quote) return;
     setBusy("studio");
     setError(null);
@@ -362,7 +362,7 @@ export function CustomPrintClient({
         body: JSON.stringify({
           mode: "studio",
           variant_id: created.variant_id,
-          quantity: 1,
+          quantity,
           ...(existingOrderId ? { existing_order_id: existingOrderId } : {}),
         }),
       });
@@ -833,11 +833,12 @@ export function CustomPrintClient({
         description={`No payment and no edition number. Add this custom print (${selectionSummary ?? ""}) to an open studio order, or start a new one.`}
         orders={openStudioOrders}
         confirmLabel="Create"
+        askQuantity
         busy={busy === "studio"}
         onCancel={() => {
           if (busy !== "studio") setStudioOrderDialogOpen(false);
         }}
-        onConfirm={(orderId) => void confirmStudioOrder(orderId)}
+        onConfirm={(orderId, quantity) => void confirmStudioOrder(orderId, quantity)}
       />
     </section>
   );

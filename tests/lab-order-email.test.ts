@@ -91,8 +91,6 @@ describe("lab order email", () => {
     expect(email.body).toContain("594 × 396 mm");
     expect(email.body).not.toContain("inches");
     expect(email.body).toContain("Framed — Standard frame with Perspex");
-    expect(email.body).toContain("Leave untrimmed");
-    expect(email.body).toContain("Trim to the ordered size");
     expect(email.body).not.toContain("Price (AUD)");
     expect(email.body.match(/Email address/g)?.length).toBe(1);
     expect(email.html.match(/<table/g)?.length).toBe(3);
@@ -137,12 +135,19 @@ describe("lab order email", () => {
     ).toBe("Stretched canvas, ready to hang — image wrap over the edges (38 mm gallery wrap)");
   });
 
-  it("asks for a handling border on anything mounted or framed", () => {
-    const mounted = buildLabOrderEmail([{ ...itemA, finish: "Tier 1 · Mountboard" }]).body;
-    expect(mounted).toContain("Leave untrimmed");
+  it("spells out repeat copies so one file covers the whole quantity", () => {
+    expect(buildLabOrderEmail([itemA]).body).toContain("Quantity\n1");
+    expect(buildLabOrderEmail([itemA]).body).not.toContain("copies");
+    expect(buildLabOrderEmail([{ ...itemA, quantity: 3 }]).body).toContain(
+      "3 — print 3 copies from the one file",
+    );
+  });
 
-    const plain = buildLabOrderEmail([{ ...itemA, finish: "Tier 1" }]).body;
-    expect(plain).toContain("Trim to the ordered size");
+  it("leaves trimming to the lab", () => {
+    const email = buildLabOrderEmail([itemA, { ...itemA, finish: "Tier 1 · Mountboard" }]);
+    expect(email.body).not.toContain("Trimming");
+    expect(email.body).not.toContain("trim");
+    expect(email.html).not.toContain("Trimming");
   });
 
   it("uses a single-print subject when there is only one item", () => {
