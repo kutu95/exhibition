@@ -13,8 +13,13 @@ type ProductOrdersButtonProps = {
   productTitle: string;
 };
 
+// Custom-size labels already spell out their dimensions, so only append them when missing.
+const labelMentionsSize = (label: string): boolean => /\d\s*(?:×|x)\s*\d/.test(label);
+
 const sizeLabel = (item: ProductOrderSummary["items"][number]): string => {
-  if (!item.width_mm || !item.height_mm) return item.variant_label;
+  if (!item.width_mm || !item.height_mm || labelMentionsSize(item.variant_label)) {
+    return item.variant_label;
+  }
   return `${item.variant_label} · ${Math.round(item.width_mm)}×${Math.round(item.height_mm)}mm`;
 };
 
@@ -36,8 +41,9 @@ export function ProductOrdersButton({ productId, productTitle }: ProductOrdersBu
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [close, open]);
 
+  // Reloads on every open so a freshly placed order shows up without a page refresh.
   useEffect(() => {
-    if (!open || orders || loading) return;
+    if (!open) return;
 
     let active = true;
     setLoading(true);
@@ -48,6 +54,7 @@ export function ProductOrdersButton({ productId, productTitle }: ProductOrdersBu
         const payload = (await response.json()) as { orders?: ProductOrderSummary[]; error?: string };
         if (!active) return;
         if (!response.ok) {
+          setOrders(null);
           setError(payload.error ?? "Could not load orders.");
           return;
         }
@@ -63,7 +70,7 @@ export function ProductOrdersButton({ productId, productTitle }: ProductOrdersBu
     return () => {
       active = false;
     };
-  }, [loading, open, orders, productId]);
+  }, [open, productId]);
 
   return (
     <>
