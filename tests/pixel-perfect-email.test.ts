@@ -91,7 +91,7 @@ describe("pixel Perfect order email", () => {
     expect(email.body).toContain("Print 1 of 1 — GEO-0042 — Isaac Rock No. 3");
   });
 
-  it("falls back to the file link when no order folder is stored", () => {
+  it("falls back to the file link when no Drive folder is stored", () => {
     const email = buildPixelPerfectOrderEmail([{ ...itemA, drive_folder_url: null }]);
     expect(email.body).toContain("https://drive.google.com/file/d/abc123/view");
     expect(email.body).not.toContain("/drive/folders/");

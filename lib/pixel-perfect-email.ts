@@ -140,7 +140,7 @@ const studioFields = (dpi: number): EmailField[] => [
   {
     label: "Are your image files already on cloud storage? (Dropbox, wetransfer, iCloud etc)",
     value:
-      "Yes, I can provide a link to my files for downloading. Each customer order is in one Google Drive folder; filenames are in each print table below.",
+      "Yes, I can provide a link to my files for downloading. Each photograph has its own Google Drive folder holding every size ordered; filenames are in each print table below.",
   },
   { label: "Studio address on file", value: siteConfig.exhibition.location },
 ];

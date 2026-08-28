@@ -54,6 +54,15 @@ def item_id(item: dict[str, Any]) -> str:
     return str(item.get("order_item_id") or item.get("id"))
 
 
+def item_slug(item: dict[str, Any]) -> str:
+    return str(item.get("slug") or slugify(str(item.get("master_filename") or order_number(item))))
+
+
+def print_folder_name(item: dict[str, Any]) -> str:
+    """One folder per photograph in an order; every size ordered of it goes inside."""
+    return f"{order_number(item)}_{item_slug(item)}"
+
+
 def imagecms_perceptual_intent() -> int:
     intent = getattr(ImageCms, "Intent", None)
     return int(getattr(intent, "PERCEPTUAL", 0))
@@ -234,7 +243,7 @@ class GoogleDriveClient:
                 return
             raise
 
-    def ensure_order_folder(self, name: str) -> str:
+    def ensure_print_folder(self, name: str) -> str:
         folder_id = self.find_folder(name)
         if not folder_id:
             folder_id = self.create_folder(name)
@@ -347,8 +356,7 @@ class ImageProcessor:
         destination_profile, destination_profile_bytes = self._output_profile(item)
         flags = imagecms_blackpoint_flag()
 
-        slug = str(item.get("slug") or slugify(str(item.get("master_filename") or "print")))
-        filename = f"{order_number(item)}_{slug}_{int(width_mm)}x{int(height_mm)}mm.tif"
+        filename = f"{order_number(item)}_{item_slug(item)}_{int(width_mm)}x{int(height_mm)}mm.tif"
         output = self.config.temp_dir / filename
 
         with Image.open(master_path) as image:
@@ -422,7 +430,7 @@ class FulfilmentWorker:
         self.drive = GoogleDriveClient(config) if drive_configured else None
         self.images = ImageProcessor(config)
         self.running = True
-        self.order_drive_folders: dict[str, str] = {}
+        self.print_drive_folders: dict[str, str] = {}
 
     def stop(self, *_args: object) -> None:
         self.running = False
@@ -434,8 +442,8 @@ class FulfilmentWorker:
         return self.config.master_files_dir / Path(str(master_filename)).name
 
     def sibling_drive_folder_id(self, item: dict[str, Any], queue_items: list[dict[str, Any]]) -> str:
-        order = order_number(item)
-        cached = self.order_drive_folders.get(order, "").strip()
+        folder_name = print_folder_name(item)
+        cached = self.print_drive_folders.get(folder_name, "").strip()
         if looks_like_drive_id(cached):
             return cached
 
@@ -444,7 +452,7 @@ class FulfilmentWorker:
             return own
 
         for other in queue_items:
-            if order_number(other) != order:
+            if print_folder_name(other) != folder_name:
                 continue
             folder = str(other.get("cloud_folder_path") or "").strip()
             if looks_like_drive_id(folder):
@@ -470,17 +478,18 @@ class FulfilmentWorker:
         log(f"{item_ref}: generating print file")
         temp_file = self.images.generate_print_file(master_path, item)
         try:
-            order_folder = self.config.local_output_dir / item_ref
-            order_folder.mkdir(parents=True, exist_ok=True)
-            destination = order_folder / temp_file.name
+            folder_name = print_folder_name(item)
+            photo_folder = self.config.local_output_dir / folder_name
+            photo_folder.mkdir(parents=True, exist_ok=True)
+            destination = photo_folder / temp_file.name
             shutil.copy2(temp_file, destination)
 
             drive_folder_id = self.sibling_drive_folder_id(item, queue_items)
 
             if self.drive is not None and not drive_folder_id:
                 try:
-                    drive_folder_id = self.drive.ensure_order_folder(item_ref)
-                    log(f"{item_ref}: using Drive order folder {drive_folder_id}")
+                    drive_folder_id = self.drive.ensure_print_folder(folder_name)
+                    log(f"{item_ref}: using Drive folder {folder_name} ({drive_folder_id})")
                 except Exception as exc:
                     log(f"{item_ref}: Drive folder creation failed ({exc}); continuing with local file only")
             elif self.drive is not None and drive_folder_id:
@@ -488,10 +497,10 @@ class FulfilmentWorker:
                     self.drive.share_anyone_reader(drive_folder_id)
                 except Exception as exc:
                     log(f"{item_ref}: Drive folder share failed ({exc}); continuing")
-                log(f"{item_ref}: reusing Drive order folder {drive_folder_id}")
+                log(f"{item_ref}: reusing Drive folder {folder_name} ({drive_folder_id})")
 
             if looks_like_drive_id(drive_folder_id):
-                self.order_drive_folders[item_ref] = drive_folder_id
+                self.print_drive_folders[folder_name] = drive_folder_id
                 item["cloud_folder_path"] = drive_folder_id
 
             cloud_file_url = destination.as_uri()
@@ -500,7 +509,7 @@ class FulfilmentWorker:
                 try:
                     _drive_file_id, cloud_file_url = self.drive.upload_file(drive_folder_id, destination)
                     uploaded_to_drive = True
-                    log(f"{item_ref}: uploaded TIFF to Google Drive order folder and enabled anyone-with-link access")
+                    log(f"{item_ref}: uploaded TIFF to Drive folder {folder_name} and enabled anyone-with-link access")
                 except Exception as exc:
                     log(f"{item_ref}: Drive upload failed ({exc}); TIFF remains available locally")
 
@@ -509,9 +518,9 @@ class FulfilmentWorker:
                 {
                     "fulfilment_status": "file_ready",
                     "cloud_file_url": cloud_file_url,
-                    "cloud_folder_path": drive_folder_id or str(order_folder),
+                    "cloud_folder_path": drive_folder_id or str(photo_folder),
                     "fulfilment_notes": (
-                        "Print TIFF saved locally and uploaded to the order's Google Drive folder with anyone-with-link download access."
+                        "Print TIFF saved locally and uploaded to the photograph's Google Drive folder with anyone-with-link download access."
                         if uploaded_to_drive
                         else "Print TIFF saved locally. Drive upload was unavailable; "
                         "upload it manually before sharing with the print lab."
@@ -527,7 +536,7 @@ class FulfilmentWorker:
             temp_file.unlink(missing_ok=True)
 
     def run_once(self) -> None:
-        self.order_drive_folders = {}
+        self.print_drive_folders = {}
         items = self.api.queue()
         pending = [item for item in items if item.get("fulfilment_status") == "awaiting_file"]
         if not pending:

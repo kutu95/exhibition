@@ -186,7 +186,7 @@ GOOGLE_DRIVE_FOLDER_ID=...           # optional: parent folder for automatic upl
 ```
 
 `LOCAL_OUTPUT_DIR` is required and always retains a copy. Personal OAuth credentials
-optionally create a per-order Drive folder and upload the TIFF automatically. A
+optionally create a Drive folder per photograph and upload the TIFF automatically. A
 service account remains supported for Shared Drives via
 `GOOGLE_APPLICATION_CREDENTIALS`, but cannot upload to its own My Drive because it
 has no storage quota. See `worker/README.md` for the one-time OAuth setup.
@@ -205,8 +205,8 @@ Run locally with app: `npm run dev:all` (Next.js + worker).
      - Converts to **Adobe RGB 1998** using `PRINT_OUTPUT_PROFILE_PATH` (perceptual intent, black-point compensation)
      - Resizes with **cover crop** (default) or fills a **custom_size** rectangle; optional white border
      - Writes a flat 8-bit TIFF (ZIP/Adobe Deflate) with output ICC embedded and **dpi metadata** set to `print_dpi`
-   - Copy TIFF to **`LOCAL_OUTPUT_DIR`**
-   - Optionally create **one** Google Drive folder, upload the TIFF using personal OAuth, and grant unlisted **anyone-with-link reader** access (reuse an existing folder id if already stored)
+   - Copy TIFF to **`LOCAL_OUTPUT_DIR/<order>_<slug>/`**
+   - Optionally create **one Google Drive folder per photograph** (`<order>_<slug>`), upload the TIFF using personal OAuth, and grant unlisted **anyone-with-link reader** access (reuse the folder for every size ordered of that photograph)
    - Store the public Drive file URL in `cloud_file_url` for the Pixel Perfect order
    - If Drive fails, retain the local copy and record a manual-upload note
    - **`PATCH /api/fulfilment/items/{order_item_id}`** → **`fulfilment_status: 'file_ready'`**, plus `cloud_file_url` / `cloud_folder_path`

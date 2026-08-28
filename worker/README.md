@@ -19,7 +19,7 @@ PRINT_OUTPUT_PROFILE_PATH=/path/to/AdobeRGB1998.icc
 LOCAL_OUTPUT_DIR=/mnt/nas/AppData/Exhibition/print-output
 ```
 
-Optional — automatically create a per-order folder and upload the TIFFs to a
+Optional — automatically create a folder per photograph and upload the TIFFs to a
 personal Google Drive account:
 
 ```bash
@@ -44,10 +44,10 @@ WORKER_TEMP_DIR=/tmp/exhibition-worker
 For each `awaiting_file` item the worker:
 
 1. Builds a print-ready flat 8-bit TIFF from the master (Adobe RGB, ZIP compression, DPI metadata)
-2. Saves it under `LOCAL_OUTPUT_DIR/<order>/`
-3. Creates one Google Drive folder **per order** (reused for every print in that
-   order), uploads the TIFF, and grants unlisted `anyone with the link` reader
-   access (if Drive OAuth is configured)
+2. Saves it under `LOCAL_OUTPUT_DIR/<order>_<slug>/`
+3. Creates one Google Drive folder **per photograph in the order** (reused for
+   every size ordered of that photograph), uploads the TIFF, and grants unlisted
+   `anyone with the link` reader access (if Drive OAuth is configured)
 4. Marks the item `file_ready` so it is not retried
 
 The local copy is always retained. If Drive creation or upload fails, the item is

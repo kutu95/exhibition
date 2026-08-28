@@ -67,10 +67,11 @@ const expectedPrintFileName = (item: LocalPrintFileRef): string => {
   return `${item.order_number}_${item.slug}_${width}x${height}mm.tif`;
 };
 
-const expectedPrintFolderName = (item: LocalPrintFileRef): string => item.order_number;
-
-const legacyPrintFolderName = (item: LocalPrintFileRef): string =>
+// One folder per photograph in an order, holding every size ordered of it.
+const expectedPrintFolderName = (item: LocalPrintFileRef): string =>
   `${item.order_number}_${item.slug}`;
+
+const legacyPrintFolderName = (item: LocalPrintFileRef): string => item.order_number;
 
 const tryFile = async (candidate: string, root: string): Promise<LocalPrintFile | null> => {
   try {
@@ -85,7 +86,7 @@ const tryFile = async (candidate: string, root: string): Promise<LocalPrintFile 
 
 /**
  * Locate the prepared lab TIFF under LOCAL_OUTPUT_DIR (print-output), not the master.
- * Tries file:// URL, expected worker path, local folder path, then any .tif in the order folder.
+ * Tries file:// URL, expected worker path, local folder path, then any .tif in the photograph folder.
  */
 export const findLocalPrintFile = async (item: LocalPrintFileRef): Promise<LocalPrintFile | null> => {
   const cloudUrl = item.cloud_file_url?.trim() ?? "";
@@ -123,7 +124,7 @@ export const findLocalPrintFile = async (item: LocalPrintFileRef): Promise<Local
     if (found) return found;
   }
 
-  // Scan order folder, then the older per-print folder, for a matching TIFF.
+  // Scan the photograph folder, then the older per-order folder, for a matching TIFF.
   for (const scanFolder of [folderName, legacyFolderName]) {
     try {
       const folder = await assertInsideLocalOutput(path.join(root, scanFolder), root);
