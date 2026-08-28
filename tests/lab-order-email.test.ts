@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  PIXEL_PERFECT_ORDER_EMAIL,
-  buildPixelPerfectOrderEmail,
-  formatPixelPerfectInchSize,
+  LAB_ORDER_EMAIL,
+  buildLabOrderEmail,
+  formatLabInchSize,
+  labPaperLabel,
   matchIsoSheet,
-  pixelPerfectPaperLabel,
-} from "../lib/pixel-perfect-email";
+} from "../lib/lab-order-email";
 
 const rag = {
   paper_type: "Hahnemühle Photo Rag 308gsm",
@@ -43,31 +43,43 @@ const itemB = {
   filename: "GEO-0043_redgate_594x396mm.tif",
 };
 
-describe("pixel Perfect order email", () => {
-  it("labels exact ISO sheets the way Pixel Perfect does", () => {
+describe("lab order email", () => {
+  it("labels exact ISO sheets", () => {
     expect(matchIsoSheet(210, 297)).toBe("A4");
     expect(matchIsoSheet(297, 210)).toBe("A4");
-    expect(formatPixelPerfectInchSize(210, 297)).toBe("8.27 x 11.69 (A4)");
+    expect(formatLabInchSize(210, 297)).toBe("8.27 x 11.69 (A4)");
     expect(matchIsoSheet(420, 280)).toBeNull();
-    expect(formatPixelPerfectInchSize(420, 280)).toBe("16.54 x 11.02");
+    expect(formatLabInchSize(420, 280)).toBe("16.54 x 11.02");
   });
 
-  it("strips umlauts to match Pixel Perfect paper names", () => {
-    expect(pixelPerfectPaperLabel("Hahnemühle Photo Rag Pearl")).toBe("Hahnemuhle Photo Rag Pearl");
+  it("keeps paper names plain ASCII", () => {
+    expect(labPaperLabel("Hahnemühle Photo Rag Pearl")).toBe("Hahnemuhle Photo Rag Pearl");
+    expect(labPaperLabel(null)).toBe("Ilford Galerie Smooth Pearl");
+  });
+
+  it("addresses Blue Wren and drops the old lab's form questions", () => {
+    const email = buildLabOrderEmail([itemA]);
+    expect(email.to).toBe(LAB_ORDER_EMAIL);
+    expect(LAB_ORDER_EMAIL).toBe("info@bluewrenframers.com");
+    expect(email.body).toContain("Hello Blue Wren,");
+    expect(email.html).toContain("Hello Blue Wren,");
+    expect(email.body).toContain("Collecting from Blue Wren Gallery and Framers");
+    expect(email.body).not.toContain("Pixel Perfect");
+    expect(email.body).not.toContain("Are you a new customer?");
+    expect(email.body).not.toContain("social media posts");
+    expect(email.body).not.toContain("Which image options do you like?");
+    expect(email.body).not.toContain("Shipping Address");
+    expect(email.body).not.toContain("20 Morris Rd");
   });
 
   it("puts identity once in the header and lists each print without prices", () => {
-    const email = buildPixelPerfectOrderEmail([itemA, itemB]);
-    expect(email.to).toBe(PIXEL_PERFECT_ORDER_EMAIL);
+    const email = buildLabOrderEmail([itemA, itemB]);
     expect(email.subject).toBe("Studio print order — 2 items (GEO-0042, GEO-0043)");
     expect(email.body).toContain("John Bowskill");
-    expect(email.body).toContain("20 Morris Rd");
-    expect(email.body.match(/Full Name/g)?.length).toBe(1);
-    expect(email.body.match(/Shipping Address/g)?.length).toBe(1);
+    expect(email.body.match(/Studio\n/g)?.length).toBe(1);
     expect(email.body).toContain("Print 1 of 2 — GEO-0042 — Isaac Rock No. 3");
     expect(email.body).toContain("Print 2 of 2 — GEO-0043 — Redgate");
     expect(email.body).toContain("File Name");
-    expect(email.body).not.toContain("File or Folder Name");
     expect(email.body).toContain("Google Drive Link");
     expect(email.body).toContain("GEO-0042_isaac-rock-no-3_420x297mm.tif");
     expect(email.body).toContain("https://drive.google.com/drive/folders/order43");
@@ -75,24 +87,23 @@ describe("pixel Perfect order email", () => {
     expect(email.html).toContain("href=\"https://drive.google.com/drive/folders/order43\"");
     expect(email.body).toContain("16.54 x 11.69 (A3)");
     expect(email.body).toContain("Standard frame with Perspex");
-    expect(email.body).toContain("leave my prints untrimmed");
-    expect(email.body).toContain("Not beyond the ordered size");
+    expect(email.body).toContain("Leave untrimmed");
+    expect(email.body).toContain("Trim to the ordered size");
     expect(email.body).not.toContain("Price (AUD)");
     expect(email.body.match(/Email address/g)?.length).toBe(1);
     expect(email.html.match(/<table/g)?.length).toBe(3);
     expect(email.html.match(/background:#333333/g)?.length).toBe(3);
     expect(email.html).toContain("Print 1 of 2 — GEO-0042 — Isaac Rock No. 3");
-    expect(email.html).toContain("href=\"https://drive.google.com/drive/folders/order43\"");
   });
 
   it("uses a single-print subject when there is only one item", () => {
-    const email = buildPixelPerfectOrderEmail([itemA]);
+    const email = buildLabOrderEmail([itemA]);
     expect(email.subject).toBe("Print order GEO-0042 — Isaac Rock No. 3");
     expect(email.body).toContain("Print 1 of 1 — GEO-0042 — Isaac Rock No. 3");
   });
 
   it("falls back to the file link when no Drive folder is stored", () => {
-    const email = buildPixelPerfectOrderEmail([{ ...itemA, drive_folder_url: null }]);
+    const email = buildLabOrderEmail([{ ...itemA, drive_folder_url: null }]);
     expect(email.body).toContain("https://drive.google.com/file/d/abc123/view");
     expect(email.body).not.toContain("/drive/folders/");
   });

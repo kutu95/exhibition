@@ -1,8 +1,8 @@
+import { BLUE_WREN, BLUE_WREN_SMOOTH_PEARL_LABEL } from "./bluewren";
 import { siteContact } from "./contact";
-import { siteConfig } from "./metadata";
 import { mmToInches, roundDisplayValue } from "./print-size";
 
-export const PIXEL_PERFECT_ORDER_EMAIL = "admin@pixelperfect.com.au";
+export const LAB_ORDER_EMAIL = BLUE_WREN.email;
 
 const ISO_SHEETS: Array<{ label: string; shortMm: number; longMm: number }> = [
   { label: "A4", shortMm: 210, longMm: 297 },
@@ -12,7 +12,7 @@ const ISO_SHEETS: Array<{ label: string; shortMm: number; longMm: number }> = [
   { label: "A0", shortMm: 841, longMm: 1189 },
 ];
 
-export type PixelPerfectEmailItem = {
+export type LabOrderEmailItem = {
   order_number: string;
   photo_title: string;
   width_mm: number;
@@ -76,12 +76,13 @@ const tableHtml = (title: string, fields: EmailField[]): string => {
 const tableText = (title: string, fields: EmailField[]): string =>
   [title, "", ...fields.flatMap((field) => [field.label, field.value, ""])].join("\n").trimEnd();
 
-export const pixelPerfectPaperLabel = (paperType: string | null): string => {
-  const raw = paperType?.trim() || "Hahnemuhle Photo Rag";
+/** Plain ASCII paper names so the label survives plain-text mail clients. */
+export const labPaperLabel = (paperType: string | null): string => {
+  const raw = paperType?.trim() || BLUE_WREN_SMOOTH_PEARL_LABEL;
   return raw.replaceAll("ä", "a").replaceAll("ö", "o").replaceAll("ü", "u");
 };
 
-export const formatPixelPerfectInchSize = (widthMm: number, heightMm: number): string => {
+export const formatLabInchSize = (widthMm: number, heightMm: number): string => {
   const widthIn = roundDisplayValue(mmToInches(widthMm), "in").toFixed(2);
   const heightIn = roundDisplayValue(mmToInches(heightMm), "in").toFixed(2);
   const iso = matchIsoSheet(widthMm, heightMm);
@@ -97,19 +98,11 @@ export const matchIsoSheet = (widthMm: number, heightMm: number): string | null 
   return match?.label ?? null;
 };
 
-const imageOptions = (item: PixelPerfectEmailItem): string => {
-  const finish = item.finish?.toLowerCase() ?? "";
-  const paper = item.paper_type?.toLowerCase() ?? "";
-  if (finish.includes("canvas") || paper.includes("canvas")) return "Canvas";
-  return "Photo or Inkjet printing";
-};
-
-const framingOption = (item: PixelPerfectEmailItem): string => {
+const framingOption = (item: LabOrderEmailItem): string => {
   if (item.finish?.toLowerCase().includes("canvas") || item.paper_type?.toLowerCase().includes("canvas")) {
-    const wrap = item.canvas_wrap_mm
+    return item.canvas_wrap_mm
       ? `Ready to hang canvas (${item.canvas_wrap_mm} mm ${item.wrap_style || "wrap"})`
       : "Ready to hang canvas";
-    return wrap;
   }
   if (!item.is_framed) return "None";
   const raw = (item.frame_type ?? "").toLowerCase();
@@ -117,35 +110,28 @@ const framingOption = (item: PixelPerfectEmailItem): string => {
   return "Standard frame with Perspex";
 };
 
-const trimOption = (item: PixelPerfectEmailItem): string =>
+const trimOption = (item: LabOrderEmailItem): string =>
   item.is_framed
-    ? "No, leave my prints untrimmed (small white handling border) for framing or mounting"
-    : "Not beyond the ordered size";
+    ? "Leave untrimmed — small white handling border for framing or mounting"
+    : "Trim to the ordered size";
 
 const studioFields = (dpi: number): EmailField[] => [
-  { label: "Full Name", value: siteContact.name },
+  { label: "Studio", value: siteContact.name },
   { label: "Email address", value: siteContact.email },
   { label: "Phone Number", value: siteContact.phoneDisplay.replaceAll(" ", "") },
-  { label: "Are you a new customer?", value: "No" },
   {
-    label: "Do you give permission to use photos of your work in production, in our social media posts?",
-    value: "No",
-  },
-  { label: "Pick Up or Delivery", value: "Please deliver to my address" },
-  { label: "Shipping Address", value: ["20 Morris Rd", "Forest Grove, Western Australia 6286"].join("\n") },
-  {
-    label: "Are your files print ready?",
-    value: `Yes, my files are print ready (${dpi}ppi, AdobeRGB 1998 & sized for print)`,
+    label: "Files",
+    value: `Print ready — ${dpi}ppi, Adobe RGB 1998, sized for print`,
   },
   {
-    label: "Are your image files already on cloud storage? (Dropbox, wetransfer, iCloud etc)",
+    label: "File delivery",
     value:
-      "Yes, I can provide a link to my files for downloading. Each photograph has its own Google Drive folder holding every size ordered; filenames are in each print table below.",
+      "Google Drive — each photograph has its own folder holding every size ordered; filenames are in each print table below.",
   },
-  { label: "Studio address on file", value: siteConfig.exhibition.location },
+  { label: "Collection", value: `Collecting from ${BLUE_WREN.name}, Dunsborough` },
 ];
 
-const printFields = (item: PixelPerfectEmailItem): EmailField[] => {
+const printFields = (item: LabOrderEmailItem): EmailField[] => {
   const folderUrl = item.drive_folder_url?.trim() || "";
   const fileUrl = item.drive_file_url?.trim() || "";
   const driveUrl = folderUrl || fileUrl || "File link not available yet";
@@ -157,20 +143,19 @@ const printFields = (item: PixelPerfectEmailItem): EmailField[] => {
       value: driveUrl,
       href: driveUrl.startsWith("http") ? driveUrl : undefined,
     },
-    { label: "Which image options do you like?", value: imageOptions(item) },
-    { label: "Choose a paper", value: pixelPerfectPaperLabel(item.paper_type) },
-    { label: "How many do you want?", value: String(item.quantity) },
-    { label: "What size (inches)?", value: formatPixelPerfectInchSize(item.width_mm, item.height_mm) },
-    { label: "Would you like Framing and Mounting options?", value: framingOption(item) },
-    { label: "Do your prints require trimming?", value: trimOption(item) },
+    { label: "Paper", value: labPaperLabel(item.paper_type) },
+    { label: "Size (inches)", value: formatLabInchSize(item.width_mm, item.height_mm) },
+    { label: "Quantity", value: String(item.quantity) },
+    { label: "Framing and mounting", value: framingOption(item) },
+    { label: "Trimming", value: trimOption(item) },
   ];
 };
 
-const printTitle = (item: PixelPerfectEmailItem, index: number, total: number): string =>
+const printTitle = (item: LabOrderEmailItem, index: number, total: number): string =>
   `Print ${index + 1} of ${total} — ${item.order_number} — ${item.photo_title}`;
 
-export const buildPixelPerfectOrderEmail = (
-  items: PixelPerfectEmailItem[],
+export const buildLabOrderEmail = (
+  items: LabOrderEmailItem[],
 ): { to: string; subject: string; body: string; html: string } => {
   const prints = items.filter((item) => item.order_number);
   const dpi = prints[0]?.print_dpi || 300;
@@ -180,6 +165,9 @@ export const buildPixelPerfectOrderEmail = (
       ? `Print order ${prints[0]!.order_number} — ${prints[0]!.photo_title}`
       : `Studio print order — ${prints.length} items (${refs.join(", ")})`;
 
+  const intro =
+    "Please invoice the studio print order below. Files are print-ready on Google Drive, and I will collect the prints from the gallery.";
+
   const studio = studioFields(dpi);
   const printBlocks = prints.map((item, index) => ({
     title: printTitle(item, index, prints.length),
@@ -187,12 +175,12 @@ export const buildPixelPerfectOrderEmail = (
   }));
 
   const body = [
-    `To: ${PIXEL_PERFECT_ORDER_EMAIL}`,
+    `To: ${LAB_ORDER_EMAIL}`,
     `Subject: ${subject}`,
     "",
-    "Hello Pixel Perfect,",
+    "Hello Blue Wren,",
     "",
-    "Please invoice the studio print order below. I am sending this instead of the website form. Files are print-ready on Google Drive. I will pay on invoice.",
+    intro,
     "",
     tableText("Studio details", studio),
     "",
@@ -201,14 +189,14 @@ export const buildPixelPerfectOrderEmail = (
 
   const html = [
     `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;line-height:1.5;">`,
-    `<p style="margin:0 0 8px;"><strong>To:</strong> ${escapeHtml(PIXEL_PERFECT_ORDER_EMAIL)}</p>`,
+    `<p style="margin:0 0 8px;"><strong>To:</strong> ${escapeHtml(LAB_ORDER_EMAIL)}</p>`,
     `<p style="margin:0 0 18px;"><strong>Subject:</strong> ${escapeHtml(subject)}</p>`,
-    `<p style="margin:0 0 12px;">Hello Pixel Perfect,</p>`,
-    `<p style="margin:0 0 18px;">Please invoice the studio print order below. I am sending this instead of the website form. Files are print-ready on Google Drive. I will pay on invoice.</p>`,
+    `<p style="margin:0 0 12px;">Hello Blue Wren,</p>`,
+    `<p style="margin:0 0 18px;">${escapeHtml(intro)}</p>`,
     tableHtml("Studio details", studio),
     ...printBlocks.map((block) => tableHtml(block.title, block.fields)),
     "</div>",
   ].join("");
 
-  return { to: PIXEL_PERFECT_ORDER_EMAIL, subject, body, html };
+  return { to: LAB_ORDER_EMAIL, subject, body, html };
 };

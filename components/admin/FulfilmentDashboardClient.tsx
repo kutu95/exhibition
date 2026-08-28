@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
-import { PIXEL_PERFECT_ORDER_EMAIL, buildPixelPerfectOrderEmail } from "../../lib/pixel-perfect-email";
+import { LAB_ORDER_EMAIL, buildLabOrderEmail } from "../../lib/lab-order-email";
 import { formatLabDimensions } from "../../lib/print-size";
 import { formatStudioOrderOption, isStudioOrderNotes, type OpenStudioOrder } from "../../lib/studio-orders";
 import { formatAUD } from "../../lib/utils/currency";
@@ -198,7 +198,7 @@ const statusTimeline = (item: FulfilmentDashboardItem) => {
 const isStudioItem = (item: FulfilmentDashboardItem): boolean =>
   isStudioOrderNotes(item.order_notes) || isStudioOrderNotes(item.fulfilment_notes);
 
-const pixelPerfectEmailItem = (item: FulfilmentDashboardItem) => ({
+const labOrderEmailItem = (item: FulfilmentDashboardItem) => ({
   order_number: item.order_number,
   photo_title: item.photo_title || item.title,
   width_mm: item.width_mm,
@@ -362,7 +362,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
       count: studioItems.length,
       items: studioItems,
       orderSummary,
-      ...buildPixelPerfectOrderEmail(studioItems.map(pixelPerfectEmailItem)),
+      ...buildLabOrderEmail(studioItems.map(labOrderEmailItem)),
     };
   }, [items]);
 
@@ -471,7 +471,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     if (!studioLabEmail) return;
     const copied = await copyToClipboard(
       studioLabEmail.body,
-      "Studio Pixel Perfect email",
+      "Studio lab order email",
       studioLabEmail.html,
     );
     if (!copied) return;
@@ -617,7 +617,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
             <p className={styles.muted}>
               {studioLabEmail.count} studio print{studioLabEmail.count === 1 ? "" : "s"} waiting for the lab
               {studioLabEmail.orderSummary ? ` (${studioLabEmail.orderSummary})` : ""}. One email to{" "}
-              {PIXEL_PERFECT_ORDER_EMAIL} — they invoice; you pay separately.
+              {LAB_ORDER_EMAIL} — they invoice; you pay separately.
             </p>
             <div className={styles.actionRow}>
               <button
