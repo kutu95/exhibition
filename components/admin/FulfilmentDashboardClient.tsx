@@ -482,6 +482,13 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     await applyToItems(studioLabEmail.items, "submitted_to_lab", "studio-email");
   };
 
+  /** Rebuild one order's lab email after it has already been sent, leaving statuses alone. */
+  const copyGroupLabEmail = async (group: OrderGroup) => {
+    if (group.items.length === 0) return;
+    const email = buildLabOrderEmail(group.items.map(labOrderEmailItem));
+    await copyToClipboard(email.body, `Lab email for ${group.order_number}`, email.html);
+  };
+
   const markStudioGroupSubmitted = async (group: OrderGroup) => {
     const waiting = group.items.filter((item) => studioStatusesForLabEmail.has(item.fulfilment_status));
     if (waiting.length === 0) return;
@@ -744,6 +751,15 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   </button>
                   {isStudioOrder ? (
                     <>
+                      <button
+                        className={styles.buttonSecondary}
+                        type="button"
+                        disabled={isApplying}
+                        title="Rebuild this order's Blue Wren email. Nothing changes status."
+                        onClick={() => void copyGroupLabEmail(group)}
+                      >
+                        Regenerate lab email
+                      </button>
                       {group.items.some((item) => studioStatusesForLabEmail.has(item.fulfilment_status)) ? (
                         <button
                           className={styles.buttonSecondary}

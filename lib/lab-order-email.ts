@@ -1,6 +1,5 @@
 import { BLUE_WREN, BLUE_WREN_SMOOTH_PEARL_LABEL } from "./bluewren";
 import { siteContact } from "./contact";
-import { mmToInches, roundDisplayValue } from "./print-size";
 
 export const LAB_ORDER_EMAIL = BLUE_WREN.email;
 
@@ -82,11 +81,10 @@ export const labPaperLabel = (paperType: string | null): string => {
   return raw.replaceAll("ä", "a").replaceAll("ö", "o").replaceAll("ü", "u");
 };
 
-export const formatLabInchSize = (widthMm: number, heightMm: number): string => {
-  const widthIn = roundDisplayValue(mmToInches(widthMm), "in").toFixed(2);
-  const heightIn = roundDisplayValue(mmToInches(heightMm), "in").toFixed(2);
+export const formatLabSizeMm = (widthMm: number, heightMm: number): string => {
+  const size = `${Math.round(widthMm)} × ${Math.round(heightMm)} mm`;
   const iso = matchIsoSheet(widthMm, heightMm);
-  return iso ? `${widthIn} x ${heightIn} (${iso})` : `${widthIn} x ${heightIn}`;
+  return iso ? `${size} (${iso})` : size;
 };
 
 export const matchIsoSheet = (widthMm: number, heightMm: number): string | null => {
@@ -98,20 +96,49 @@ export const matchIsoSheet = (widthMm: number, heightMm: number): string | null 
   return match?.label ?? null;
 };
 
-const framingOption = (item: LabOrderEmailItem): string => {
-  if (item.finish?.toLowerCase().includes("canvas") || item.paper_type?.toLowerCase().includes("canvas")) {
-    return item.canvas_wrap_mm
-      ? `Ready to hang canvas (${item.canvas_wrap_mm} mm ${item.wrap_style || "wrap"})`
-      : "Ready to hang canvas";
+/** Variants carry the presentation in `finish` ("Tier 1 · Mountboard", "Canvas · Image wrap"). */
+const presentationText = (item: LabOrderEmailItem): string =>
+  `${item.finish ?? ""} ${item.paper_type ?? ""}`.toLowerCase();
+
+const isCanvas = (item: LabOrderEmailItem): boolean => presentationText(item).includes("canvas");
+
+const isStretchedCanvas = (item: LabOrderEmailItem): boolean => {
+  const text = presentationText(item);
+  return (
+    isCanvas(item) &&
+    (text.includes("wrap") ||
+      text.includes("stretch") ||
+      text.includes("ready-to-hang") ||
+      text.includes("ready to hang") ||
+      Boolean(item.canvas_wrap_mm))
+  );
+};
+
+const isMounted = (item: LabOrderEmailItem): boolean => presentationText(item).includes("mount");
+
+const isFramed = (item: LabOrderEmailItem): boolean =>
+  item.is_framed || presentationText(item).includes("framed");
+
+const frameLabel = (item: LabOrderEmailItem): string =>
+  (item.frame_type ?? "").toLowerCase().includes("deluxe")
+    ? "Deluxe frame with Perspex"
+    : "Standard frame with Perspex";
+
+const finishOption = (item: LabOrderEmailItem): string => {
+  if (isStretchedCanvas(item)) {
+    const wrap = item.canvas_wrap_mm
+      ? ` (${item.canvas_wrap_mm} mm ${item.wrap_style || "image wrap"})`
+      : "";
+    return `Stretched canvas, ready to hang — image wrap over the edges${wrap}`;
   }
-  if (!item.is_framed) return "None";
-  const raw = (item.frame_type ?? "").toLowerCase();
-  if (raw.includes("deluxe")) return "Deluxe frame with Perspex";
-  return "Standard frame with Perspex";
+  if (isCanvas(item)) return "Canvas sheet — rolled, not stretched";
+  if (isFramed(item)) return `Framed — ${frameLabel(item)}`;
+  if (isMounted(item)) return "Mounted on board, ready to frame";
+  return "Print only — unmounted and unframed";
 };
 
 const trimOption = (item: LabOrderEmailItem): string =>
-  item.is_framed
+  isFramed(item) || isMounted(item)
     ? "Leave untrimmed — small white handling border for framing or mounting"
     : "Trim to the ordered size";
 
@@ -144,9 +171,9 @@ const printFields = (item: LabOrderEmailItem): EmailField[] => {
       href: driveUrl.startsWith("http") ? driveUrl : undefined,
     },
     { label: "Paper", value: labPaperLabel(item.paper_type) },
-    { label: "Size (inches)", value: formatLabInchSize(item.width_mm, item.height_mm) },
+    { label: "Finish", value: finishOption(item) },
+    { label: "Size", value: formatLabSizeMm(item.width_mm, item.height_mm) },
     { label: "Quantity", value: String(item.quantity) },
-    { label: "Framing and mounting", value: framingOption(item) },
     { label: "Trimming", value: trimOption(item) },
   ];
 };

@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   LAB_ORDER_EMAIL,
   buildLabOrderEmail,
-  formatLabInchSize,
+  formatLabSizeMm,
   labPaperLabel,
   matchIsoSheet,
+  type LabOrderEmailItem,
 } from "../lib/lab-order-email";
 
 const rag = {
@@ -19,7 +20,7 @@ const rag = {
   wrap_style: null,
 };
 
-const itemA = {
+const itemA: LabOrderEmailItem = {
   ...rag,
   order_number: "GEO-0042",
   photo_title: "Isaac Rock No. 3",
@@ -30,7 +31,7 @@ const itemA = {
   filename: "GEO-0042_isaac-rock-no-3_420x297mm.tif",
 };
 
-const itemB = {
+const itemB: LabOrderEmailItem = {
   ...rag,
   order_number: "GEO-0043",
   photo_title: "Redgate",
@@ -44,12 +45,13 @@ const itemB = {
 };
 
 describe("lab order email", () => {
-  it("labels exact ISO sheets", () => {
+  it("gives sizes in millimetres, naming exact ISO sheets", () => {
     expect(matchIsoSheet(210, 297)).toBe("A4");
     expect(matchIsoSheet(297, 210)).toBe("A4");
-    expect(formatLabInchSize(210, 297)).toBe("8.27 x 11.69 (A4)");
+    expect(formatLabSizeMm(210, 297)).toBe("210 × 297 mm (A4)");
     expect(matchIsoSheet(420, 280)).toBeNull();
-    expect(formatLabInchSize(420, 280)).toBe("16.54 x 11.02");
+    expect(formatLabSizeMm(420, 280)).toBe("420 × 280 mm");
+    expect(formatLabSizeMm(594.4, 420.2)).toBe("594 × 420 mm (A2)");
   });
 
   it("keeps paper names plain ASCII", () => {
@@ -85,8 +87,10 @@ describe("lab order email", () => {
     expect(email.body).toContain("https://drive.google.com/drive/folders/order43");
     expect(email.body).not.toContain("https://drive.google.com/file/d/def456/view");
     expect(email.html).toContain("href=\"https://drive.google.com/drive/folders/order43\"");
-    expect(email.body).toContain("16.54 x 11.69 (A3)");
-    expect(email.body).toContain("Standard frame with Perspex");
+    expect(email.body).toContain("420 × 297 mm (A3)");
+    expect(email.body).toContain("594 × 396 mm");
+    expect(email.body).not.toContain("inches");
+    expect(email.body).toContain("Framed — Standard frame with Perspex");
     expect(email.body).toContain("Leave untrimmed");
     expect(email.body).toContain("Trim to the ordered size");
     expect(email.body).not.toContain("Price (AUD)");
@@ -94,6 +98,51 @@ describe("lab order email", () => {
     expect(email.html.match(/<table/g)?.length).toBe(3);
     expect(email.html.match(/background:#333333/g)?.length).toBe(3);
     expect(email.html).toContain("Print 1 of 2 — GEO-0042 — Isaac Rock No. 3");
+  });
+
+  const finishOf = (overrides: Partial<LabOrderEmailItem>): string => {
+    const body = buildLabOrderEmail([{ ...itemA, ...overrides }]).body;
+    return body.split("Finish\n")[1]!.split("\n")[0]!;
+  };
+
+  it("spells out every finish the shop sells", () => {
+    expect(finishOf({ finish: "Tier 1" })).toBe("Print only — unmounted and unframed");
+    expect(finishOf({ finish: "Tier 1 · Mountboard" })).toBe("Mounted on board, ready to frame");
+    expect(finishOf({ finish: "Tier 2 · Mountboard" })).toBe("Mounted on board, ready to frame");
+    expect(finishOf({ finish: "Tier 1 · Framed", is_framed: true, frame_type: "standard_perspex" })).toBe(
+      "Framed — Standard frame with Perspex",
+    );
+    expect(finishOf({ finish: "Tier 2 · Framed", is_framed: true, frame_type: "deluxe_perspex" })).toBe(
+      "Framed — Deluxe frame with Perspex",
+    );
+    expect(finishOf({ finish: "Canvas", paper_type: "Canson Photoart Pro Canvas" })).toBe(
+      "Canvas sheet — rolled, not stretched",
+    );
+    expect(
+      finishOf({
+        finish: "Canvas · Image wrap",
+        paper_type: "Canson Photoart Pro Canvas + image wrap",
+      }),
+    ).toBe("Stretched canvas, ready to hang — image wrap over the edges");
+    expect(finishOf({ finish: "Ready-to-hang canvas", paper_type: "Canson PhotoArt Canvas" })).toBe(
+      "Stretched canvas, ready to hang — image wrap over the edges",
+    );
+    expect(
+      finishOf({
+        finish: "Canvas · Image wrap",
+        paper_type: "Canson Photoart Pro Canvas",
+        canvas_wrap_mm: 38,
+        wrap_style: "gallery wrap",
+      }),
+    ).toBe("Stretched canvas, ready to hang — image wrap over the edges (38 mm gallery wrap)");
+  });
+
+  it("asks for a handling border on anything mounted or framed", () => {
+    const mounted = buildLabOrderEmail([{ ...itemA, finish: "Tier 1 · Mountboard" }]).body;
+    expect(mounted).toContain("Leave untrimmed");
+
+    const plain = buildLabOrderEmail([{ ...itemA, finish: "Tier 1" }]).body;
+    expect(plain).toContain("Trim to the ordered size");
   });
 
   it("uses a single-print subject when there is only one item", () => {
