@@ -4,7 +4,7 @@ import Link from "next/link";
 import { JsonLd } from "../../components/JsonLd";
 import { ShopProductBrowser } from "../../components/ShopProductBrowser";
 import { VaultCollectionsBanner } from "../../components/VaultCollectionsBanner";
-import { applyCatalogVisibilityFilter, isProductVisibleInCatalog, mapProductRow } from "../../lib/catalog-products";
+import { applyCatalogVisibilityFilter, isProductVisibleInCatalog, mapProductRow, toShopCatalogProduct } from "../../lib/catalog-products";
 import { awaitPageMetadata, buildPageMetadata } from "../../lib/seo-content";
 import { buildBreadcrumb, buildPrintsItemList } from "../../lib/structured-data";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
@@ -13,7 +13,6 @@ import type {
   ProductImage,
   ProductTheme,
   ProductVariant,
-  ProductWithVariantsAndImages,
 } from "../../lib/supabase/types";
 import { allowedGalleryIdSet, getCatalogAccess } from "../../lib/vault-access";
 import styles from "./page.module.css";
@@ -28,12 +27,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata("shop");
 }
 
-async function getProducts(allowedGalleryIds: ReadonlySet<string>): Promise<ProductWithVariantsAndImages[]> {
+async function getProducts(allowedGalleryIds: ReadonlySet<string>) {
   const supabase = await createSupabaseServerClient();
 
   let query = supabase
     .from("products")
-    .select("*, product_variants(*), product_images(*), product_themes(*, theme:themes(*))")
+    .select(
+      "id, slug, title, product_type, location_tag, visibility, gallery_id, is_available, is_featured, created_at, product_variants(id, variant_label, price_aud, is_active, fulfilment_provider, fulfilment_class, finish, print_type, is_framed, tier_label), product_images(image_url, alt_text, is_primary, sort_order), product_themes(theme:themes(slug, name, is_active))",
+    )
     .eq("is_available", true);
 
   query = applyCatalogVisibilityFilter(query, allowedGalleryIds);
@@ -47,9 +48,10 @@ async function getProducts(allowedGalleryIds: ReadonlySet<string>): Promise<Prod
     return [];
   }
 
-  return (data as ProductRow[])
+  return (data as unknown as ProductRow[])
     .map((row) => mapProductRow(row, { primaryImagesOnly: true }))
-    .filter((product) => isProductVisibleInCatalog(product, allowedGalleryIds));
+    .filter((product) => isProductVisibleInCatalog(product, allowedGalleryIds))
+    .map(toShopCatalogProduct);
 }
 
 export default async function ShopPage() {
@@ -76,10 +78,11 @@ export default async function ShopPage() {
       <JsonLd data={buildPrintsItemList(listedPrints)} />
       <header className={styles.intro}>
         <p className="eyebrow">Limited Edition · Archival Prints</p>
-        <h1 className="heading-section">Limited Edition Prints</h1>
+        <h1 className="heading-section">Limited Edition Prints by John Bowskill</h1>
         <p className={styles.subheading}>
-          Each print is made to order on archival paper. Edition sizes are strictly limited. All prints are signed and
-          numbered by John Bowskill.
+          Archival photographs of Calgardup Bay, Redgate Beach, and Isaac Rock — the coast where the SS Georgette sank
+          in 1876. Each print is made to order. Edition sizes are strictly limited. All prints are signed and numbered
+          by John Bowskill.
         </p>
       </header>
 

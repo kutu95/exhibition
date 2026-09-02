@@ -49,9 +49,10 @@ export default async function AboutPhotographerPage() {
           </div>
           <div className={styles.introText}>
             <p className="eyebrow">The Georgette 150th</p>
-            <h1 className="heading-section">About the Photographer</h1>
+            <h1 className="heading-section">About photographer John Bowskill</h1>
             <p className={styles.lead}>
-              John Bowskill is the photographer behind The Georgette 150th Photographic Exhibition.
+              John Bowskill is a Margaret River photographer, and the photographer behind The Georgette 150th
+              Photographic Exhibition.
             </p>
           </div>
         </header>

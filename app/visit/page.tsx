@@ -27,7 +27,7 @@ export default async function VisitPage() {
       />
       <div className={styles.grid}>
         <FadeInSection className={styles.block}>
-          <h1 className="heading-section">Plan your visit</h1>
+          <h1 className="heading-section">Visit The Georgette 150th</h1>
         </FadeInSection>
 
         <FadeInSection className={styles.block}>

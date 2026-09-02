@@ -1,11 +1,28 @@
 import type { Metadata } from "next";
 
+/** Public origin Google and social crawlers must see. Never localhost, LAN, or preview hosts. */
+export const PRODUCTION_SITE_URL = "https://exhibition.margies.app";
+
+function publicSiteUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
+  if (!raw) return PRODUCTION_SITE_URL;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol === "https:" && parsed.hostname.toLowerCase() === "exhibition.margies.app") {
+      return `${parsed.protocol}//${parsed.hostname}`;
+    }
+  } catch {
+    // fall through
+  }
+  return PRODUCTION_SITE_URL;
+}
+
 export const siteConfig = {
   name: "The Georgette 150th",
   artist: "John Bowskill",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://exhibition.margies.app",
+  url: publicSiteUrl(),
   description:
-    "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
+    "A photography and immersive historical exhibition by Margaret River photographer John Bowskill commemorating 150 years since the wreck of the SS Georgette at Redgate Beach, Western Australia. Part of Margaret River Region Open Studios 2026.",
   shortDescription:
     "The Georgette 150th photographic exhibition by John Bowskill · Margaret River Region Open Studios · 12–27 September 2026",
   exhibition: {

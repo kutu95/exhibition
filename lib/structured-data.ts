@@ -38,7 +38,12 @@ function buildArtistPerson(): Record<string, unknown> {
     "@type": "Person",
     name: siteConfig.artist,
     url: `${siteConfig.url}/about-the-photographer`,
+    jobTitle: "Photographer",
     ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
+    workLocation: {
+      "@type": "Place",
+      name: "Margaret River, Western Australia",
+    },
   };
 }
 
@@ -69,16 +74,21 @@ export function buildWebsite(): Record<string, unknown> {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: siteConfig.name,
-    alternateName: "SS Georgette 150th Anniversary Photographic Exhibition",
+    alternateName: [
+      "John Bowskill Photography",
+      "SS Georgette 150th Anniversary Photographic Exhibition",
+    ],
     url: siteConfig.url,
     description: siteConfig.description,
     inLanguage: "en-AU",
     image: buildOgImageObject(),
-    about: buildShipEntity(),
+    about: [buildShipEntity(), buildArtistPerson()],
+    author: buildArtistPerson(),
     ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
     publisher: {
       "@type": "Organization",
-      name: siteConfig.name,
+      name: siteConfig.artist,
+      alternateName: siteConfig.name,
       url: siteConfig.url,
       logo: buildLogoImage(),
       ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
@@ -90,7 +100,7 @@ export function buildHomeWebPage(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "The Georgette 150th Anniversary Photographic Exhibition | John Bowskill",
+    name: "John Bowskill Photography — SS Georgette Exhibition | Margaret River",
     description: siteConfig.description,
     url: siteConfig.url,
     isPartOf: {
@@ -98,10 +108,14 @@ export function buildHomeWebPage(): Record<string, unknown> {
       name: siteConfig.name,
       url: siteConfig.url,
     },
-    about: {
-      "@type": "ExhibitionEvent",
-      name: siteConfig.name,
-    },
+    about: [
+      buildArtistPerson(),
+      buildShipEntity(),
+      {
+        "@type": "ExhibitionEvent",
+        name: siteConfig.name,
+      },
+    ],
     primaryImageOfPage: buildOgImageObject(),
     image: buildOgImageObject(),
     thumbnailUrl: defaultImageUrl,
@@ -121,6 +135,13 @@ export function buildExhibitionEvent(): Record<string, unknown> {
     endDate: siteConfig.exhibition.closes,
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    about: buildShipEntity(),
+    superEvent: {
+      "@type": "Event",
+      name: siteConfig.exhibition.event,
+      startDate: siteConfig.exhibition.opens,
+      endDate: siteConfig.exhibition.closes,
+    },
     location: {
       "@type": "Place",
       name: "The Georgette 150th gallery",
@@ -133,16 +154,8 @@ export function buildExhibitionEvent(): Record<string, unknown> {
         addressCountry: "AU",
       },
     },
-    organizer: {
-      "@type": "Person",
-      name: siteConfig.artist,
-      url: `${siteConfig.url}/about-the-photographer`,
-    },
-    performer: {
-      "@type": "Person",
-      name: siteConfig.artist,
-      url: `${siteConfig.url}/about-the-photographer`,
-    },
+    organizer: buildArtistPerson(),
+    performer: buildArtistPerson(),
     offers: {
       "@type": "Offer",
       price: "0",
@@ -168,7 +181,7 @@ export function buildPhotographerPerson(): Record<string, unknown> {
     ...(socialProfiles.length ? { sameAs: socialProfiles } : {}),
     jobTitle: "Photographer",
     description:
-      "Photographer behind The Georgette 150th Photographic Exhibition. Coastal photography around Redgate Beach, immersive installations, and the many stories of the SS Georgette.",
+      "Margaret River photographer behind The Georgette 150th, a photography and immersive historical exhibition commemorating 150 years since the wreck of the SS Georgette at Calgardup Bay / Redgate Beach.",
     knowsAbout: [
       "SS Georgette",
       "Redgate Beach",
@@ -176,10 +189,11 @@ export function buildPhotographerPerson(): Record<string, unknown> {
       "Isaac Rock",
       "fine art photography",
       "Margaret River",
+      "Margaret River Region Open Studios",
     ],
     workLocation: {
       "@type": "Place",
-      name: "Margaret River region, Western Australia",
+      name: "Margaret River, Western Australia",
     },
   };
 }
@@ -190,7 +204,7 @@ export function buildAboutPage(): Record<string, unknown> {
     "@type": "AboutPage",
     name: "About the Photographer",
     description:
-      "About photographer John Bowskill and The Georgette 150th anniversary photographic exhibition.",
+      "About Margaret River photographer John Bowskill and The Georgette 150th photography and immersive historical exhibition.",
     url: `${siteConfig.url}/about-the-photographer`,
     mainEntity: {
       "@type": "Person",
@@ -208,6 +222,11 @@ export function buildAboutPage(): Record<string, unknown> {
 
 export const HOME_FAQ_ITEMS = [
   {
+    question: "Who is John Bowskill?",
+    answer:
+      "John Bowskill is a Margaret River photographer. The Georgette 150th is his photography and immersive historical exhibition.",
+  },
+  {
     question: "Where is the exhibition?",
     answer:
       "20 Morris Rd, Forest Grove WA 6286, in the Margaret River region of Western Australia.",
@@ -224,7 +243,7 @@ export const HOME_FAQ_ITEMS = [
   {
     question: "What is the SS Georgette?",
     answer:
-      "The SS Georgette was a steamship that foundered off Redgate Beach on 1 December 1876. This exhibition marks 150 years since that wreck through photography made at the related coastal sites.",
+      "The SS Georgette was a steamship that sank at Calgardup Bay / Redgate Beach in Western Australia on 1 December 1876. This exhibition commemorates 150 years since that wreck through photography and immersive installations made at the related coastal sites.",
   },
 ] as const;
 

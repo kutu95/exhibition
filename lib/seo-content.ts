@@ -30,9 +30,9 @@ export { SEO_CONTENT_KEYS, SEO_CONTENT_LABELS };
 
 /** Seed defaults — used only when DB keys are missing/blank so pages never 500 for crawlers. */
 export const SEO_FALLBACKS: Record<SeoContentKey, string> = {
-  seo_home_title: "The Georgette 150th Exhibition | John Bowskill",
+  seo_home_title: "John Bowskill Photography — SS Georgette Exhibition | Margaret River",
   seo_home_description:
-    "John Bowskill’s photographic exhibition for the 150th anniversary of the SS Georgette shipwreck at Redgate Beach, Margaret River, Western Australia.",
+    "A photography and immersive historical exhibition by Margaret River photographer John Bowskill commemorating 150 years since the wreck of the SS Georgette at Redgate Beach, Western Australia. Part of Margaret River Region Open Studios 2026.",
   seo_story_title: "The Story | The Georgette 150th",
   seo_story_description:
     "On 1 December 1876 the SS Georgette foundered off Western Australia. Seven drowned when the lifeboat capsized. This is the story the history books got wrong.",
@@ -42,7 +42,7 @@ export const SEO_FALLBACKS: Record<SeoContentKey, string> = {
   seo_book_title: "Author’s Preface — Book | The Georgette 150th",
   seo_book_description:
     "Read John Bowskill’s author’s preface and register interest in the forthcoming Georgette book.",
-  seo_visit_title: "Visit | The Georgette 150th",
+  seo_visit_title: "Visit the Exhibition | Margaret River | The Georgette 150th",
   seo_visit_description:
     "The Georgette 150th at 20 Morris Rd, Forest Grove WA 6286 — open daily 10am–5pm, 12–27 September 2026. Margaret River Region Open Studios. Free admission.",
   seo_shop_title: "Shop — Limited Edition Prints | The Georgette 150th",

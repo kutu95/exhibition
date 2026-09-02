@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
+import type { ShopCatalogProduct } from "../lib/catalog-products";
 import { providerFromVariant } from "../lib/fulfilment";
 import { findVariantForOfferCombo } from "../lib/print-offer";
 import { useCart } from "./CartProvider";
@@ -13,12 +13,12 @@ import { LocationFilter, ProductTypeFilter, ShopFilters, ThemeFilter, type Galle
 import styles from "./ShopProductBrowser.module.css";
 
 type ShopProductBrowserProps = {
-  products: ProductWithVariantsAndImages[];
+  products: ShopCatalogProduct[];
   isAdmin?: boolean;
   galleries?: Array<{ id: string; name: string }>;
 };
 
-const pickDefaultVariant = (product: ProductWithVariantsAndImages) => {
+const pickDefaultVariant = (product: ShopCatalogProduct) => {
   const active = product.product_variants.filter((variant) => variant.is_active);
   const pool = active.length > 0 ? active : product.product_variants;
   if (pool.length === 0) return null;

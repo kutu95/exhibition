@@ -3,23 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
+import type { ShopCatalogProduct } from "../lib/catalog-products";
 import { centsToAUD } from "../lib/utils/currency";
 import { ProductOrdersButton } from "./admin/ProductOrdersButton";
 import { FavouriteButton } from "./FavouriteButton";
 import styles from "./ProductCard.module.css";
 
 type ProductCardProps = {
-  product: ProductWithVariantsAndImages;
+  product: ShopCatalogProduct;
   isAdmin?: boolean;
 };
 
 export function ProductCard({ product, isAdmin = false }: ProductCardProps) {
-  const primaryImage = product.product_images[0]?.image_url;
+  const primaryImage = product.product_images[0];
 
-  if (!primaryImage) {
+  if (!primaryImage?.image_url) {
     throw new Error(`Missing product image for product: ${product.slug}`);
   }
+
+  const imageAlt = primaryImage.alt_text?.trim() || product.title;
 
   const lowestCents =
     product.product_variants.length > 0
@@ -32,8 +34,8 @@ export function ProductCard({ product, isAdmin = false }: ProductCardProps) {
       <Link href={`/shop/${product.slug}`} className={styles.imageLink} aria-label={product.title}>
         <div className={styles.imageWrap}>
           <Image
-            src={primaryImage}
-            alt={product.title}
+            src={primaryImage.image_url}
+            alt={imageAlt}
             fill
             className={styles.image}
             sizes="(max-width: 767px) 100vw, (max-width: 1100px) 50vw, 33vw"

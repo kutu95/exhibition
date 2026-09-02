@@ -13,7 +13,7 @@ type ProductSitemapRow = {
  * Bump this whenever public page copy or SEO surface changes.
  * A stale lastmod after a real edit tells Google there is nothing to recrawl.
  */
-const staticLastMod = new Date("2026-08-20");
+const staticLastMod = new Date("2026-09-03");
 
 /** Regenerate so new prints appear without waiting for a redeploy. */
 export const revalidate = 3600;

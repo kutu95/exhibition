@@ -9,6 +9,7 @@ import {
   buildExhibitionEvent,
   buildHomeFaq,
   buildHomeWebPage,
+  buildPhotographerPerson,
   buildWebsite,
   HOME_FAQ_ITEMS,
 } from "../lib/structured-data";
@@ -51,6 +52,7 @@ export default async function HomePage() {
     <>
       <JsonLd data={buildWebsite()} />
       <JsonLd data={buildHomeWebPage()} />
+      <JsonLd data={buildPhotographerPerson()} />
       <JsonLd data={buildExhibitionEvent()} />
       <JsonLd data={buildHomeFaq()} />
 
@@ -66,9 +68,9 @@ export default async function HomePage() {
         <div className={styles.holdingBody}>
           <div className={styles.holdingInner}>
             <p className={styles.lead}>
-              Photographer John Bowskill presents The Georgette 150th — a photographic exhibition commemorating the
-              150th anniversary of the wreck of the SS Georgette at Redgate Beach near Margaret River, Western
-              Australia.
+              John Bowskill is a Margaret River photographer. This photography and immersive historical exhibition
+              commemorates 150 years since the sinking of the SS Georgette at Calgardup Bay — Redgate Beach — in
+              Western Australia in 1876. The Georgette 150th is part of Margaret River Region Open Studios 2026.
             </p>
             <p className={styles.bodyCopy}>{holdingPageBody}</p>
 
@@ -80,8 +82,8 @@ export default async function HomePage() {
                 20 Morris Rd, Forest Grove WA 6286 · Margaret River Region Open Studios 2026
               </p>
               <p className={styles.aboutCopy}>
-                Limited edition archival prints and immersive installations from Calgardup Bay, Redgate Beach, and Isaac
-                Rock.
+                A photography exhibition with immersive historical installations, limited edition archival prints, and
+                coastal work from Calgardup Bay, Redgate Beach, and Isaac Rock.
               </p>
               <nav className={styles.aboutLinks} aria-label="Continue exploring">
                 <Link href="/story">The story →</Link>

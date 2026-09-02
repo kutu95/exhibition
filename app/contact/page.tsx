@@ -10,9 +10,9 @@ import styles from "./page.module.css";
 export const revalidate = 60;
 
 export const metadata: Metadata = buildMetadata({
-  title: "Contact",
+  title: "Contact John Bowskill",
   description:
-    "Contact John Bowskill about The Georgette 150th exhibition, limited edition prints, installations, and private collections.",
+    "Contact Margaret River photographer John Bowskill about The Georgette 150th exhibition, limited edition prints, installations, and private collections.",
   path: "/contact",
 });
 
@@ -45,7 +45,7 @@ export default function ContactPage() {
       <div className={styles.grid}>
         <FadeInSection>
           <p className="eyebrow">Get in touch</p>
-          <h1 className="heading-section">Contact</h1>
+          <h1 className="heading-section">Contact John Bowskill</h1>
           <p className={styles.lead}>
             Questions about the exhibition, limited edition prints, installations, or private collections — John is
             happy to hear from you.

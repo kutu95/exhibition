@@ -1,9 +1,9 @@
-import type { ProductWithVariantsAndImages } from "../lib/supabase/types";
+import type { ShopCatalogProduct } from "../lib/catalog-products";
 import { ProductCard } from "./ProductCard";
 import styles from "./ProductGrid.module.css";
 
 type ProductGridProps = {
-  products: ProductWithVariantsAndImages[];
+  products: ShopCatalogProduct[];
   isAdmin?: boolean;
 };
 

@@ -36,6 +36,72 @@ export const mapProductRow = (
   };
 };
 
+/** Fields the public shop grid needs. Omitting transcripts and print-file metadata keeps /shop HTML crawlable. */
+export type ShopCatalogVariant = {
+  id: string;
+  variant_label: string;
+  price_aud: number;
+  is_active: boolean;
+  fulfilment_provider: ProductVariant["fulfilment_provider"];
+  fulfilment_class: ProductVariant["fulfilment_class"];
+  finish: string | null;
+  print_type: string | null;
+  is_framed: boolean;
+  tier_label: string | null;
+};
+
+export type ShopCatalogProduct = {
+  id: string;
+  slug: string;
+  title: string;
+  product_type: Product["product_type"];
+  location_tag: string | null;
+  visibility: Product["visibility"];
+  gallery_id: string | null;
+  product_images: Array<{ image_url: string; alt_text: string | null }>;
+  product_themes: Array<{ theme: { slug: string; name: string; is_active: boolean } }>;
+  product_variants: ShopCatalogVariant[];
+};
+
+export const toShopCatalogProduct = (product: ProductWithVariantsAndImages): ShopCatalogProduct => ({
+  id: product.id,
+  slug: product.slug,
+  title: product.title,
+  product_type: product.product_type,
+  location_tag: product.location_tag,
+  visibility: product.visibility,
+  gallery_id: product.gallery_id,
+  product_images: product.product_images.map((image) => ({
+    image_url: image.image_url,
+    alt_text: image.alt_text,
+  })),
+  product_themes: product.product_themes.flatMap((assignment) => {
+    const theme = assignment.theme;
+    if (!theme?.slug) return [];
+    return [
+      {
+        theme: {
+          slug: theme.slug,
+          name: theme.name,
+          is_active: theme.is_active !== false,
+        },
+      },
+    ];
+  }),
+  product_variants: product.product_variants.map((variant) => ({
+    id: variant.id,
+    variant_label: variant.variant_label,
+    price_aud: variant.price_aud,
+    is_active: variant.is_active,
+    fulfilment_provider: variant.fulfilment_provider,
+    fulfilment_class: variant.fulfilment_class,
+    finish: variant.finish,
+    print_type: variant.print_type,
+    is_framed: variant.is_framed,
+    tier_label: variant.tier_label,
+  })),
+});
+
 export const isProductVisibleInCatalog = (
   product: Pick<Product, "visibility" | "gallery_id">,
   allowedGalleryIds: ReadonlySet<string>,
