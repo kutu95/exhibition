@@ -4,7 +4,6 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { assignEditionsToOrder } from "../../../../../lib/edition-assignment";
 import { sendOrderConfirmationEmail } from "../../../../../lib/emails/order-confirmation";
-import { MIXED_PROVIDER_MESSAGE, providerFromVariant } from "../../../../../lib/fulfilment";
 import { requireOpenStudioOrder } from "../../../../../lib/open-studio-orders";
 import {
   STUDIO_CUSTOMER,
@@ -27,7 +26,7 @@ const shippingAddressSchema = z.object({
 const manualOrderSchema = z.object({
   mode: z.enum(["test", "on_site", "studio"]).default("test"),
   variant_id: z.string().uuid(),
-  quantity: z.number().int().positive().max(10).default(1),
+  quantity: z.coerce.number().int().positive().max(10).default(1),
   customer_email: z.string().email().optional(),
   customer_name: z.string().trim().max(120).optional(),
   allow_placeholder_customer: z.boolean().optional(),
@@ -141,7 +140,12 @@ export async function POST(request: Request) {
 
   const parsed = manualOrderSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
+    const first = parsed.error.issues[0];
+    const where = first?.path.length ? first.path.join(".") : "payload";
+    return NextResponse.json(
+      { error: first ? `${where}: ${first.message}` : "Invalid payload." },
+      { status: 400 },
+    );
   }
 
   const payload = parsed.data;
@@ -268,19 +272,8 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    const incomingProvider = providerFromVariant(variantRow);
-    if (incomingProvider) {
-      const { data: existingItems } = await supabaseAdmin
-        .from("order_items")
-        .select("fulfilment_provider")
-        .eq("order_id", existing.id);
-      const existingProvider = (existingItems ?? [])
-        .map((row) => providerFromVariant(row))
-        .find((provider): provider is NonNullable<typeof provider> => Boolean(provider));
-      if (existingProvider && existingProvider !== incomingProvider) {
-        return NextResponse.json({ error: MIXED_PROVIDER_MESSAGE }, { status: 400 });
-      }
-    }
+    // Studio batches are collected for one lab (Blue Wren). Older variants still
+    // carry posterfactory vs pixelperfect labels; those must not block adding a print.
 
     const { data: createdItems, error: itemError } = await supabaseAdmin
       .from("order_items")
