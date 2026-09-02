@@ -837,7 +837,7 @@ export function ProductEditorForm({
                 type="button"
                 onClick={() => setAudioCaptureOpen(true)}
               >
-                {audioUrl.trim() ? "Replace audio" : "Record or upload audio"}
+                {audioUrl.trim() ? "Replace audio" : "Record, upload, or reuse audio"}
               </button>
             </div>
             <label>
@@ -866,8 +866,9 @@ export function ProductEditorForm({
               />
             </label>
             <small className={styles.hint}>
-              Record or upload from the button above. The file is renamed to match this product, transcribed, and
-              copied into the transcript field. You can still edit the fields by hand. Duration is <code>m:ss</code>.
+              Record or upload a new file, or reuse a recording already attached to another photograph. New files are
+              named to match this product and transcribed. Reused recordings keep their existing file and transcript.
+              Duration is <code>m:ss</code>.
             </small>
 
             <label>
@@ -1272,6 +1273,7 @@ export function ProductEditorForm({
         open={audioCaptureOpen}
         slug={slug}
         title={title}
+        currentProductId={initialData?.id ?? null}
         onClose={() => setAudioCaptureOpen(false)}
         onApplied={(fields) => {
           setAudioUrl(fields.audioUrl);

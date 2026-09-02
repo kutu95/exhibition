@@ -11,6 +11,9 @@ export const BLUE_WREN = {
   address: "UNIT 1/84 Commonage Rd, Dunsborough 6281 WA",
 } as const;
 
+/** Short label for admin tables and filters. */
+export const BLUE_WREN_LABEL = "Blue Wren";
+
 const M2_TO_IN2 = 1550.0031;
 
 /** Stated $/m² from the artist paper sheet → $/in². */

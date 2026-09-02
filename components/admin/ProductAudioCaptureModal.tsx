@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from "react";
 
 import { ADMIN_CLIENT_FETCH_LONG_TIMEOUT_MS, adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import {
+  audioFilenameFromUrl,
   audioStemFromProduct,
   extensionForAudioUpload,
+  filterExistingAudioStories,
   formatAudioClock,
+  type ExistingAudioStory,
 } from "../../lib/photo-audio";
 import { encodeMonoWav, mixToMono } from "../../lib/wav-encode";
 import styles from "./ProductAudioCaptureModal.module.css";
@@ -15,6 +18,7 @@ type ProductAudioCaptureModalProps = {
   open: boolean;
   slug: string;
   title: string;
+  currentProductId?: string | null;
   onClose: () => void;
   onApplied: (fields: { audioUrl: string; audioDuration: string; audioTranscript: string }) => void;
 };
@@ -97,6 +101,7 @@ export function ProductAudioCaptureModal({
   open,
   slug,
   title,
+  currentProductId = null,
   onClose,
   onApplied,
 }: ProductAudioCaptureModalProps) {
@@ -109,6 +114,7 @@ export function ProductAudioCaptureModal({
   const tickRef = useRef<number | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
+  const [mode, setMode] = useState<"new" | "existing">("new");
   const [recording, setRecording] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -117,6 +123,11 @@ export function ProductAudioCaptureModal({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [stories, setStories] = useState<ExistingAudioStory[]>([]);
+  const [storiesLoading, setStoriesLoading] = useState(false);
+  const [storiesError, setStoriesError] = useState<string | null>(null);
+  const [storyQuery, setStoryQuery] = useState("");
+  const [selectedStoryUrl, setSelectedStoryUrl] = useState<string | null>(null);
 
   const resetPreview = () => {
     if (previewUrlRef.current) {
@@ -150,7 +161,44 @@ export function ProductAudioCaptureModal({
     setError(null);
     setStatus(null);
     setSaving(false);
+    setMode("new");
+    setStoryQuery("");
+    setSelectedStoryUrl(null);
+    setStoriesError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- close resets capture state
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    setStoriesLoading(true);
+    setStoriesError(null);
+
+    void adminClientFetch("/api/admin/audio")
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as
+          | { stories?: ExistingAudioStory[]; error?: string }
+          | null;
+        if (!active) return;
+        if (!response.ok) {
+          setStories([]);
+          setStoriesError(payload?.error ?? "Could not load existing audio.");
+          return;
+        }
+        setStories(payload?.stories ?? []);
+      })
+      .catch((loadError) => {
+        if (!active) return;
+        setStories([]);
+        setStoriesError(adminClientFetchError(loadError));
+      })
+      .finally(() => {
+        if (active) setStoriesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -178,9 +226,27 @@ export function ProductAudioCaptureModal({
     setPendingFile(file);
   };
 
+  const chooseExisting = () => {
+    stopMedia();
+    resetPreview();
+    setLiveTranscript("");
+    setError(null);
+    setStatus(null);
+    setMode("existing");
+  };
+
+  const chooseNew = () => {
+    setSelectedStoryUrl(null);
+    setError(null);
+    setStatus(null);
+    setMode("new");
+  };
+
   const startRecording = async () => {
     setError(null);
     setStatus(null);
+    setMode("new");
+    setSelectedStoryUrl(null);
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       setError("This browser cannot record audio. Upload a file instead.");
       return;
@@ -266,9 +332,26 @@ export function ProductAudioCaptureModal({
     }
     setLiveTranscript("");
     setPreparedFile(file);
+    setMode("new");
+    setSelectedStoryUrl(null);
   };
 
   const saveAudio = async () => {
+    if (mode === "existing") {
+      const story = stories.find((item) => item.audio_url === selectedStoryUrl);
+      if (!story) {
+        setError("Select an existing recording first.");
+        return;
+      }
+      onApplied({
+        audioUrl: story.audio_url,
+        audioDuration: story.audio_duration ?? "",
+        audioTranscript: story.audio_transcript ?? "",
+      });
+      onClose();
+      return;
+    }
+
     if (!pendingFile) {
       setError("Record or choose a file first.");
       return;
@@ -338,6 +421,10 @@ export function ProductAudioCaptureModal({
 
   const pendingExtension = pendingFile ? extensionForAudioUpload(pendingFile) : null;
   const targetName = stem ? `${stem}.${pendingExtension ?? "wav"}` : "add-a-title-first";
+  const visibleStories = filterExistingAudioStories(stories, storyQuery);
+  const selectedStory = stories.find((story) => story.audio_url === selectedStoryUrl) ?? null;
+  const canUse =
+    mode === "existing" ? Boolean(selectedStory) : Boolean(pendingFile && stem);
 
   return (
     <div
@@ -357,7 +444,7 @@ export function ProductAudioCaptureModal({
         <header className={styles.header}>
           <div>
             <p className={styles.eyebrow}>Hear the story</p>
-            <h2 id="product-audio-capture-title">Record or upload audio</h2>
+            <h2 id="product-audio-capture-title">Audio for this photograph</h2>
           </div>
           <button type="button" className={styles.close} onClick={onClose} disabled={saving} aria-label="Close">
             ×
@@ -365,13 +452,18 @@ export function ProductAudioCaptureModal({
         </header>
 
         <p className={styles.filename}>
-          {stem ? (
+          {mode === "existing" ? (
             <>
-              Saved as <code>/audio/{targetName}</code> so it matches this product. Recordings are stored as WAV;
-              uploaded files keep their original format.
+              Choose a recording already used on another photograph. Both products keep the same file and transcript —
+              this is not a copy.
+            </>
+          ) : stem ? (
+            <>
+              New recordings are saved as <code>/audio/{targetName}</code>. Recordings are stored as WAV; uploaded files
+              keep their original format.
             </>
           ) : (
-            <>Enter a title on the product first so the file can be named to match it.</>
+            <>Enter a title on the product first so a new file can be named to match it.</>
           )}
         </p>
 
@@ -381,7 +473,15 @@ export function ProductAudioCaptureModal({
               Stop recording · {formatAudioClock(elapsedSeconds)}
             </button>
           ) : (
-            <button type="button" className={styles.recordStart} onClick={() => void startRecording()} disabled={saving || !stem}>
+            <button
+              type="button"
+              className={mode === "new" ? styles.recordStart : styles.secondary}
+              onClick={() => {
+                chooseNew();
+                void startRecording();
+              }}
+              disabled={saving || !stem}
+            >
               Record audio
             </button>
           )}
@@ -392,6 +492,14 @@ export function ProductAudioCaptureModal({
             disabled={saving || recording || !stem}
           >
             Upload a file
+          </button>
+          <button
+            type="button"
+            className={mode === "existing" ? styles.recordStart : styles.secondary}
+            onClick={chooseExisting}
+            disabled={saving || recording}
+          >
+            Use existing audio
           </button>
           <input
             ref={fileInputRef}
@@ -405,26 +513,95 @@ export function ProductAudioCaptureModal({
           />
         </div>
 
-        {recording ? <p className={styles.recordingFlag}>Recording… speak the story for this photograph.</p> : null}
-
-        {previewUrl ? (
-          <div className={styles.preview}>
-            <p className={styles.previewLabel}>{pendingFile?.name ?? "Preview"}</p>
-            <audio controls preload="metadata" src={previewUrl}>
-              Your browser cannot preview this recording.
-            </audio>
+        {mode === "existing" ? (
+          <div className={styles.existing}>
+            <label className={styles.search}>
+              Search photographs or filename
+              <input
+                type="search"
+                value={storyQuery}
+                onChange={(event) => setStoryQuery(event.target.value)}
+                placeholder="Sandy Currents"
+                disabled={saving}
+              />
+            </label>
+            {storiesLoading ? <p className={styles.hint}>Loading existing recordings…</p> : null}
+            {storiesError ? <p className={styles.error}>{storiesError}</p> : null}
+            {!storiesLoading && !storiesError && stories.length === 0 ? (
+              <p className={styles.hint}>No photographs have audio yet. Record or upload one first.</p>
+            ) : null}
+            {!storiesLoading && stories.length > 0 && visibleStories.length === 0 ? (
+              <p className={styles.hint}>No recordings match that search.</p>
+            ) : null}
+            {visibleStories.length > 0 ? (
+              <ul className={styles.existingList}>
+                {visibleStories.map((story) => {
+                  const titles = story.products
+                    .filter((product) => product.id !== currentProductId)
+                    .map((product) => product.title);
+                  const label = titles.length > 0 ? titles.join(", ") : story.products.map((product) => product.title).join(", ");
+                  const selected = story.audio_url === selectedStoryUrl;
+                  return (
+                    <li key={story.audio_url}>
+                      <button
+                        type="button"
+                        className={`${styles.existingItem} ${selected ? styles.existingItemActive : ""}`}
+                        onClick={() => {
+                          setSelectedStoryUrl(story.audio_url);
+                          setError(null);
+                        }}
+                        disabled={saving}
+                      >
+                        <span className={styles.existingTitles}>{label}</span>
+                        <span className={styles.existingMeta}>
+                          {audioFilenameFromUrl(story.audio_url)}
+                          {story.audio_duration ? ` · ${story.audio_duration}` : ""}
+                          {story.products.length > 1 ? ` · ${story.products.length} photographs` : ""}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            {selectedStory ? (
+              <div className={styles.preview}>
+                <p className={styles.previewLabel}>Preview</p>
+                <audio controls preload="metadata" src={selectedStory.audio_url}>
+                  Your browser cannot preview this recording.
+                </audio>
+                {selectedStory.audio_transcript ? (
+                  <p className={styles.existingTranscript}>{selectedStory.audio_transcript}</p>
+                ) : (
+                  <p className={styles.hint}>This recording has no transcript yet. You can add one on the product after applying it.</p>
+                )}
+              </div>
+            ) : null}
           </div>
-        ) : null}
-
-        {liveTranscript ? (
-          <label className={styles.transcript}>
-            Draft transcript
-            <textarea value={liveTranscript} onChange={(event) => setLiveTranscript(event.target.value)} rows={5} />
-          </label>
         ) : (
-          <p className={styles.hint}>
-            Saving transcribes the recording automatically and copies the text into the transcript field.
-          </p>
+          <>
+            {recording ? <p className={styles.recordingFlag}>Recording… speak the story for this photograph.</p> : null}
+
+            {previewUrl ? (
+              <div className={styles.preview}>
+                <p className={styles.previewLabel}>{pendingFile?.name ?? "Preview"}</p>
+                <audio controls preload="metadata" src={previewUrl}>
+                  Your browser cannot preview this recording.
+                </audio>
+              </div>
+            ) : null}
+
+            {liveTranscript ? (
+              <label className={styles.transcript}>
+                Draft transcript
+                <textarea value={liveTranscript} onChange={(event) => setLiveTranscript(event.target.value)} rows={5} />
+              </label>
+            ) : (
+              <p className={styles.hint}>
+                Saving transcribes the recording automatically and copies the text into the transcript field.
+              </p>
+            )}
+          </>
         )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
@@ -434,7 +611,7 @@ export function ProductAudioCaptureModal({
           <button type="button" className={styles.secondary} onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button type="button" className={styles.primary} onClick={() => void saveAudio()} disabled={saving || !pendingFile || !stem}>
+          <button type="button" className={styles.primary} onClick={() => void saveAudio()} disabled={saving || !canUse}>
             {saving ? "Saving…" : "Use this audio"}
           </button>
         </div>

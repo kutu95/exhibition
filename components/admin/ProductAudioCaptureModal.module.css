@@ -163,3 +163,70 @@
   gap: 0.5rem;
   justify-content: flex-end;
 }
+
+.existing {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.search {
+  display: grid;
+  font-size: 0.9rem;
+  gap: 0.25rem;
+}
+
+.search input {
+  border: 1px solid #cfcfcf;
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+}
+
+.existingList {
+  border: 1px solid #ececec;
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.existingItem {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #ececec;
+  cursor: pointer;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  width: 100%;
+}
+
+.existingList li:last-child .existingItem {
+  border-bottom: none;
+}
+
+.existingItemActive {
+  background: rgba(10, 22, 40, 0.06);
+}
+
+.existingTitles {
+  font-size: 0.95rem;
+}
+
+.existingMeta {
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.existingTranscript {
+  color: #333;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
+  max-height: 6rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}

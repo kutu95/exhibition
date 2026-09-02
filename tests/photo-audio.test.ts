@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  audioFilenameFromUrl,
   audioStemFromProduct,
   extensionForAudioUpload,
+  filterExistingAudioStories,
   formatAudioClock,
+  groupExistingAudioStories,
   hasPhotoAudioStory,
   isValidAudioUrl,
   normalizeAudioFields,
@@ -77,5 +80,76 @@ describe("product audio filenames", () => {
     expect(extensionForAudioUpload({ name: "Take 3.MP3", type: "" })).toBe("mp3");
     expect(extensionForAudioUpload({ name: "recording", type: "audio/webm;codecs=opus" })).toBe("webm");
     expect(extensionForAudioUpload({ name: "notes.txt", type: "text/plain" })).toBeNull();
+  });
+});
+
+describe("existing audio stories", () => {
+  it("groups photographs that share one recording and keeps the transcript", () => {
+    const stories = groupExistingAudioStories([
+      {
+        id: "cliff",
+        title: "Cliff Island",
+        slug: "cliff-island",
+        audio_url: "/audio/sandy-currents.mp3",
+        audio_duration: "",
+        audio_transcript: "",
+      },
+      {
+        id: "sandy",
+        title: "Sandy Currents",
+        slug: "sandy-currents",
+        audio_url: "/audio/sandy-currents.mp3",
+        audio_duration: "1:12",
+        audio_transcript: "The water folds over the reef.",
+      },
+      {
+        id: "other",
+        title: "Isaac Rock",
+        slug: "isaac-rock",
+        audio_url: "/audio/isaac-rock.wav",
+        audio_duration: "0:40",
+        audio_transcript: "Dolphins in the channel.",
+      },
+      {
+        id: "blank",
+        title: "No story",
+        slug: "no-story",
+        audio_url: null,
+        audio_duration: null,
+        audio_transcript: null,
+      },
+    ]);
+
+    expect(stories).toHaveLength(2);
+    expect(stories[0]).toMatchObject({
+      audio_url: "/audio/sandy-currents.mp3",
+      audio_duration: "1:12",
+      audio_transcript: "The water folds over the reef.",
+    });
+    expect(stories[0]?.products.map((product) => product.title)).toEqual(["Cliff Island", "Sandy Currents"]);
+    expect(audioFilenameFromUrl(stories[1]!.audio_url)).toBe("isaac-rock.wav");
+  });
+
+  it("filters by photograph title or filename", () => {
+    const stories = groupExistingAudioStories([
+      {
+        id: "sandy",
+        title: "Sandy Currents",
+        slug: "sandy-currents",
+        audio_url: "/audio/sandy-currents.mp3",
+      },
+      {
+        id: "isaac",
+        title: "Isaac Rock",
+        slug: "isaac-rock",
+        audio_url: "/audio/isaac-rock.wav",
+      },
+    ]);
+
+    expect(filterExistingAudioStories(stories, "cliff")).toEqual([]);
+    expect(filterExistingAudioStories(stories, "sandy").map((story) => story.audio_url)).toEqual([
+      "/audio/sandy-currents.mp3",
+    ]);
+    expect(filterExistingAudioStories(stories, "ISAAC-ROCK.WAV")).toHaveLength(1);
   });
 });

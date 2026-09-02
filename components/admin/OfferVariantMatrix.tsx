@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { BLUE_WREN_LABEL } from "../../lib/bluewren";
 import {
   offerComboKey,
   type OfferSelectionItem,
@@ -24,7 +25,7 @@ export type OfferSelectionState = {
   setPriceDollars: (key: string, dollars: string) => void;
   selectAll: () => void;
   selectNone: () => void;
-  selectPosterFactory: () => void;
+  selectTier1: () => void;
   selectFineArt: () => void;
   selectCanvas: () => void;
   reset: () => void;
@@ -100,7 +101,7 @@ export const useOfferSelection = (drafts: OfferVariantDraft[]): OfferSelectionSt
     },
     selectAll: () => setIncludedKeys(new Set(allKeys)),
     selectNone: () => setIncludedKeys(new Set()),
-    selectPosterFactory: () =>
+    selectTier1: () =>
       setIncludedKeys(
         new Set(
           drafts
@@ -162,8 +163,8 @@ export function OfferVariantMatrix({ drafts, selection }: OfferVariantMatrixProp
           <button type="button" onClick={selection.selectNone}>
             None
           </button>
-          <button type="button" onClick={selection.selectPosterFactory}>
-            PosterFactory
+          <button type="button" onClick={selection.selectTier1}>
+            Tier 1
           </button>
           <button type="button" onClick={selection.selectFineArt}>
             Fine Art
@@ -196,7 +197,7 @@ export function OfferVariantMatrix({ drafts, selection }: OfferVariantMatrixProp
                   />
                 </td>
                 <td>{draft.variant_label}</td>
-                <td>{draft.fulfilment_provider === "posterfactory" ? "PosterFactory" : "Pixel Perfect"}</td>
+                <td className={styles.supplierCol}>{BLUE_WREN_LABEL}</td>
                 <td>{formatDualSize(draft.width_mm, draft.height_mm)}</td>
                 <td>{formatMoney(draft.lab_cost_aud / 100)}</td>
                 <td>

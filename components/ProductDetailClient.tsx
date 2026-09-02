@@ -490,6 +490,9 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
 
   return (
     <section className={`section container ${styles.wrap}`}>
+      <p className={styles.back}>
+        <Link href="/shop">← Back to shop</Link>
+      </p>
       <div className={styles.gallery}>
         <FramedPreview
           frame={useOfferChooser && isFramedOfferClass(classId) ? "standard" : "none"}
@@ -577,7 +580,34 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
           </div>
         ) : null}
         {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
-        <h1 className={styles.title}>{product.title}</h1>
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>{product.title}</h1>
+          {isAdmin ? (
+            <Link
+              href={`/admin/products/${product.id}/edit`}
+              className={styles.adminEditLink}
+              aria-label={`Edit ${product.title}`}
+              title="Edit product"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.adminEditIcon}>
+                <path
+                  d="M4.5 19.5 8.25 18.1 18.15 8.2a1.8 1.8 0 0 0-2.55-2.55L5.7 15.55 4.5 19.5z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M14.6 6.65 17.35 9.4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </Link>
+          ) : null}
+        </div>
         {product.description ? <p className={styles.description}>{product.description}</p> : null}
         {hasPhotoAudioStory(product) ? (
           <PhotoAudioStory

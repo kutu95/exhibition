@@ -103,3 +103,95 @@ export const extensionForAudioUpload = (file: { name: string; type: string }): A
 
 export const productAudioUrl = (stem: string, extension: AudioExtension): string =>
   `/audio/${stem}.${extension}`;
+
+export type ExistingAudioProduct = {
+  id: string;
+  title: string;
+  slug: string;
+};
+
+export type ExistingAudioStory = {
+  audio_url: string;
+  audio_duration: string | null;
+  audio_transcript: string | null;
+  products: ExistingAudioProduct[];
+};
+
+export const audioFilenameFromUrl = (url: string): string => {
+  const trimmed = url.trim();
+  const filename = trimmed.split("/").pop();
+  return filename && filename.length > 0 ? filename : trimmed;
+};
+
+type AudioStorySource = {
+  id: string;
+  title: string;
+  slug: string;
+  audio_url: string | null;
+  audio_duration?: string | null;
+  audio_transcript?: string | null;
+};
+
+const preferTranscript = (current: string | null, next: string | null): string | null => {
+  const incoming = next?.trim() || null;
+  if (!incoming) return current;
+  if (!current || incoming.length > current.length) return incoming;
+  return current;
+};
+
+/** One row per shared recording, with the photographs already using it. */
+export const groupExistingAudioStories = (products: AudioStorySource[]): ExistingAudioStory[] => {
+  const byUrl = new Map<string, ExistingAudioStory>();
+
+  for (const product of products) {
+    const audioUrl = product.audio_url?.trim() ?? "";
+    if (!isValidAudioUrl(audioUrl)) continue;
+
+    const duration = normalizeOptionalText(product.audio_duration);
+    const transcript = normalizeOptionalText(product.audio_transcript);
+    const entry = { id: product.id, title: product.title, slug: product.slug };
+    const existing = byUrl.get(audioUrl);
+
+    if (!existing) {
+      byUrl.set(audioUrl, {
+        audio_url: audioUrl,
+        audio_duration: duration,
+        audio_transcript: transcript,
+        products: [entry],
+      });
+      continue;
+    }
+
+    if (!existing.products.some((item) => item.id === product.id)) {
+      existing.products.push(entry);
+    }
+    if (!existing.audio_duration && duration) existing.audio_duration = duration;
+    existing.audio_transcript = preferTranscript(existing.audio_transcript, transcript);
+  }
+
+  for (const story of byUrl.values()) {
+    story.products.sort((a, b) => a.title.localeCompare(b.title, "en"));
+  }
+
+  return [...byUrl.values()].sort((a, b) => {
+    const left = a.products[0]?.title ?? a.audio_url;
+    const right = b.products[0]?.title ?? b.audio_url;
+    return left.localeCompare(right, "en");
+  });
+};
+
+export const filterExistingAudioStories = (
+  stories: ExistingAudioStory[],
+  query: string,
+): ExistingAudioStory[] => {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return stories;
+  return stories.filter((story) => {
+    if (audioFilenameFromUrl(story.audio_url).toLowerCase().includes(needle)) return true;
+    if (story.audio_url.toLowerCase().includes(needle)) return true;
+    return story.products.some(
+      (product) =>
+        product.title.toLowerCase().includes(needle) || product.slug.toLowerCase().includes(needle),
+    );
+  });
+};

@@ -3,6 +3,16 @@
   gap: 2rem;
 }
 
+.back {
+  margin: 0 0 -0.75rem;
+}
+
+.back a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .gallery {
   display: grid;
   gap: 1rem;
@@ -81,11 +91,43 @@
   min-width: 0;
 }
 
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
 .title {
   margin: 0.15rem 0 0.4rem;
   font-family: var(--font-heading);
   font-size: clamp(2rem, 4vw, 3rem);
   line-height: 1.04;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.adminEditLink {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: 0.45rem;
+  color: var(--color-ink);
+  border: 1px solid rgba(10, 22, 40, 0.28);
+  background: transparent;
+  text-decoration: none;
+}
+
+.adminEditLink:hover {
+  color: var(--color-rust);
+  border-color: var(--color-rust);
+}
+
+.adminEditIcon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .edition {
@@ -511,5 +553,9 @@
   .wrap {
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     align-items: start;
+  }
+
+  .back {
+    grid-column: 1 / -1;
   }
 }

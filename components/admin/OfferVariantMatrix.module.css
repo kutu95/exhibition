@@ -54,6 +54,10 @@
   width: 4.5rem;
 }
 
+.supplierCol {
+  white-space: nowrap;
+}
+
 .rowOff {
   color: #888;
   opacity: 0.7;
