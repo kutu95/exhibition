@@ -7,6 +7,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
 import { FavouriteButton } from "./FavouriteButton";
+import { PhotoAudioStory } from "./PhotoAudioStory";
 import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "./StudioOrderDestinationDialog";
 import {
   type FrameColourId,
@@ -48,6 +49,7 @@ import { mmToInches } from "../lib/print-size";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import type { ProductVariant, ProductWithVariantsAndImages } from "../lib/supabase/types";
 import type { OpenStudioOrder } from "../lib/studio-orders";
+import { hasPhotoAudioStory } from "../lib/photo-audio";
 import { formatAUD } from "../lib/utils/currency";
 import styles from "./ProductDetailClient.module.css";
 
@@ -577,6 +579,15 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
         <h1 className={styles.title}>{product.title}</h1>
         {product.description ? <p className={styles.description}>{product.description}</p> : null}
+        {hasPhotoAudioStory(product) ? (
+          <PhotoAudioStory
+            storyId={product.id}
+            title={product.title}
+            audioUrl={product.audio_url}
+            audioDuration={product.audio_duration}
+            audioTranscript={product.audio_transcript}
+          />
+        ) : null}
         {maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
 
         <div className={styles.priceSticky}>

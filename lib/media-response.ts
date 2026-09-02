@@ -12,12 +12,16 @@ const contentTypeByExtension: Record<string, string> = {
   ".webp": "image/webp",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
+  ".mp3": "audio/mpeg",
+  ".m4a": "audio/mp4",
+  ".ogg": "audio/ogg",
+  ".wav": "audio/wav",
 };
 
 const filenamePattern = /^[a-z0-9-]+\.[a-z0-9]+$/i;
 
 export const buildMediaResponse = async (
-  folder: "images" | "video",
+  folder: "images" | "video" | "audio",
   filename: string,
 ): Promise<NextResponse> => {
   if (!filenamePattern.test(filename) || filename.includes("/") || filename.includes("\\")) {

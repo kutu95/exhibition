@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { arePurchasesAllowedForHost } from "../lib/purchases-access";
 import { CartProvider } from "./CartProvider";
 import { FavouritesProvider } from "./FavouritesProvider";
+import { PhotoAudioStoryProvider } from "./PhotoAudioStoryProvider";
 import { PurchasesAccessProvider } from "./PurchasesAccessProvider";
 import { SiteFooter } from "./SiteFooter";
 import { SiteNav } from "./SiteNav";
@@ -45,9 +46,11 @@ export function PublicShell({
     <PurchasesAccessProvider allowed={purchasesAllowed}>
       <CartProvider>
         <FavouritesProvider>
-          <SiteNav exhibitionTitle={exhibitionTitle} />
-          <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
-          <SiteFooter exhibitionTitle={exhibitionTitle} showCollectionsCta={purchasesAllowed} />
+          <PhotoAudioStoryProvider>
+            <SiteNav exhibitionTitle={exhibitionTitle} />
+            <main style={{ minHeight: "100vh", paddingTop: "78px" }}>{children}</main>
+            <SiteFooter exhibitionTitle={exhibitionTitle} showCollectionsCta={purchasesAllowed} />
+          </PhotoAudioStoryProvider>
         </FavouritesProvider>
       </CartProvider>
     </PurchasesAccessProvider>

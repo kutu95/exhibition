@@ -24,14 +24,14 @@ const normalizeRelativeMediaPath = (relativePath: string): string =>
   relativePath.replace(/^\/+/, "");
 
 /**
- * Shared web media directory (images + video) when local and production
- * share one Supabase but need the same files on disk.
+ * Shared web media directory (images, video, and audio) when local and
+ * production share one Supabase but need the same files on disk.
  *
  * Examples:
  *   Mac:     WEB_MEDIA_DIR=/Volumes/AppData/Exhibition/web-media
  *   Server:  WEB_MEDIA_DIR=/mnt/nas/AppData/Exhibition/web-media
  *
- * Layout under that folder mirrors public/: images/… and video/…
+ * Layout under that folder mirrors public/: images/…, video/…, and audio/…
  */
 export const getWebMediaRoot = (): string | null => {
   const configured = process.env.WEB_MEDIA_DIR?.trim();

@@ -45,6 +45,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://storage.margies.app https://exhibition.margies.app",
+              "media-src 'self'",
               "frame-src https://js.stripe.com",
               "connect-src 'self' https://api.stripe.com https://supabase.margies.app https://analytics.margies.app https://cloudflareinsights.com",
             ].join("; "),

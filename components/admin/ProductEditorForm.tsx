@@ -25,6 +25,7 @@ import { buildOfferVariantsForProduct, type OfferVariantDraft } from "../../lib/
 import type { Theme, VariantTemplate } from "../../lib/supabase/types";
 import type { OpenStudioOrder } from "../../lib/studio-orders";
 import { isValidProductImageUrl } from "../../lib/utils/site-content-image";
+import { normalizeAudioFields } from "../../lib/photo-audio";
 import { slugify } from "../../lib/utils/slugify";
 import styles from "./ProductEditorForm.module.css";
 import { GalleryPicker } from "./GalleryPicker";
@@ -57,6 +58,9 @@ type ProductEditorInitialData = {
   theme_ids: string[];
   variants: VariantInput[];
   images: ImageInput[];
+  audio_url?: string;
+  audio_duration?: string;
+  audio_transcript?: string;
 };
 
 type ProductEditorFormProps = {
@@ -242,6 +246,9 @@ export function ProductEditorForm({
   const [expandedVariantIndexes, setExpandedVariantIndexes] = useState<Set<number>>(() => new Set());
   const [productDetailsExpanded, setProductDetailsExpanded] = useState(mode === "new");
   const [images, setImages] = useState<ImageInput[]>(initialData?.images ?? []);
+  const [audioUrl, setAudioUrl] = useState(initialData?.audio_url ?? "");
+  const [audioDuration, setAudioDuration] = useState(initialData?.audio_duration ?? "");
+  const [audioTranscript, setAudioTranscript] = useState(initialData?.audio_transcript ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -463,6 +470,16 @@ export function ProductEditorForm({
       return;
     }
 
+    const audioFields = normalizeAudioFields({
+      audio_url: audioUrl,
+      audio_duration: audioDuration,
+      audio_transcript: audioTranscript,
+    });
+    if (!audioFields.ok) {
+      setError(audioFields.error);
+      return;
+    }
+
     const payload = {
       title: title.trim(),
       slug: slug.trim(),
@@ -477,6 +494,9 @@ export function ProductEditorForm({
       theme_ids: selectedThemeIds,
       variants: normalizedVariants,
       images: normalizedImages.filter((image) => image.image_url),
+      audio_url: audioFields.value.audio_url,
+      audio_duration: audioFields.value.audio_duration,
+      audio_transcript: audioFields.value.audio_transcript,
     };
 
     setSaving(true);
@@ -804,6 +824,39 @@ export function ProductEditorForm({
                 rows={3}
               />
             </label>
+
+            <p className={styles.hint}>
+              Hear the story — optional spoken recording. Leave blank for photographs without audio.
+            </p>
+            <label>
+              Audio URL
+              <input
+                value={audioUrl}
+                onChange={(event) => setAudioUrl(event.target.value)}
+                placeholder="/audio/hiding-in-plain-sight.mp3"
+              />
+            </label>
+            <label>
+              Audio duration
+              <input
+                value={audioDuration}
+                onChange={(event) => setAudioDuration(event.target.value)}
+                placeholder="0:47"
+              />
+            </label>
+            <label className={styles.spanFull}>
+              Audio transcript
+              <textarea
+                value={audioTranscript}
+                onChange={(event) => setAudioTranscript(event.target.value)}
+                rows={5}
+                placeholder="Indexable transcript of the spoken story"
+              />
+            </label>
+            <small className={styles.hint}>
+              Put the MP3 in <code>public/audio/</code> (or <code>WEB_MEDIA_DIR/audio/</code> on the server).
+              Filename must match the URL, e.g. <code>/audio/photo-name.mp3</code>. Duration is <code>m:ss</code>.
+            </small>
 
             <label>
               Product Type

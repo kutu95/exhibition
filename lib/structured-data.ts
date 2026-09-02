@@ -317,6 +317,17 @@ export function buildPhotographWork(
           },
         }
       : {}),
+    ...(product.audio_url
+      ? {
+          associatedMedia: {
+            "@type": "AudioObject",
+            name: `Hear the story: ${product.title}`,
+            contentUrl: absoluteUrl(product.audio_url),
+            encodingFormat: "audio/mpeg",
+            ...(product.audio_transcript ? { description: product.audio_transcript } : {}),
+          },
+        }
+      : {}),
     isPartOf: {
       "@type": "ExhibitionEvent",
       name: siteConfig.name,

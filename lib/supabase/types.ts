@@ -26,6 +26,9 @@ export type Product = {
   is_featured: boolean;
   visibility: ProductVisibility;
   gallery_id: string | null;
+  audio_url: string | null;
+  audio_duration: string | null;
+  audio_transcript: string | null;
   created_at: string;
 };
 

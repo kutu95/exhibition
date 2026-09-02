@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../lib/admin-auth";
 import { resolveProductGallery } from "../../../../lib/galleries";
 import { handleRouteError } from "../../../../lib/api-route-errors";
+import { normalizeAudioFields } from "../../../../lib/photo-audio";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
 import { isValidProductImageUrl } from "../../../../lib/utils/site-content-image";
 
@@ -74,6 +75,9 @@ const productSchema = z.object({
   theme_ids: z.array(z.string().uuid()),
   variants: z.array(variantSchema).min(1),
   images: z.array(imageSchema),
+  audio_url: z.string().nullable().optional(),
+  audio_duration: z.string().nullable().optional(),
+  audio_transcript: z.string().nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -159,6 +163,10 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
+  const audioFields = normalizeAudioFields(payload);
+  if (!audioFields.ok) {
+    return NextResponse.json({ error: audioFields.error }, { status: 400 });
+  }
   const gallery = await resolveProductGallery(payload.gallery_id, payload.visibility);
   if ("error" in gallery) {
     return NextResponse.json({ error: gallery.error }, { status: 400 });
@@ -178,6 +186,9 @@ export async function POST(request: Request) {
       is_featured: payload.is_featured,
       visibility: gallery.visibility,
       gallery_id: gallery.gallery_id,
+      audio_url: audioFields.value.audio_url,
+      audio_duration: audioFields.value.audio_duration,
+      audio_transcript: audioFields.value.audio_transcript,
     })
     .select("id")
     .single();

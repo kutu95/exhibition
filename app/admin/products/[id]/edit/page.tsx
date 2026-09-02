@@ -19,6 +19,9 @@ type ProductDetailResponse = {
   is_featured: boolean;
   visibility?: "public" | "vault";
   gallery_id?: string | null;
+  audio_url?: string | null;
+  audio_duration?: string | null;
+  audio_transcript?: string | null;
   product_variants: Array<{
     id: string;
     variant_label: string;
@@ -117,6 +120,9 @@ export default async function AdminEditProductPage({ params }: PageProps) {
         is_featured: product.is_featured,
         gallery_id: product.gallery_id ?? null,
         theme_ids: product.product_themes.map((assignment) => assignment.theme_id),
+        audio_url: product.audio_url ?? "",
+        audio_duration: product.audio_duration ?? "",
+        audio_transcript: product.audio_transcript ?? "",
         variants: product.product_variants.map((variant) => ({
           id: variant.id,
           has_order_items: variant.has_order_items,
