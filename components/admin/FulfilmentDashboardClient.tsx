@@ -241,6 +241,26 @@ const formatStatusLabel = (status: string): string => status.replaceAll("_", " "
 const printCount = (items: FulfilmentDashboardItem[]): number =>
   items.reduce((total, item) => total + (item.quantity ?? 1), 0);
 
+/**
+ * The worker only builds files for awaiting_file items, so moving a print past
+ * that status before the file exists strands it with no TIFF and no Drive link.
+ */
+const withoutPrintFile = (items: FulfilmentDashboardItem[]): FulfilmentDashboardItem[] =>
+  items.filter((item) => !(item.cloud_file_url ?? "").trim());
+
+const missingFileWarning = (items: FulfilmentDashboardItem[]): string | null => {
+  const missing = withoutPrintFile(items);
+  if (missing.length === 0) return null;
+  const list = missing
+    .map((item) => `· ${item.order_number} ${item.photo_title || item.title} (${item.variant_label})`)
+    .join("\n");
+  return (
+    `${missing.length} print${missing.length === 1 ? " has" : "s have"} no lab file yet:\n${list}\n\n` +
+    "The worker builds files within a minute of a print being added, and only while the print is awaiting file. " +
+    "Move on now and it will never get one."
+  );
+};
+
 const statusSummary = (items: FulfilmentDashboardItem[]): string => {
   const counts = new Map<string, number>();
   items.forEach((item) => {
@@ -443,6 +463,11 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     const selected = group.items.filter((item) => selectedIds.has(item.order_item_id));
     if (selected.length === 0) return;
 
+    if (fulfilmentStatus !== "awaiting_file" && fulfilmentStatus !== "file_ready") {
+      const warning = missingFileWarning(selected);
+      if (warning && !window.confirm(`${warning}\n\nMark ${formatStatusLabel(fulfilmentStatus)} anyway?`)) return;
+    }
+
     setError(null);
     setMessage(null);
     setApplyingOrder(group.order_number);
@@ -473,6 +498,8 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
 
   const copyStudioOrderEmail = async () => {
     if (!studioLabEmail) return;
+    const warning = missingFileWarning(studioLabEmail.items);
+    if (warning && !window.confirm(`${warning}\n\nCopy the email anyway, with those links blank?`)) return;
     const copied = await copyToClipboard(
       studioLabEmail.body,
       "Studio lab order email",
@@ -486,6 +513,32 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     await applyToItems(studioLabEmail.items, "submitted_to_lab", "studio-email");
   };
 
+  /** Send a print back to the worker, which only builds files for awaiting_file items. */
+  const requeuePrintFile = async (item: FulfilmentDashboardItem) => {
+    const confirmed = window.confirm(
+      `Have the worker build the print file for ${item.photo_title || item.title} (${item.variant_label}) again?\n\n` +
+        "It goes back to awaiting file, and the worker picks it up within a minute.",
+    );
+    if (!confirmed) return;
+
+    setError(null);
+    setMessage(null);
+    setApplyingOrder(item.order_number);
+
+    try {
+      const ok = await patchItem(item.order_item_id, {
+        fulfilment_status: "awaiting_file",
+        fulfilment_notes: "Requeued from the fulfilment dashboard; waiting for the worker to build the print file.",
+      });
+      if (ok) setMessage(`${item.order_number} is back in the worker queue.`);
+      router.refresh();
+    } catch (patchError) {
+      setError(adminClientFetchError(patchError));
+    } finally {
+      setApplyingOrder(null);
+    }
+  };
+
   /** Rebuild one order's lab email after it has already been sent, leaving statuses alone. */
   const copyGroupLabEmail = async (group: OrderGroup) => {
     if (group.items.length === 0) return;
@@ -496,8 +549,9 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
   const markStudioGroupSubmitted = async (group: OrderGroup) => {
     const waiting = group.items.filter((item) => studioStatusesForLabEmail.has(item.fulfilment_status));
     if (waiting.length === 0) return;
+    const warning = missingFileWarning(waiting);
     const confirmed = window.confirm(
-      `Mark ${waiting.length} print${waiting.length === 1 ? "" : "s"} on ${group.order_number} as submitted to the lab?`,
+      `${warning ? `${warning}\n\n` : ""}Mark ${waiting.length} print${waiting.length === 1 ? "" : "s"} on ${group.order_number} as submitted to the lab?`,
     );
     if (!confirmed) return;
     await applyToItems(waiting, "submitted_to_lab", group.order_number);
@@ -999,6 +1053,15 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                               <a href="https://pixelperfect.com.au/order-form" target="_blank" rel="noreferrer">
                                 Open Pixel Perfect Form
                               </a>
+                              <button
+                                className={styles.buttonSecondary}
+                                type="button"
+                                disabled={isApplying || item.fulfilment_status === "awaiting_file"}
+                                title="Send this print back to the worker to build its TIFF and Drive folder."
+                                onClick={() => void requeuePrintFile(item)}
+                              >
+                                Regenerate file
+                              </button>
                             </div>
 
                             <div className={styles.actionRow}>
