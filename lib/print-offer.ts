@@ -333,6 +333,35 @@ export type OfferSelectionItem = OfferCombo & {
   price_aud?: number;
 };
 
+export const parseOfferSelectionPayload = (value: unknown): OfferSelectionItem[] => {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error("EMPTY_OFFER_SELECTION");
+  }
+
+  return value.map((row) => {
+    if (!row || typeof row !== "object") {
+      throw new Error("INVALID_OFFER_SELECTION");
+    }
+    const record = row as Record<string, unknown>;
+    const sizeId = record.sizeId;
+    const classId = record.classId;
+    if (typeof sizeId !== "string" || typeof classId !== "string") {
+      throw new Error("INVALID_OFFER_SELECTION");
+    }
+    const combo = findOfferCombo({ sizeId: sizeId as OfferSizeId, classId: classId as OfferClassId });
+    if (!combo) {
+      throw new Error("UNKNOWN_OFFER_COMBO");
+    }
+    if (record.price_aud === undefined) {
+      return { ...combo };
+    }
+    if (typeof record.price_aud !== "number" || !Number.isInteger(record.price_aud) || record.price_aud < 0) {
+      throw new Error("INVALID_OFFER_PRICE");
+    }
+    return { ...combo, price_aud: record.price_aud };
+  });
+};
+
 export const formatOfferVariantLabel = (combo: OfferCombo): string =>
   `${OFFER_SIZE_LABEL[combo.sizeId]} · ${OFFER_CLASS_LABEL[combo.classId]}`;
 

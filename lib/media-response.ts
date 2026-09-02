@@ -30,7 +30,10 @@ export const buildMediaResponse = async (
 
   const absolutePath = resolveReadableMediaPath(`${folder}/${filename}`);
   const extension = path.extname(filename).toLowerCase();
-  const contentType = contentTypeByExtension[extension] ?? "application/octet-stream";
+  const contentType =
+    folder === "audio" && extension === ".webm"
+      ? "audio/webm"
+      : (contentTypeByExtension[extension] ?? "application/octet-stream");
 
   try {
     const fileBuffer = await fs.readFile(absolutePath);

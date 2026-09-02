@@ -1,5 +1,27 @@
+import { slugify } from "./utils/slugify";
+
+export const AUDIO_EXTENSIONS = ["mp3", "m4a", "ogg", "wav", "webm"] as const;
+export type AudioExtension = (typeof AUDIO_EXTENSIONS)[number];
+
 export const AUDIO_URL_PATTERN =
-  /^\/audio\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.(mp3|m4a|ogg|wav)$/i;
+  /^\/audio\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.(mp3|m4a|ogg|wav|webm)$/i;
+
+const AUDIO_MIME_TO_EXTENSION: Record<string, AudioExtension> = {
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/mp4": "m4a",
+  "audio/m4a": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/aac": "m4a",
+  "audio/ogg": "ogg",
+  "audio/wav": "wav",
+  "audio/wave": "wav",
+  "audio/x-wav": "wav",
+  "audio/webm": "webm",
+};
+
+const isAudioExtension = (value: string): value is AudioExtension =>
+  (AUDIO_EXTENSIONS as readonly string[]).includes(value);
 
 export type PhotoAudioFields = {
   audio_url: string | null;
@@ -63,3 +85,21 @@ export const hasPhotoAudioStory = <T extends { audio_url?: string | null }>(
   product: T | null | undefined,
 ): product is T & { audio_url: string } =>
   Boolean(product?.audio_url && isValidAudioUrl(product.audio_url));
+
+/** Stable filename stem so the recording can be matched back to the product. */
+export const audioStemFromProduct = (slug?: string | null, title?: string | null): string | null => {
+  const fromSlug = slugify(slug ?? "");
+  if (fromSlug) return fromSlug;
+  const fromTitle = slugify(title ?? "");
+  return fromTitle || null;
+};
+
+export const extensionForAudioUpload = (file: { name: string; type: string }): AudioExtension | null => {
+  const fromName = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (isAudioExtension(fromName)) return fromName;
+  const mime = file.type.split(";")[0]?.trim().toLowerCase() ?? "";
+  return AUDIO_MIME_TO_EXTENSION[mime] ?? null;
+};
+
+export const productAudioUrl = (stem: string, extension: AudioExtension): string =>
+  `/audio/${stem}.${extension}`;

@@ -16,6 +16,7 @@ import {
   OFFER_MOUNT_LAB_MULTIPLIER,
   OFFER_PHOTOGRAPHIC_RATE_PER_SQ_IN,
   parseOfferAxesFromVariant,
+  parseOfferSelectionPayload,
 } from "../lib/print-offer";
 import { mmToInches, computeRetailFromLabCost } from "../lib/print-size";
 import { PRINT_PRICE_PER_PRINT_AUD } from "../lib/print-markup";
@@ -197,6 +198,15 @@ describe("print offer matrix", () => {
     expect(selected[1]?.price_aud).toBe(25000);
     expect(applyOfferSelection(drafts, undefined).length).toBe(drafts.length);
     expect(() => applyOfferSelection(drafts, [])).toThrow("EMPTY_OFFER_SELECTION");
+  });
+
+  it("accepts the full eight-class wizard matrix, including mounted and wrap SKUs", () => {
+    const payload = OFFER_COMBOS.map((combo) => ({ ...combo }));
+    expect(parseOfferSelectionPayload(payload)).toHaveLength(32);
+    expect(
+      parseOfferSelectionPayload([{ sizeId: "a2", classId: "photographic_mounted", price_aud: 18900 }]),
+    ).toEqual([{ sizeId: "a2", classId: "photographic_mounted", price_aud: 18900 }]);
+    expect(() => parseOfferSelectionPayload([{ sizeId: "a2", classId: "poster" }])).toThrow("UNKNOWN_OFFER_COMBO");
   });
 });
 

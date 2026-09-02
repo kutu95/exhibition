@@ -9,7 +9,7 @@ import { verifyAdminSession } from "../../../../lib/admin-auth";
 import { parseGalleryId, resolveProductGallery } from "../../../../lib/galleries";
 import { resolveMasterFilePath, safeMasterFilename } from "../../../../lib/master-files";
 import { resolveCanonicalMediaPath } from "../../../../lib/media-storage";
-import type { OfferSelectionItem } from "../../../../lib/print-offer";
+import { parseOfferSelectionPayload, type OfferSelectionItem } from "../../../../lib/print-offer";
 import {
   isDuplicateProductSlugError,
   isStripeConfigurationError,
@@ -46,12 +46,6 @@ const formSchema = z.object({
   theme_ids: z.array(z.string().uuid()),
 });
 
-const offerSelectionItemSchema = z.object({
-  sizeId: z.enum(["a4", "a3", "a2", "a0"]),
-  classId: z.enum(["photographic", "fine_art", "framed", "canvas"]),
-  price_aud: z.number().int().nonnegative().optional(),
-});
-
 const offerSelectionField = (formData: FormData): OfferSelectionItem[] | null => {
   const value = formData.get("offer_selection");
   if (typeof value !== "string" || !value.trim()) return null;
@@ -63,11 +57,7 @@ const offerSelectionField = (formData: FormData): OfferSelectionItem[] | null =>
     throw new Error("INVALID_OFFER_SELECTION");
   }
 
-  const result = z.array(offerSelectionItemSchema).min(1).safeParse(parsed);
-  if (!result.success) {
-    throw new Error("INVALID_OFFER_SELECTION");
-  }
-  return result.data;
+  return parseOfferSelectionPayload(parsed);
 };
 
 const stringField = (formData: FormData, key: string): string | null => {
@@ -327,9 +317,16 @@ export async function POST(request: Request) {
   let offerSelection: OfferSelectionItem[] | null = null;
   try {
     offerSelection = offerSelectionField(formData);
-  } catch {
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (code === "EMPTY_OFFER_SELECTION") {
+      return NextResponse.json(
+        { error: "Choose at least one print option, and check any price overrides." },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
-      { error: "Choose at least one print option, and check any price overrides." },
+      { error: "Print offer selection is invalid. Use the sizes and media shown in the wizard." },
       { status: 400 },
     );
   }

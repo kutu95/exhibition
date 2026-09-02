@@ -36,7 +36,7 @@ const nextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
           {
             key: "Content-Security-Policy",
             value: [
@@ -45,7 +45,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://storage.margies.app https://exhibition.margies.app",
-              "media-src 'self'",
+              "media-src 'self' blob:",
               "frame-src https://js.stripe.com",
               "connect-src 'self' https://api.stripe.com https://supabase.margies.app https://analytics.margies.app https://cloudflareinsights.com",
             ].join("; "),

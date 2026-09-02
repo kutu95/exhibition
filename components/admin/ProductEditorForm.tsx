@@ -32,6 +32,7 @@ import { GalleryPicker } from "./GalleryPicker";
 import { OfferVariantMatrix, useOfferSelection } from "./OfferVariantMatrix";
 import { ProductVariantPanel, type VariantInput } from "./ProductVariantPanel";
 import { ProductWallQrCodes } from "./ProductWallQrCodes";
+import { ProductAudioCaptureModal } from "./ProductAudioCaptureModal";
 import { ThemeSelector } from "./ThemeSelector";
 import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "../StudioOrderDestinationDialog";
 
@@ -245,10 +246,12 @@ export function ProductEditorForm({
   );
   const [expandedVariantIndexes, setExpandedVariantIndexes] = useState<Set<number>>(() => new Set());
   const [productDetailsExpanded, setProductDetailsExpanded] = useState(mode === "new");
+  const [variantsPanelExpanded, setVariantsPanelExpanded] = useState(mode === "new");
   const [images, setImages] = useState<ImageInput[]>(initialData?.images ?? []);
   const [audioUrl, setAudioUrl] = useState(initialData?.audio_url ?? "");
   const [audioDuration, setAudioDuration] = useState(initialData?.audio_duration ?? "");
   const [audioTranscript, setAudioTranscript] = useState(initialData?.audio_transcript ?? "");
+  const [audioCaptureOpen, setAudioCaptureOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -828,6 +831,15 @@ export function ProductEditorForm({
             <p className={styles.hint}>
               Hear the story — optional spoken recording. Leave blank for photographs without audio.
             </p>
+            <div className={styles.spanFull}>
+              <button
+                className={styles.btnSecondary}
+                type="button"
+                onClick={() => setAudioCaptureOpen(true)}
+              >
+                {audioUrl.trim() ? "Replace audio" : "Record or upload audio"}
+              </button>
+            </div>
             <label>
               Audio URL
               <input
@@ -854,8 +866,8 @@ export function ProductEditorForm({
               />
             </label>
             <small className={styles.hint}>
-              Put the MP3 in <code>public/audio/</code> (or <code>WEB_MEDIA_DIR/audio/</code> on the server).
-              Filename must match the URL, e.g. <code>/audio/photo-name.mp3</code>. Duration is <code>m:ss</code>.
+              Record or upload from the button above. The file is renamed to match this product, transcribed, and
+              copied into the transcript field. You can still edit the fields by hand. Duration is <code>m:ss</code>.
             </small>
 
             <label>
@@ -932,10 +944,23 @@ export function ProductEditorForm({
           </div>
         </details>
 
-        <section className={styles.panel}>
+        <details
+          className={styles.panel}
+          open={variantsPanelExpanded}
+          onToggle={(event) => setVariantsPanelExpanded(event.currentTarget.open)}
+        >
+          <summary className={styles.panelSummary}>
+            <span className={styles.variantHeading}>
+              <span className={styles.variantChevron} aria-hidden="true">
+                {variantsPanelExpanded ? "▾" : "▸"}
+              </span>
+              Variants
+              {variants.length ? ` ${variants.length}` : ""}
+            </span>
+          </summary>
+          <div className={styles.variantBody}>
           <div className={styles.rowTop}>
-            <h2>Variants</h2>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginLeft: "auto" }}>
               {mode === "edit" && productType === "print" && initialData?.id ? (
                 <button
                   className={styles.btnSecondary}
@@ -977,6 +1002,7 @@ export function ProductEditorForm({
                   const nextIndex = variants.length;
                   setVariants((current) => [...current, createBlankVariant()]);
                   setExpandedVariantIndexes((expanded) => new Set(expanded).add(nextIndex));
+                  setVariantsPanelExpanded(true);
                 }}
               >
                 {isNewPrint ? "Add extra variant" : "Add Variant"}
@@ -1138,7 +1164,8 @@ export function ProductEditorForm({
             </details>
             );
           })}
-        </section>
+          </div>
+        </details>
 
         <section className={styles.panel}>
           <div className={styles.rowTop}>
@@ -1241,6 +1268,17 @@ export function ProductEditorForm({
           ) : null}
         </div>
       </div>
+      <ProductAudioCaptureModal
+        open={audioCaptureOpen}
+        slug={slug}
+        title={title}
+        onClose={() => setAudioCaptureOpen(false)}
+        onApplied={(fields) => {
+          setAudioUrl(fields.audioUrl);
+          setAudioDuration(fields.audioDuration);
+          setAudioTranscript(fields.audioTranscript);
+        }}
+      />
       <StudioOrderDestinationDialog
         open={Boolean(studioOrderDialog)}
         title="Order for studio"

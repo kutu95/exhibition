@@ -1,17 +1,21 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  audioStemFromProduct,
+  extensionForAudioUpload,
   formatAudioClock,
   hasPhotoAudioStory,
   isValidAudioUrl,
   normalizeAudioFields,
   parseAudioDuration,
+  productAudioUrl,
 } from "../lib/photo-audio";
 
 describe("isValidAudioUrl", () => {
   it("accepts managed local audio paths", () => {
     expect(isValidAudioUrl("/audio/hiding-in-plain-sight.mp3")).toBe(true);
     expect(isValidAudioUrl("/audio/isaac-rock.m4a")).toBe(true);
+    expect(isValidAudioUrl("/audio/isaac-rock.wav")).toBe(true);
   });
 
   it("rejects other locations", () => {
@@ -56,5 +60,22 @@ describe("hasPhotoAudioStory", () => {
     expect(hasPhotoAudioStory({ audio_url: "/audio/hiding-in-plain-sight.mp3" })).toBe(true);
     expect(hasPhotoAudioStory({ audio_url: null })).toBe(false);
     expect(hasPhotoAudioStory({ audio_url: "/audio/missing.txt" })).toBe(false);
+  });
+});
+
+describe("product audio filenames", () => {
+  it("prefers the product slug so the file can be matched back", () => {
+    expect(audioStemFromProduct("redgate-beach-panorama-1-1", "Hiding in Plain Sight")).toBe(
+      "redgate-beach-panorama-1-1",
+    );
+    expect(audioStemFromProduct("", "Hiding in Plain Sight")).toBe("hiding-in-plain-sight");
+    expect(audioStemFromProduct(" ", "")).toBeNull();
+    expect(productAudioUrl("isaac-rock", "wav")).toBe("/audio/isaac-rock.wav");
+  });
+
+  it("maps an uploaded file to a managed extension", () => {
+    expect(extensionForAudioUpload({ name: "Take 3.MP3", type: "" })).toBe("mp3");
+    expect(extensionForAudioUpload({ name: "recording", type: "audio/webm;codecs=opus" })).toBe("webm");
+    expect(extensionForAudioUpload({ name: "notes.txt", type: "text/plain" })).toBeNull();
   });
 });
