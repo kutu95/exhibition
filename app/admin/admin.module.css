@@ -220,6 +220,24 @@
   }
 }
 
+@media print {
+  .topBar,
+  .sidebar,
+  .sidebarBottom,
+  .menuBtn {
+    display: none !important;
+  }
+
+  .layout {
+    display: block;
+  }
+
+  .content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 @media (min-width: 980px) {
   .topBar {
     display: none;

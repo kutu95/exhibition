@@ -25,6 +25,7 @@ const navSections: NavSection[] = [
       { href: "/admin/import-wizard", label: "Import Wizard" },
       { href: "/admin/register-photo", label: "Register Photo" },
       { href: "/admin/products", label: "Products" },
+      { href: "/admin/wall-qr", label: "Wall QR labels" },
       { href: "/admin/print-profiles", label: "Print Templates" },
     ],
   },

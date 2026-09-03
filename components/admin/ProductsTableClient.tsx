@@ -118,9 +118,14 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
     <div>
       <div className={styles.topRow}>
         <h1>Products</h1>
-        <Link className={styles.addBtn} href="/admin/products/new">
-          Add New Product
-        </Link>
+        <div className={styles.topActions}>
+          <Link className={styles.secondaryBtn} href="/admin/wall-qr">
+            Wall QR labels
+          </Link>
+          <Link className={styles.addBtn} href="/admin/products/new">
+            Add New Product
+          </Link>
+        </div>
       </div>
 
       <div className={styles.filters}>

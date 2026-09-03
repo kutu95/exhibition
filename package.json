@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:check": "node scripts/check-database.mjs",
-    "db:backup": "bash scripts/backup-shared-supabase.sh"
+    "db:backup": "bash scripts/backup-shared-supabase.sh",
+    "wall-qr-labels": "node --import tsx scripts/generate-wall-qr-labels.mjs"
   },
   "keywords": [],
   "author": "",
@@ -40,6 +41,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/sharp": "^0.31.1",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
   }

@@ -1,0 +1,132 @@
+.lead,
+.hint,
+.count {
+  max-width: 44rem;
+}
+
+.lead {
+  margin: 0 0 0.75rem;
+}
+
+.hint,
+.count {
+  color: #555;
+  font-size: 0.92rem;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.primary,
+.secondary {
+  border: 1px solid #111;
+  border-radius: 0;
+  color: #111;
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.4rem 0.7rem;
+  text-decoration: none;
+}
+
+.primary {
+  background: #111;
+  color: #fff;
+}
+
+.secondary {
+  background: transparent;
+  cursor: pointer;
+}
+
+.check {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+}
+
+.sheets {
+  display: grid;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.sheet {
+  display: grid;
+  gap: 1.1rem 1.25rem;
+  grid-template-columns: repeat(3, 5cm);
+}
+
+.cell {
+  break-inside: avoid;
+  margin: 0;
+  page-break-inside: avoid;
+  width: 5cm;
+}
+
+.qr {
+  background: #fff;
+  display: block;
+  height: 5cm;
+  image-rendering: pixelated;
+  width: 5cm;
+}
+
+.title,
+.meta {
+  display: block;
+}
+
+.title {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  margin-top: 0.25rem;
+}
+
+.meta {
+  color: #666;
+  font-size: 0.65rem;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  .screenOnly {
+    display: none !important;
+  }
+
+  .sheets {
+    gap: 0;
+    margin: 0;
+  }
+
+  .sheet {
+    break-after: page;
+    gap: 10mm 10mm;
+    grid-template-columns: repeat(3, 5cm);
+    padding: 8mm 0 0;
+  }
+
+  .sheet:last-child {
+    break-after: auto;
+  }
+
+  .cell {
+    width: 5cm;
+  }
+
+  .qr {
+    height: 5cm;
+    width: 5cm;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

@@ -6,12 +6,27 @@
   margin-bottom: 1rem;
 }
 
-.addBtn {
+.topActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.addBtn,
+.secondaryBtn {
   border: 1px solid #111;
-  background: #111;
-  color: #fff;
   text-decoration: none;
   padding: 0.45rem 0.7rem;
+}
+
+.addBtn {
+  background: #111;
+  color: #fff;
+}
+
+.secondaryBtn {
+  background: #fff;
+  color: #111;
 }
 
 .filters {
