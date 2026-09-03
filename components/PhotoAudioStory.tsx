@@ -143,10 +143,13 @@ export function PhotoAudioStory({
       />
 
       {!expanded ? (
-        <button
-          type="button"
+        <a
           className={styles.invite}
-          onClick={handleHearStory}
+          href={audioUrl}
+          onClick={(event) => {
+            event.preventDefault();
+            handleHearStory();
+          }}
           aria-label={inviteLabel}
           aria-expanded={false}
           aria-controls={playerId}
@@ -156,7 +159,7 @@ export function PhotoAudioStory({
           </span>
           <span>Hear the story</span>
           {durationLabel ? <span className={styles.inviteDuration}>· {durationLabel}</span> : null}
-        </button>
+        </a>
       ) : (
         <div className={styles.player} id={playerId}>
           <div className={styles.playerRow}>

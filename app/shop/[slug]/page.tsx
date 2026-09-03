@@ -10,6 +10,7 @@ import { RelatedPrints } from "../../../components/RelatedPrints";
 import { ShareButtons } from "../../../components/ShareButtons";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../../lib/admin-auth";
 import { isProductVisibleInCatalog, mapProductRow } from "../../../lib/catalog-products";
+import { isWallSource } from "../../../lib/exhibition-links";
 import { buildMetadata, siteConfig } from "../../../lib/metadata";
 import { getPlaceContext, getPrintEditorial } from "../../../lib/print-editorial";
 import {
@@ -30,7 +31,11 @@ import { allowedGalleryIdSet, getCatalogAccess } from "../../../lib/vault-access
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+const firstQueryValue = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
 
 type ProductRow = Product & {
   product_variants: ProductVariant[] | null;
@@ -179,8 +184,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default async function ProductPage({ params }: PageProps) {
+export default async function ProductPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const query = await searchParams;
+  const fromWall = isWallSource(firstQueryValue(query.src));
   // Resolve the product (and therefore the metadata that depends on it) before
   // flushing any HTML, so title/canonical land in <head> rather than after </head>.
   const product = await getProductBySlug(slug);
@@ -189,8 +196,8 @@ export default async function ProductPage({ params }: PageProps) {
     notFound();
   }
 
-  const editorial = getPrintEditorial(slug);
-  const place = getPlaceContext(slug);
+  const editorial = fromWall ? null : getPrintEditorial(slug);
+  const place = editorial ? getPlaceContext(slug) : null;
   const [related, cookieStore] = await Promise.all([getRelatedPrints(product), cookies()]);
   const isAdmin = await verifyAdminSessionToken(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
 
