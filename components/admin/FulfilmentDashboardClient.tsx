@@ -241,12 +241,17 @@ const formatStatusLabel = (status: string): string => status.replaceAll("_", " "
 const printCount = (items: FulfilmentDashboardItem[]): number =>
   items.reduce((total, item) => total + (item.quantity ?? 1), 0);
 
+const STUDIO_EMAIL_POLL_MS = 20_000;
+
+/** Lab email needs a Google Drive link. Local file:// copies are not enough for Blue Wren. */
+const hasLabDriveFile = (item: FulfilmentDashboardItem): boolean => Boolean(driveFileUrl(item));
+
 /**
  * The worker only builds files for awaiting_file items, so moving a print past
- * that status before the file exists strands it with no TIFF and no Drive link.
+ * that status before the Drive link exists strands it with no file for the lab.
  */
 const withoutPrintFile = (items: FulfilmentDashboardItem[]): FulfilmentDashboardItem[] =>
-  items.filter((item) => !(item.cloud_file_url ?? "").trim());
+  items.filter((item) => !hasLabDriveFile(item));
 
 const missingFileWarning = (items: FulfilmentDashboardItem[]): string | null => {
   const missing = withoutPrintFile(items);
@@ -255,9 +260,9 @@ const missingFileWarning = (items: FulfilmentDashboardItem[]): string | null => 
     .map((item) => `· ${item.order_number} ${item.photo_title || item.title} (${item.variant_label})`)
     .join("\n");
   return (
-    `${missing.length} print${missing.length === 1 ? " has" : "s have"} no lab file yet:\n${list}\n\n` +
-    "The worker builds files within a minute of a print being added, and only while the print is awaiting file. " +
-    "Move on now and it will never get one."
+    `${missing.length} print${missing.length === 1 ? " has" : "s have"} no Google Drive lab file yet:\n${list}\n\n` +
+    "The worker usually finishes within a minute. Stay on this page — it refreshes by itself. " +
+    "Do not mark those prints submitted until each one has a Drive link."
   );
 };
 
@@ -328,6 +333,19 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     setPreviewFailed(false);
   }, [previewItem?.order_item_id]);
 
+  useEffect(() => {
+    const stillBuilding = items.some(
+      (item) =>
+        item.fulfilment_status === "awaiting_file" ||
+        (isStudioItem(item) &&
+          studioStatusesForLabEmail.has(item.fulfilment_status) &&
+          !hasLabDriveFile(item)),
+    );
+    if (!stillBuilding) return;
+    const timer = window.setInterval(() => router.refresh(), STUDIO_EMAIL_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [items, router]);
+
   const copyToClipboard = async (value: string, label: string, html?: string): Promise<boolean> => {
     try {
       if (html && typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
@@ -371,22 +389,28 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
   const orderGroups = useMemo(() => groupItemsByOrder(filteredItems), [filteredItems]);
 
   const studioLabEmail = useMemo(() => {
-    const studioItems = items.filter(
+    const waiting = items.filter(
       (item) => isStudioItem(item) && studioStatusesForLabEmail.has(item.fulfilment_status),
     );
-    if (studioItems.length === 0) return null;
+    if (waiting.length === 0) return null;
+    const ready = waiting.filter(hasLabDriveFile);
+    const pending = waiting.filter((item) => !hasLabDriveFile(item));
     const countsByOrder = new Map<string, number>();
-    studioItems.forEach((item) => {
+    waiting.forEach((item) => {
       countsByOrder.set(item.order_number, (countsByOrder.get(item.order_number) ?? 0) + (item.quantity ?? 1));
     });
     const orderSummary = [...countsByOrder.entries()]
       .map(([orderNumber, count]) => `${orderNumber}: ${count}`)
       .join(" · ");
     return {
-      count: printCount(studioItems),
-      items: studioItems,
+      count: printCount(waiting),
+      readyCount: printCount(ready),
+      pending,
+      items: ready,
       orderSummary,
-      ...buildLabOrderEmail(studioItems.map(labOrderEmailItem)),
+      ...(ready.length > 0
+        ? buildLabOrderEmail(ready.map(labOrderEmailItem))
+        : { body: "", html: "", subject: "", to: LAB_ORDER_EMAIL }),
     };
   }, [items]);
 
@@ -465,7 +489,10 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
 
     if (fulfilmentStatus !== "awaiting_file" && fulfilmentStatus !== "file_ready") {
       const warning = missingFileWarning(selected);
-      if (warning && !window.confirm(`${warning}\n\nMark ${formatStatusLabel(fulfilmentStatus)} anyway?`)) return;
+      if (warning) {
+        window.alert(warning);
+        return;
+      }
     }
 
     setError(null);
@@ -498,8 +525,15 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
 
   const copyStudioOrderEmail = async () => {
     if (!studioLabEmail) return;
-    const warning = missingFileWarning(studioLabEmail.items);
-    if (warning && !window.confirm(`${warning}\n\nCopy the email anyway, with those links blank?`)) return;
+    if (studioLabEmail.pending.length > 0) {
+      setMessage(null);
+      setError(
+        "The worker is still building print files. Wait until every studio print has a Google Drive link, then copy.",
+      );
+      router.refresh();
+      return;
+    }
+    if (studioLabEmail.items.length === 0) return;
     const copied = await copyToClipboard(
       studioLabEmail.body,
       "Studio lab order email",
@@ -507,7 +541,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     );
     if (!copied) return;
     const confirmed = window.confirm(
-      `Mark these ${studioLabEmail.count} studio prints as submitted to the lab?\n${studioLabEmail.orderSummary}`,
+      `Mark these ${studioLabEmail.readyCount} studio prints as submitted to the lab?\n${studioLabEmail.orderSummary}`,
     );
     if (!confirmed) return;
     await applyToItems(studioLabEmail.items, "submitted_to_lab", "studio-email");
@@ -550,8 +584,12 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     const waiting = group.items.filter((item) => studioStatusesForLabEmail.has(item.fulfilment_status));
     if (waiting.length === 0) return;
     const warning = missingFileWarning(waiting);
+    if (warning) {
+      window.alert(warning);
+      return;
+    }
     const confirmed = window.confirm(
-      `${warning ? `${warning}\n\n` : ""}Mark ${waiting.length} print${waiting.length === 1 ? "" : "s"} on ${group.order_number} as submitted to the lab?`,
+      `Mark ${waiting.length} print${waiting.length === 1 ? "" : "s"} on ${group.order_number} as submitted to the lab?`,
     );
     if (!confirmed) return;
     await applyToItems(waiting, "submitted_to_lab", group.order_number);
@@ -684,11 +722,24 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
               {studioLabEmail.orderSummary ? ` (${studioLabEmail.orderSummary})` : ""}. One email to{" "}
               {LAB_ORDER_EMAIL} — they invoice; you pay separately.
             </p>
+            {studioLabEmail.pending.length > 0 ? (
+              <p className={styles.error}>
+                {studioLabEmail.readyCount} of {studioLabEmail.count} have Drive files. Still building:{" "}
+                {studioLabEmail.pending
+                  .map((item) => `${item.photo_title || item.title} (${item.variant_label})`)
+                  .join("; ")}
+                . This page refreshes every 20 seconds.
+              </p>
+            ) : null}
             <div className={styles.actionRow}>
               <button
                 className={styles.button}
                 type="button"
-                disabled={applyingOrder !== null}
+                disabled={
+                  applyingOrder !== null ||
+                  studioLabEmail.pending.length > 0 ||
+                  studioLabEmail.items.length === 0
+                }
                 onClick={() => void copyStudioOrderEmail()}
               >
                 Copy studio order email
