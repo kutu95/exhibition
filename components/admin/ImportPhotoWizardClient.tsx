@@ -134,6 +134,7 @@ export function ImportPhotoWizardClient({
   const [slugTouched, setSlugTouched] = useState(false);
   const [description, setDescription] = useState("");
   const [locationTag, setLocationTag] = useState("");
+  const [creditAttribution, setCreditAttribution] = useState("");
   const [photoTypeTag, setPhotoTypeTag] = useState("");
   const [editionSize, setEditionSize] = useState("10");
   const [isFeatured, setIsFeatured] = useState(false);
@@ -356,6 +357,7 @@ export function ImportPhotoWizardClient({
     setSlugTouched(false);
     setDescription("");
     setLocationTag("");
+    setCreditAttribution("");
     setPhotoTypeTag("");
     setEditionSize("10");
     setIsFeatured(false);
@@ -386,6 +388,7 @@ export function ImportPhotoWizardClient({
     formData.set("slug", slug.trim());
     formData.set("description", description.trim());
     formData.set("location_tag", locationTag.trim());
+    formData.set("credit_attribution", creditAttribution.trim());
     formData.set("photo_type_tag", photoTypeTag);
     formData.set("edition_size", editionSize);
     formData.set("master_filename", masterFilename.trim());
@@ -566,8 +569,8 @@ export function ImportPhotoWizardClient({
         <section className={styles.panel}>
           <h2>3. Product details</h2>
           <p className={styles.explain}>
-            These fields appear on the shop and product page. The slug becomes the URL under <code>/shop/</code>.
-            Master selected: <strong>{masterFilename}</strong>
+            Title, slug, and description appear on the shop. Credit / attribution is for wall labels only. The slug
+            becomes the URL under <code>/shop/</code>. Master selected: <strong>{masterFilename}</strong>
           </p>
           {masterFilename ? (
             <div className={styles.selectedPreview}>
@@ -617,6 +620,18 @@ export function ImportPhotoWizardClient({
             <label>
               Description
               <textarea rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />
+            </label>
+            <label>
+              Credit / attribution
+              <textarea
+                rows={2}
+                value={creditAttribution}
+                onChange={(event) => setCreditAttribution(event.target.value)}
+                placeholder="Credit: WA Shipwrecks Museum"
+              />
+              <span className={styles.muted}>
+                Wall title labels only — not shown on the shop page. e.g. Displayed with permission of ...
+              </span>
             </label>
             <div>
               <h3>Themes</h3>
@@ -753,6 +768,10 @@ export function ImportPhotoWizardClient({
               <tr>
                 <th>Location</th>
                 <td>{locationTag || "—"}</td>
+              </tr>
+              <tr>
+                <th>Credit</th>
+                <td>{creditAttribution.trim() || "—"}</td>
               </tr>
               <tr>
                 <th>Themes</th>

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { Gallery } from "../../lib/galleries";
+import { ProductOrdersButton } from "./ProductOrdersButton";
 import styles from "./ProductsTableClient.module.css";
 
 type ProductListItem = {
@@ -197,7 +198,12 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
                           )}
                         </td>
                       ) : null}
-                      <td>{product.title}</td>
+                      <td>
+                        <div className={styles.titleCell}>
+                          <ProductOrdersButton productId={product.id} productTitle={product.title} />
+                          {product.title}
+                        </div>
+                      </td>
                       <td>{product.product_type}</td>
                       <td>{product.location_tag ?? "—"}</td>
                       <td>

@@ -13,6 +13,7 @@ type ProductDetailResponse = {
   description: string | null;
   product_type: "print" | "merchandise";
   location_tag: string | null;
+  credit_attribution: string | null;
   installation_tag: string | null;
   photo_type_tag: string | null;
   is_available: boolean;
@@ -114,6 +115,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
         description: product.description ?? "",
         product_type: product.product_type,
         location_tag: product.location_tag ?? "",
+        credit_attribution: product.credit_attribution ?? "",
         installation_tag: product.installation_tag ?? "",
         photo_type_tag: product.photo_type_tag ?? "",
         is_available: product.is_available,

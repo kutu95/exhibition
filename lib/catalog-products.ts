@@ -30,6 +30,7 @@ export const mapProductRow = (
     audio_url: product.audio_url ?? null,
     audio_duration: product.audio_duration ?? null,
     audio_transcript: product.audio_transcript ?? null,
+    credit_attribution: null,
     product_variants: (product.product_variants ?? []).filter((variant) => variant.is_active),
     product_images: sortedImages,
     product_themes: product.product_themes ?? [],

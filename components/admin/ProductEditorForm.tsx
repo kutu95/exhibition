@@ -31,6 +31,7 @@ import styles from "./ProductEditorForm.module.css";
 import { GalleryPicker } from "./GalleryPicker";
 import { OfferVariantMatrix, useOfferSelection } from "./OfferVariantMatrix";
 import { ProductVariantPanel, type VariantInput } from "./ProductVariantPanel";
+import { ProductOrdersButton } from "./ProductOrdersButton";
 import { ProductWallQrCodes } from "./ProductWallQrCodes";
 import { ProductAudioCaptureModal } from "./ProductAudioCaptureModal";
 import { ThemeSelector } from "./ThemeSelector";
@@ -51,6 +52,7 @@ type ProductEditorInitialData = {
   description: string;
   product_type: "print" | "merchandise";
   location_tag: string;
+  credit_attribution: string;
   installation_tag: string;
   photo_type_tag: string;
   is_available: boolean;
@@ -231,6 +233,7 @@ export function ProductEditorForm({
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [productType, setProductType] = useState<"print" | "merchandise">(initialData?.product_type ?? "print");
   const [locationTag, setLocationTag] = useState(initialData?.location_tag ?? "");
+  const [creditAttribution, setCreditAttribution] = useState(initialData?.credit_attribution ?? "");
   const [photoTypeTag, setPhotoTypeTag] = useState(initialData?.photo_type_tag ?? "");
   const [isAvailable, setIsAvailable] = useState(initialData?.is_available ?? true);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? false);
@@ -489,6 +492,7 @@ export function ProductEditorForm({
       description: description.trim() || null,
       product_type: productType,
       location_tag: locationTag ? locationTag : null,
+      credit_attribution: creditAttribution.trim() || null,
       installation_tag: initialData?.installation_tag || null,
       photo_type_tag: photoTypeTag ? photoTypeTag : null,
       is_available: isAvailable,
@@ -773,7 +777,12 @@ export function ProductEditorForm({
   return (
     <div>
       <div className={styles.pageHeader}>
-        <h1>{mode === "new" ? "Add New Product" : "Edit Product"}</h1>
+        <h1 className={styles.pageTitle}>
+          {mode === "new" ? "Add New Product" : "Edit Product"}
+          {mode === "edit" && initialData?.id ? (
+            <ProductOrdersButton productId={initialData.id} productTitle={title || initialData.title} />
+          ) : null}
+        </h1>
         <div className={styles.footerActions}>{saveActions}</div>
       </div>
 
@@ -827,6 +836,20 @@ export function ProductEditorForm({
                 rows={3}
               />
             </label>
+
+            <label className={styles.spanFull}>
+              Credit / attribution
+              <textarea
+                value={creditAttribution}
+                onChange={(event) => setCreditAttribution(event.target.value)}
+                rows={2}
+                placeholder="Credit: WA Shipwrecks Museum"
+              />
+            </label>
+            <small className={styles.hint}>
+              Printed on wall title labels only — not shown on the shop page. Examples: "Credit: WA Shipwrecks
+              Museum", "Displayed with permission of ...", "Copyright Tony Downes".
+            </small>
 
             <p className={styles.hint}>
               Hear the story — optional spoken recording. Leave blank for photographs without audio.

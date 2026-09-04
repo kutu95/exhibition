@@ -24,6 +24,7 @@ export type RegisterPrintProductPayload = {
   slug: string;
   description: string | null;
   location_tag: string | null;
+  credit_attribution?: string | null;
   installation_tag: "Cubarama" | "Captain Godfrey AI" | "Drift" | null;
   photo_type_tag: "Still camera" | "Drone" | "Underwater" | null;
   is_featured: boolean;
@@ -54,6 +55,7 @@ type ProductRow = {
   description: string | null;
   product_type: "print";
   location_tag: string | null;
+  credit_attribution: string | null;
   installation_tag: string | null;
   photo_type_tag: string | null;
   is_available: boolean;
@@ -155,6 +157,7 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
           description,
           product_type,
           location_tag,
+          credit_attribution,
           installation_tag,
           photo_type_tag,
           is_available,
@@ -162,7 +165,7 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
           visibility,
           gallery_id
         )
-        values ($1, $2, $3, 'print', $4, $5, $6, true, $7, $8, $9)
+        values ($1, $2, $3, 'print', $4, $5, $6, $7, true, $8, $9, $10)
         returning *
       `,
       [
@@ -170,6 +173,7 @@ export const registerPrintProduct = async (payload: RegisterPrintProductPayload)
         payload.slug,
         payload.description,
         payload.location_tag,
+        payload.credit_attribution?.trim() || null,
         payload.installation_tag,
         payload.photo_type_tag,
         payload.is_featured,

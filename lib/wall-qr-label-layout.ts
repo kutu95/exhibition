@@ -9,6 +9,7 @@ export type WallQrLabelProduct = {
   title: string;
   slug: string;
   location_tag: string | null;
+  credit_attribution?: string | null;
   visibility?: "public" | "vault" | null;
 };
 

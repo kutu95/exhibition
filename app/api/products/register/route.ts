@@ -19,6 +19,7 @@ const registerProductSchema = z.object({
   slug: z.string().min(1),
   description: z.string().nullable(),
   location_tag: z.string().nullable(),
+  credit_attribution: z.string().nullable().optional(),
   installation_tag: z.enum(installationOptions).nullable(),
   photo_type_tag: z.enum(photoTypeOptions).nullable().default(null),
   is_featured: z.boolean(),

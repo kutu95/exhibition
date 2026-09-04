@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "db:check": "node scripts/check-database.mjs",
     "db:backup": "bash scripts/backup-shared-supabase.sh",
-    "wall-qr-labels": "node --import tsx scripts/generate-wall-qr-labels.mjs"
+    "wall-qr-labels": "node --import tsx scripts/generate-wall-qr-labels.mjs",
+    "wall-title-labels": "node --import tsx scripts/generate-wall-title-labels.mjs"
   },
   "keywords": [],
   "author": "",

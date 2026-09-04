@@ -37,16 +37,22 @@ export function WallQrLabelsClient({ products }: WallQrLabelsClientProps) {
           opens that print in wall mode.
         </p>
         <p className={styles.hint}>
-          Download the PDF and print at <strong>100% / Actual size</strong> (turn off “fit to page”). Each square is
+          Download the QR PDF and print at <strong>100% / Actual size</strong> (turn off “fit to page”). Each square is
           exactly 5&nbsp;cm. The title under the square is only for matching — trim it off if you want the QR alone on
-          the wall.
+          the wall. Title labels are a separate PDF: title only, cut on the crop marks.
         </p>
         <div className={styles.actions}>
           <a
             className={styles.primary}
             href={includePrivate ? "/api/admin/wall-qr-labels" : "/api/admin/wall-qr-labels?vault=0"}
           >
-            Download PDF
+            Download QR PDF
+          </a>
+          <a
+            className={styles.secondary}
+            href={includePrivate ? "/api/admin/wall-title-labels" : "/api/admin/wall-title-labels?vault=0"}
+          >
+            Download title labels
           </a>
           <button className={styles.secondary} type="button" onClick={() => window.print()}>
             Print this page

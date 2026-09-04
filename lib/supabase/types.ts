@@ -20,6 +20,7 @@ export type Product = {
   description: string | null;
   product_type: ProductType;
   location_tag: LocationTag | null;
+  credit_attribution: string | null;
   installation_tag: InstallationTag | null;
   photo_type_tag: PhotoTypeTag | null;
   is_available: boolean;

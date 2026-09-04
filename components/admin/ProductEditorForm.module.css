@@ -261,7 +261,11 @@
   margin-bottom: 1rem;
 }
 
-.pageHeader h1 {
+.pageHeader h1,
+.pageTitle {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
   margin: 0;
 }
 

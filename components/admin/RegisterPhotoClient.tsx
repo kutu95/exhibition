@@ -75,6 +75,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes, gal
   const [slugTouched, setSlugTouched] = useState(false);
   const [description, setDescription] = useState("");
   const [locationTag, setLocationTag] = useState("");
+  const [creditAttribution, setCreditAttribution] = useState("");
   const [photoTypeTag, setPhotoTypeTag] = useState("");
   const [editionSize, setEditionSize] = useState("10");
   const [masterFilename, setMasterFilename] = useState("");
@@ -124,6 +125,7 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes, gal
     formData.set("slug", slug.trim());
     formData.set("description", description.trim());
     formData.set("location_tag", locationTag.trim());
+    formData.set("credit_attribution", creditAttribution.trim());
     formData.set("photo_type_tag", photoTypeTag);
     formData.set("edition_size", editionSize);
     formData.set("master_filename", masterFilename.trim());
@@ -345,6 +347,17 @@ export function RegisterPhotoClient({ masterFiles, variantTemplates, themes, gal
           <label>
             Description
             <textarea rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />
+          </label>
+
+          <label>
+            Credit / attribution
+            <textarea
+              rows={2}
+              value={creditAttribution}
+              onChange={(event) => setCreditAttribution(event.target.value)}
+              placeholder="Credit: WA Shipwrecks Museum"
+            />
+            <span className={styles.muted}>Wall title labels only — not shown on the shop page.</span>
           </label>
 
           <div>

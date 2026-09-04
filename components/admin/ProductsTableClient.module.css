@@ -123,6 +123,12 @@
   text-align: center;
 }
 
+.titleCell {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+}
+
 .actions {
   display: flex;
   gap: 0.5rem;
