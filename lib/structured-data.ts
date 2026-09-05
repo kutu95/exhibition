@@ -136,12 +136,6 @@ export function buildExhibitionEvent(): Record<string, unknown> {
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     about: buildShipEntity(),
-    superEvent: {
-      "@type": "Event",
-      name: siteConfig.exhibition.event,
-      startDate: siteConfig.exhibition.opens,
-      endDate: siteConfig.exhibition.closes,
-    },
     location: {
       "@type": "Place",
       name: "The Georgette 150th gallery",
