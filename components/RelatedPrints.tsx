@@ -85,7 +85,13 @@ export function RelatedPrints({ title, related }: RelatedPrintsProps) {
             <Link href={`/shop/${print.slug}`} className={styles.link}>
               {print.imageUrl ? (
                 <span className={styles.thumb}>
-                  <Image src={print.imageUrl} alt="" fill sizes="320px" className={styles.image} />
+                  <Image
+                    src={print.imageUrl}
+                    alt={print.title}
+                    fill
+                    sizes="320px"
+                    className={styles.image}
+                  />
                 </span>
               ) : null}
               <span className={styles.title}>{print.title}</span>

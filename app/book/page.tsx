@@ -270,6 +270,7 @@ export default async function BookSamplerPage() {
         <nav className={styles.footerNav} aria-label="Related pages">
           <Link href="/about-the-photographer">About the photographer →</Link>
           <Link href="/story">The story of the Georgette →</Link>
+          <Link href="/history">History and research →</Link>
           <Link href="/">The Georgette 150th homepage →</Link>
         </nav>
       </article>

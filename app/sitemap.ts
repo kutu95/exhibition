@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { getPublishedHistoryPages } from "../lib/history-content";
 import { siteConfig } from "../lib/metadata";
+import { isIndexablePrintPage } from "../lib/print-editorial";
 import { supabaseAdmin } from "../lib/supabase/admin";
 
 type ProductSitemapRow = {
@@ -13,7 +14,7 @@ type ProductSitemapRow = {
  * Bump this whenever public page copy or SEO surface changes.
  * A stale lastmod after a real edit tells Google there is nothing to recrawl.
  */
-const staticLastMod = new Date("2026-09-03");
+const staticLastMod = new Date("2026-09-07");
 
 /** Regenerate so new prints appear without waiting for a redeploy. */
 export const revalidate = 3600;
@@ -62,18 +63,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ]
       : [];
 
-  const productUrls = productRows.map((product) => ({
-    url: `${siteConfig.url}/shop/${product.slug}`,
-    // Print pages carry hand-written editorial copy newer than many catalogue rows.
-    lastModified: new Date(
-      Math.max(
-        new Date(product.created_at || staticLastMod).getTime(),
-        staticLastMod.getTime(),
+  const productUrls = productRows
+    .filter((product) => isIndexablePrintPage(product.slug))
+    .map((product) => ({
+      url: `${siteConfig.url}/shop/${product.slug}`,
+      lastModified: new Date(
+        Math.max(
+          new Date(product.created_at || staticLastMod).getTime(),
+          staticLastMod.getTime(),
+        ),
       ),
-    ),
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  }));
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }));
 
   return [
     {

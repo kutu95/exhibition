@@ -63,7 +63,7 @@ export default async function StoryPage() {
           image: siteConfig.ogImage.story,
           section: "Maritime history",
           datePublished: "2026-07-31",
-          dateModified: "2026-08-20",
+          dateModified: "2026-09-07",
         })}
       />
       <JsonLd
@@ -197,7 +197,11 @@ export default async function StoryPage() {
             Marcia van Zeller, whose research into the Georgette formed the basis of her doctoral novel The Capes, has
             argued that Sam Isaacs&apos; contribution was systematically underplayed — not by any single act of erasure,
             but by the accumulated weight of a culture that found Grace Bussell&apos;s story more convenient, more
-            romantic, and more publishable. Van Zeller will give a{" "}
+            romantic, and more publishable. How that legend was assembled, decade by decade, is set out in{" "}
+            <Link href="/history/grace-bussell-legend" className="text-link">
+              How the Grace Bussell legend was made
+            </Link>
+            . Van Zeller will give a{" "}
             <Link href="/installations#talk" className="text-link">
               public talk during the exhibition
             </Link>
@@ -237,6 +241,9 @@ export default async function StoryPage() {
         />
 
         <div className={styles.bottomLinks}>
+          <Link href="/history/grace-bussell-legend">How the Grace Bussell legend was made →</Link>
+          <Link href="/history/catalpa-pursuit">The Catalpa pursuit →</Link>
+          <Link href="/history">All history research →</Link>
           <Link href="/book">Read the author&apos;s preface →</Link>
           <Link href="/installations#talk">Author talk →</Link>
           <Link href="/installations">Explore the installations →</Link>

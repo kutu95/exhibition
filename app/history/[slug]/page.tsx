@@ -13,8 +13,8 @@ export const revalidate = 60;
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-/** Set true to show the Sources / citations panel on history articles again. */
-const SHOW_HISTORY_SOURCES = false;
+/** Citations are part of why these pages exist — they belong in the HTML Google sees. */
+const SHOW_HISTORY_SOURCES = true;
 
 const dateFormatter = new Intl.DateTimeFormat("en-AU", {
   day: "numeric",

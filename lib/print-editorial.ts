@@ -186,6 +186,11 @@ export function getPrintEditorial(slug: string): PrintEditorial | null {
   return PRINT_EDITORIAL[slug] ?? null;
 }
 
+/** Prints with unique editorial copy are the only shop URLs worth asking Google to index. */
+export function isIndexablePrintPage(slug: string): boolean {
+  return Boolean(PRINT_EDITORIAL[slug]);
+}
+
 export function getPlaceContext(slug: string): PlaceContext | null {
   const editorial = PRINT_EDITORIAL[slug];
   return editorial ? PLACE_CONTEXT[editorial.place] : null;

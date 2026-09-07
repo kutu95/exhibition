@@ -87,6 +87,7 @@ export default async function HomePage() {
               </p>
               <nav className={styles.aboutLinks} aria-label="Continue exploring">
                 <Link href="/story">The story →</Link>
+                <Link href="/history">History and research →</Link>
                 <Link href="/book">Author&apos;s preface →</Link>
                 <Link href="/visit">Plan your visit →</Link>
                 <Link href="/about-the-photographer">About the photographer →</Link>

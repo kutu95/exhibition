@@ -11,6 +11,7 @@ import styles from "./SiteNav.module.css";
 
 const navLinks = [
   { href: "/story", label: "The Story" },
+  { href: "/history", label: "History" },
   { href: "/book", label: "Book" },
   { href: "/about-the-photographer", label: "Photographer" },
   { href: "/installations#talk", label: "Author Talk" },

@@ -181,6 +181,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     path: `/shop/${slug}`,
     ogImage: primaryImage?.image_url || siteConfig.ogImage.shop,
+    noIndex: !getPrintEditorial(slug),
   });
 }
 

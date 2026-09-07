@@ -107,8 +107,15 @@ export default async function AboutPhotographerPage() {
           </p>
 
           <p>
-            The little mail steamer and her record breaking run from London to Fremantle, her day as a battleship, her
-            infamous groundings and final sinking, the Grace Bussell mythology, the underplayed role of Sam Isaacs,
+            The little mail steamer and her record breaking run from London to Fremantle,{" "}
+            <Link className="text-link" href="/history/catalpa-pursuit">
+              her day as a battleship
+            </Link>
+            , her infamous groundings and final sinking,{" "}
+            <Link className="text-link" href="/history/grace-bussell-legend">
+              the Grace Bussell mythology
+            </Link>
+            , the underplayed role of Sam Isaacs,
             Annie Simpson the 20 year old mother who kept her 5 month old baby alive for a night in the sea, the
             underwater explorers who lost both her propellers, the academics who could not find them again, the bell that
             hung in a tree for 60 years, the telescope found, lost and found again and the timber still on the sea floor
@@ -125,6 +132,9 @@ export default async function AboutPhotographerPage() {
             </li>
             <li>
               <Link href="/story">The story of the SS Georgette →</Link>
+            </li>
+            <li>
+              <Link href="/history">History and research →</Link>
             </li>
             <li>
               <Link href="/installations">Installations →</Link>
