@@ -27,6 +27,8 @@ const TITLE_LEADING = 28;
 const BODY_LEADING = 16;
 const KICKER_SIZE = 9;
 const KICKER_LEADING = 12;
+const CREDIT_SIZE = 11;
+const CREDIT_LEADING = 14;
 
 const mm = (value: number): number => value * MM_TO_PT;
 
@@ -249,6 +251,7 @@ type LaidOutCaption = {
   titleLines: string[];
   descriptionLines: string[];
   transcriptLines: string[];
+  creditLines: string[];
   heightMm: number;
 };
 
@@ -262,6 +265,7 @@ const layoutCaption = (product: WallCaptionLabelProduct): LaidOutCaption => {
   const titleLines = wrapTimes(product.title, CAPTION_TITLE_SIZE, TEXT_WIDTH_PT);
   const descriptionLines = wrapTimes(product.description ?? "", CAPTION_BODY_SIZE, TEXT_WIDTH_PT);
   const transcriptLines = wrapTimes(product.audio_transcript ?? "", CAPTION_BODY_SIZE, TEXT_WIDTH_PT);
+  const creditLines = wrapTimes(product.credit_attribution ?? "", CREDIT_SIZE, TEXT_WIDTH_PT);
 
   let heightPt = mm(LABEL_PAD_Y_MM) * 2 + linesHeightPt(titleLines.length, TITLE_LEADING);
   if (descriptionLines.length > 0) {
@@ -270,12 +274,16 @@ const layoutCaption = (product: WallCaptionLabelProduct): LaidOutCaption => {
   if (transcriptLines.length > 0) {
     heightPt += mm(SECTION_GAP_MM) + KICKER_LEADING + mm(TRANSCRIPT_GAP_MM) + linesHeightPt(transcriptLines.length, BODY_LEADING);
   }
+  if (creditLines.length > 0) {
+    heightPt += mm(SECTION_GAP_MM) + linesHeightPt(creditLines.length, CREDIT_LEADING);
+  }
 
   return {
     product,
     titleLines,
     descriptionLines,
     transcriptLines,
+    creditLines,
     heightMm: Math.min(USABLE_HEIGHT_MM, heightPt / MM_TO_PT),
   };
 };
@@ -365,6 +373,13 @@ const drawCaption = (caption: LaidOutCaption, topMm: number): string => {
     baseline -= KICKER_LEADING + mm(TRANSCRIPT_GAP_MM);
     const transcript = drawTextLines(caption.transcriptLines, CAPTION_BODY_SIZE, BODY_LEADING, baseline, "/F2");
     blocks.push(...transcript.commands);
+    baseline = transcript.lastBaseline;
+  }
+
+  if (caption.creditLines.length > 0) {
+    baseline -= mm(SECTION_GAP_MM);
+    const credit = drawTextLines(caption.creditLines, CREDIT_SIZE, CREDIT_LEADING, baseline, "/F2");
+    blocks.push(...credit.commands);
   }
 
   blocks.push("ET");

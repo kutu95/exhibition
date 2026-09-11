@@ -39,7 +39,7 @@ if (!supabaseUrl || !serviceRoleKey) {
 const { buildWallCaptionLabelsPdf } = await import(pathToFileURL(resolve(root, "lib/wall-caption-labels.ts")).href);
 
 const response = await fetch(
-  `${supabaseUrl}/rest/v1/products?select=title,slug,location_tag,description,audio_transcript,visibility,product_type,is_available&product_type=eq.print&visibility=eq.public`,
+  `${supabaseUrl}/rest/v1/products?select=title,slug,location_tag,description,audio_transcript,credit_attribution,visibility,product_type,is_available&product_type=eq.print&visibility=eq.public`,
   {
     headers: {
       apikey: serviceRoleKey,
@@ -65,6 +65,7 @@ const products = rows
     location_tag: product.location_tag,
     description: product.description,
     audio_transcript: product.audio_transcript,
+    credit_attribution: product.credit_attribution,
     visibility: product.visibility ?? "public",
   }));
 

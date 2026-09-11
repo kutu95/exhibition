@@ -14,6 +14,7 @@ type ProductRow = {
   location_tag: string | null;
   description: string | null;
   audio_transcript: string | null;
+  credit_attribution: string | null;
   visibility: "public" | "vault" | null;
   product_type: string | null;
   is_available: boolean | null;
@@ -28,7 +29,9 @@ export async function GET(request: Request) {
   try {
     const { data, error } = await supabaseAdmin
       .from("products")
-      .select("title, slug, location_tag, description, audio_transcript, visibility, product_type, is_available")
+      .select(
+        "title, slug, location_tag, description, audio_transcript, credit_attribution, visibility, product_type, is_available",
+      )
       .eq("product_type", "print");
 
     if (error) {
@@ -45,6 +48,7 @@ export async function GET(request: Request) {
         location_tag: product.location_tag,
         description: product.description,
         audio_transcript: product.audio_transcript,
+        credit_attribution: product.credit_attribution,
         visibility: product.visibility ?? "public",
       }));
 

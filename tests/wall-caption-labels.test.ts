@@ -44,6 +44,7 @@ describe("wall caption label sheets", () => {
         location_tag: "Cosy Corner",
         description: "This rocky island is a favourite of cliff jumpers in summer.",
         audio_transcript: "This rock island is just across the channel from an outcrop.",
+        credit_attribution: "Credit: WA Shipwrecks Museum",
         visibility: "public",
       },
       {
@@ -65,6 +66,7 @@ describe("wall caption label sheets", () => {
     expect(text).toContain("Contos Spirit");
     expect(text).toContain("Susanna, barefoot, in the coastal heath of Contos.");
     expect(text).toContain("Transcript");
+    expect(text).toContain("Credit: WA Shipwrecks Museum");
     expect(text).toContain("/Times-Roman");
     expect(text).toContain("/Times-Italic");
     expect(text).not.toContain("...");
@@ -87,6 +89,19 @@ describe("wall caption label sheets", () => {
     expect(text).toContain("Sentence 40 about the wreck.");
     expect(text).not.toContain("...");
   });
+
+  it("omits a credit line when the photograph has none", () => {
+    const pdf = buildWallCaptionLabelsPdf([
+      {
+        title: "Contos Spirit",
+        slug: "contos-spirit",
+        location_tag: "Contos",
+        description: "Susanna, barefoot, in the coastal heath of Contos.",
+        visibility: "public",
+      },
+    ]);
+    expect(pdf.toString("latin1")).not.toContain("Credit:");
+  });
 });
 
 describe("wall caption packing", () => {
@@ -97,6 +112,7 @@ describe("wall caption packing", () => {
         titleLines: ["A"],
         descriptionLines: [],
         transcriptLines: [],
+        creditLines: [],
         heightMm: 160,
       },
       {
@@ -104,6 +120,7 @@ describe("wall caption packing", () => {
         titleLines: ["B"],
         descriptionLines: [],
         transcriptLines: [],
+        creditLines: [],
         heightMm: 160,
       },
     ]);
