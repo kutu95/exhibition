@@ -18,6 +18,7 @@ type OrderDetailPayload = {
     discount_code?: string | null;
     discount_percent?: number | null;
     discount_amount_aud?: number | null;
+    invoice_sent_at?: string | null;
   };
   items: Array<{
     id: string;

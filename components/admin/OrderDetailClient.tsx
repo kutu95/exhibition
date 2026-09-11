@@ -9,6 +9,7 @@ import { formatLabDimensions } from "../../lib/print-size";
 import { formatSqIn, groupOrderItemsByPaper } from "../../lib/order-item-paper-groups";
 import { adminClientFetch, adminClientFetchError } from "../../lib/admin-client-fetch";
 import { buildOrderItemEditQuery } from "../../lib/order-item-edit-params";
+import { invoiceTotalsForOrder, isPlaceholderCustomerEmail } from "../../lib/invoice";
 import { isStudioOrderNotes } from "../../lib/studio-orders";
 import { StatusBadge } from "./StatusBadge";
 import styles from "./OrderDetailClient.module.css";
@@ -27,6 +28,7 @@ type OrderRecord = {
   discount_code?: string | null;
   discount_percent?: number | null;
   discount_amount_aud?: number | null;
+  invoice_sent_at?: string | null;
 };
 
 type OrderItemRecord = {
@@ -72,6 +74,9 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
   );
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
   const [itemActionError, setItemActionError] = useState<string | null>(null);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
+  const [invoiceMessage, setInvoiceMessage] = useState<string | null>(null);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
   const shippingLines = useMemo(() => {
     if (!order.shipping_address) return ["No shipping address provided."];
@@ -80,6 +85,15 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
   }, [order.shipping_address]);
 
   const isStudio = isStudioOrderNotes(order.notes);
+  const invoiceTotals = invoiceTotalsForOrder({
+    status: order.status,
+    subtotal_aud: order.subtotal_aud ?? 0,
+    shipping_aud: order.shipping_aud ?? 0,
+    total_aud: order.total_aud ?? 0,
+    discount_amount_aud: order.discount_amount_aud,
+  });
+  const canSendInvoice =
+    !isStudio && !isPlaceholderCustomerEmail(order.customer_email);
   const canEditItems =
     order.status !== "cancelled" &&
     order.status !== "refunded" &&
@@ -157,6 +171,32 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
       setItemActionError(adminClientFetchError(error));
     } finally {
       setRemovingItemId(null);
+    }
+  };
+
+  const sendInvoice = async () => {
+    setInvoiceBusy(true);
+    setInvoiceError(null);
+    setInvoiceMessage(null);
+    try {
+      const response = await adminClientFetch(`/api/admin/orders/${order.id}/invoice`, {
+        method: "POST",
+      });
+      const body = (await response.json().catch(() => null)) as { error?: string; to?: string } | null;
+      if (response.status === 401) {
+        setInvoiceError("Admin session expired. Sign in at /admin/login, then try again.");
+        return;
+      }
+      if (!response.ok) {
+        setInvoiceError(body?.error ?? "Could not send invoice.");
+        return;
+      }
+      setInvoiceMessage(`Invoice emailed to ${body?.to ?? order.customer_email}.`);
+      router.refresh();
+    } catch (error) {
+      setInvoiceError(adminClientFetchError(error));
+    } finally {
+      setInvoiceBusy(false);
     }
   };
 
@@ -333,9 +373,39 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
           </p>
         ) : null}
         <p>Shipping: {formatAUD(order.shipping_aud ?? 0)}</p>
+        <p>GST: {formatAUD(0)}</p>
         <p>
           <strong>Total: {formatAUD(order.total_aud ?? 0)}</strong>
         </p>
+        <p>Amount paid: {formatAUD(invoiceTotals.amountPaidAud)}</p>
+        <p>
+          <strong>Amount owing: {formatAUD(invoiceTotals.amountOwingAud)}</strong>
+        </p>
+        {canSendInvoice ? (
+          <div style={{ marginTop: "0.9rem" }}>
+            <button
+              className={styles.button}
+              type="button"
+              disabled={invoiceBusy}
+              onClick={() => void sendInvoice()}
+            >
+              {invoiceBusy ? "Sending…" : order.invoice_sent_at ? "Resend invoice" : "Send invoice"}
+            </button>
+            {order.invoice_sent_at ? (
+              <p style={{ margin: "0.55rem 0 0", color: "#4b5563" }}>
+                Last sent {new Date(order.invoice_sent_at).toLocaleString("en-AU")}
+              </p>
+            ) : null}
+            {invoiceMessage ? <p style={{ margin: "0.55rem 0 0" }}>{invoiceMessage}</p> : null}
+            {invoiceError ? <p className={styles.itemError}>{invoiceError}</p> : null}
+          </div>
+        ) : (
+          <p style={{ marginTop: "0.9rem", color: "#4b5563" }}>
+            {isStudio
+              ? "Studio orders are not invoiced."
+              : "Add a real customer email to send an invoice."}
+          </p>
+        )}
       </section>
 
       <section className={styles.panel}>

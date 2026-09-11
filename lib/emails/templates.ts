@@ -2,6 +2,7 @@ import { campaignBlocksSchema, type CampaignBlock } from "../campaigns/blocks";
 import { prepareCampaignBlocksForEmail } from "../campaigns/email-image";
 import { renderCampaignEmailHtml } from "../campaigns/render";
 import { WELCOME_CAMPAIGN_NAME } from "../campaigns/welcome-shared";
+import { sampleInvoiceDocumentHtml } from "../invoice";
 import { supabaseAdmin } from "../supabase/admin";
 import type { EmailCampaign } from "../supabase/types";
 import { TALK_CONFIRMATION_CAMPAIGN_NAME } from "../talk-details";
@@ -170,6 +171,7 @@ export type RenderEmailTemplateInput = {
   };
   unsubscribeUrl?: string | null;
   recipientFirstName?: string | null;
+  invoiceHtml?: string;
 };
 
 export const renderEmailTemplate = async (
@@ -182,12 +184,15 @@ export const renderEmailTemplate = async (
 
   const def = EMAIL_TEMPLATE_DEFINITIONS[input.slug];
   const vars = input.mergeVars ?? {};
-  const mergeHtml: Partial<Record<"order_summary" | "shipment_details", string>> = {};
+  const mergeHtml: Partial<Record<"order_summary" | "shipment_details" | "invoice_document", string>> = {};
   if (input.items && input.totalAud != null) {
     mergeHtml.order_summary = renderOrderSummaryHtml(input.items, input.totalAud);
   }
   if (input.shipment) {
     mergeHtml.shipment_details = renderShipmentDetailsHtml(input.shipment);
+  }
+  if (input.invoiceHtml) {
+    mergeHtml.invoice_document = input.invoiceHtml;
   }
 
   const emailBlocks = await prepareCampaignBlocksForEmail(template.blocks);
@@ -229,6 +234,7 @@ export const previewEmailTemplate = async (slug: EmailTemplateSlug): Promise<{
     },
     unsubscribeUrl: "https://exhibition.margies.app/unsubscribe",
     recipientFirstName: sample.first_name,
+    invoiceHtml: sampleInvoiceDocumentHtml(),
   });
 
   if (!rendered) {

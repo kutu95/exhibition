@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { assignEditionsToOrder } from "../../../../lib/edition-assignment";
 import { singleFulfilmentProvider } from "../../../../lib/fulfilment";
 import { sendOrderConfirmationEmail } from "../../../../lib/emails/order-confirmation";
+import { sendOrderInvoiceEmailQuietly } from "../../../../lib/emails/send-order-invoice";
 import { stripe } from "../../../../lib/stripe";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
 import type { Order } from "../../../../lib/supabase/types";
@@ -273,6 +274,7 @@ const upsertPaidOrderFromSession = async (
     order: createdOrder as Order,
     items: emailItems,
   });
+  await sendOrderInvoiceEmailQuietly(createdOrder.id);
 };
 
 export async function POST(request: Request) {

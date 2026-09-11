@@ -5,8 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createCampaignBlockId,
+  EMAIL_MERGE_SLOT_LABEL,
   type CampaignBlock,
   type CampaignImageSize,
+  type EmailMergeSlot,
 } from "../../lib/campaigns/blocks";
 import type { EmailTemplateDefinition } from "../../lib/emails/template-defs";
 import type { EmailTemplateRecord } from "../../lib/emails/templates";
@@ -253,7 +255,7 @@ export function EmailTemplateEditorClient({
     setBlocks((current) => current.filter((block) => block.id !== id));
   };
 
-  const addBlock = (type: CampaignBlock["type"], slot?: "order_summary" | "shipment_details") => {
+  const addBlock = (type: CampaignBlock["type"], slot?: EmailMergeSlot) => {
     const id = createCampaignBlockId();
     if (type === "heading") {
       setBlocks((current) => [...current, { id, type, text: "New heading" }]);
@@ -383,6 +385,11 @@ export function EmailTemplateEditorClient({
                 Shipment details
               </button>
             ) : null}
+            {initial.slug === "order_invoice" ? (
+              <button type="button" onClick={() => addBlock("merge", "invoice_document")}>
+                Invoice
+              </button>
+            ) : null}
           </div>
 
           <div className={styles.blocks}>
@@ -390,11 +397,7 @@ export function EmailTemplateEditorClient({
               <div key={block.id} className={styles.blockCard}>
                 <div className={styles.blockHeader}>
                   <strong>
-                    {block.type === "merge"
-                      ? block.slot === "order_summary"
-                        ? "order details"
-                        : "shipment details"
-                      : block.type}
+                    {block.type === "merge" ? EMAIL_MERGE_SLOT_LABEL[block.slot] : block.type}
                   </strong>
                   <div className={styles.blockActions}>
                     <button type="button" disabled={index === 0} onClick={() => moveBlock(block.id, -1)}>
@@ -431,7 +434,7 @@ export function EmailTemplateEditorClient({
 
                 {block.type === "merge" ? (
                   <p className={styles.hint}>
-                    Filled automatically when the email is sent (order lines, total, tracking).
+                    Filled automatically when the email is sent (order lines, invoice, tracking).
                   </p>
                 ) : null}
 

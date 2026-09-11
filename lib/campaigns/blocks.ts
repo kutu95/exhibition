@@ -9,6 +9,15 @@ export const campaignImageDisplayWidth: Record<CampaignImageSize, number> = {
   small: 220,
 };
 
+export const EMAIL_MERGE_SLOTS = ["order_summary", "shipment_details", "invoice_document"] as const;
+export type EmailMergeSlot = (typeof EMAIL_MERGE_SLOTS)[number];
+
+export const EMAIL_MERGE_SLOT_LABEL: Record<EmailMergeSlot, string> = {
+  order_summary: "order details",
+  shipment_details: "shipment details",
+  invoice_document: "invoice",
+};
+
 export const campaignBlockSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string().min(1),
@@ -45,7 +54,7 @@ export const campaignBlockSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string().min(1),
     type: z.literal("merge"),
-    slot: z.enum(["order_summary", "shipment_details"]),
+    slot: z.enum(EMAIL_MERGE_SLOTS),
   }),
 ]);
 

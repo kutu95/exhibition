@@ -4,6 +4,7 @@ import { TALK_WHEN_LABEL } from "../talk-details";
 export const EMAIL_TEMPLATE_SLUGS = [
   "order_confirmation",
   "order_shipped",
+  "order_invoice",
   "new_subscriber",
   "talk_confirmation",
 ] as const;
@@ -38,7 +39,7 @@ const h = (text: string): CampaignBlock => ({
   text,
 });
 
-const merge = (slot: "order_summary" | "shipment_details"): CampaignBlock => ({
+const merge = (slot: "order_summary" | "shipment_details" | "invoice_document"): CampaignBlock => ({
   id: createCampaignBlockId(),
   type: "merge",
   slot,
@@ -100,6 +101,36 @@ export const EMAIL_TEMPLATE_DEFINITIONS: Record<EmailTemplateSlug, EmailTemplate
       p("Your print is shipping from Sydney. Please allow 3-7 business days for delivery within WA."),
       p(
         "If you have any questions, reply to this email or contact us at {{contact_email}} with your order number.",
+      ),
+    ],
+  },
+  order_invoice: {
+    slug: "order_invoice",
+    name: "Invoice",
+    kind: "transactional",
+    description:
+      "Sent from an order (Send invoice), and automatically after a paid Stripe or on-site sale when the customer has an email.",
+    tokens: [
+      { token: "{{first_name}}", meaning: "Customer first name" },
+      { token: "{{customer_name}}", meaning: "Full name" },
+      { token: "{{order_number}}", meaning: "Invoice / order number (GEO-0001)" },
+      { token: "{{total}}", meaning: "Order total, formatted" },
+      { token: "{{amount_paid}}", meaning: "Amount already paid" },
+      { token: "{{amount_owing}}", meaning: "Balance due ($0.00 if paid)" },
+      { token: "{{invoice_date}}", meaning: "Date the invoice was issued" },
+      { token: "{{contact_email}}", meaning: "Reply-to contact address" },
+    ],
+    defaultSubject: "Invoice {{order_number}} from The Georgette 150th",
+    defaultPreview: "Your invoice — amount owing {{amount_owing}}.",
+    defaultBlocks: () => [
+      h("Invoice"),
+      p("Hi {{first_name}},"),
+      p(
+        "Here is your invoice for order {{order_number}}. Amount owing is {{amount_owing}}.",
+      ),
+      merge("invoice_document"),
+      p(
+        "If you have any questions, reply to this email or contact us at {{contact_email}} with your invoice number.",
       ),
     ],
   },

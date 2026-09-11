@@ -34,9 +34,11 @@ describe("email template merge tokens", () => {
     expect(html).toContain("Total:");
   });
 
-  it("seeds an order confirmation design with an order details slot", () => {
-    const blocks = EMAIL_TEMPLATE_DEFINITIONS.order_confirmation.defaultBlocks();
-    expect(blocks.some((block) => block.type === "merge" && block.slot === "order_summary")).toBe(true);
+  it("seeds an invoice design with an invoice document slot", () => {
+    const blocks = EMAIL_TEMPLATE_DEFINITIONS.order_invoice.defaultBlocks();
+    expect(blocks.some((block) => block.type === "merge" && block.slot === "invoice_document")).toBe(
+      true,
+    );
   });
 
   it("includes talk confirmation tokens in the default design", () => {

@@ -305,7 +305,7 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
             checked={allowPlaceholder}
             onChange={(event) => setAllowPlaceholder(event.target.checked)}
           />
-          Use placeholder customer (no confirmation email)
+          Use placeholder customer (no confirmation or invoice email)
         </label>
       </section>
 

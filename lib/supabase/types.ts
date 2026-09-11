@@ -154,6 +154,7 @@ export type Order = {
   discount_percent: number | null;
   discount_amount_aud: number | null;
   fulfilment_provider: "posterfactory" | "pixelperfect" | null;
+  invoice_sent_at: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { assignEditionsToOrder } from "../../../../../lib/edition-assignment";
 import { sendOrderConfirmationEmail } from "../../../../../lib/emails/order-confirmation";
+import { sendOrderInvoiceEmailQuietly } from "../../../../../lib/emails/send-order-invoice";
 import { MIXED_PROVIDER_MESSAGE, singleFulfilmentProvider } from "../../../../../lib/fulfilment";
 import { resolveManualOrderLines } from "../../../../../lib/manual-order-items";
 import { requireOpenStudioOrder } from "../../../../../lib/open-studio-orders";
@@ -470,6 +471,7 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error("On-site order confirmation email failed", emailError);
     }
+    void sendOrderInvoiceEmailQuietly(createdOrder.id);
   }
 
   return NextResponse.json({

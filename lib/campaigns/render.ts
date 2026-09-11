@@ -1,7 +1,7 @@
 import { interpolateMergeTokens, type EmailMergeVars } from "../emails/merge";
 import { siteConfig } from "../metadata";
-import type { CampaignBlock } from "./blocks";
-import { campaignImageDisplayWidth, type CampaignImageSize } from "./blocks";
+import type { CampaignBlock, EmailMergeSlot } from "./blocks";
+import { campaignImageDisplayWidth, EMAIL_MERGE_SLOT_LABEL, type CampaignImageSize } from "./blocks";
 import { prepareCampaignBlocksForEmail } from "./email-image";
 
 const NAVY = "#0a1628";
@@ -72,7 +72,7 @@ const applyVars = (text: string, vars?: EmailMergeVars): string =>
 const renderBlock = (
   block: CampaignBlock,
   vars?: EmailMergeVars,
-  mergeHtml?: Partial<Record<"order_summary" | "shipment_details", string>>,
+  mergeHtml?: Partial<Record<EmailMergeSlot, string>>,
 ): string => {
   switch (block.type) {
     case "heading":
@@ -109,7 +109,7 @@ const renderBlock = (
     case "merge": {
       const html = mergeHtml?.[block.slot];
       if (html) return html;
-      const label = block.slot === "order_summary" ? "Order details" : "Shipment details";
+      const label = EMAIL_MERGE_SLOT_LABEL[block.slot];
       return `<div style="margin:0 0 16px;padding:14px;border:1px dashed #c4b89a;color:${MUTED};font-family:Arial,Helvetica,sans-serif;font-size:14px;">${escapeHtml(label)} will be filled in when the email is sent.</div>`;
     }
     default:
@@ -128,7 +128,7 @@ export type RenderCampaignEmailInput = {
   /** Skip the automatic “Dear Name,” line when the template already greets the reader. */
   autoGreeting?: boolean;
   mergeVars?: EmailMergeVars;
-  mergeHtml?: Partial<Record<"order_summary" | "shipment_details", string>>;
+  mergeHtml?: Partial<Record<EmailMergeSlot, string>>;
   footerNote?: string;
 };
 
