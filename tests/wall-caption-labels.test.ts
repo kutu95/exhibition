@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildWallCaptionLabelsPdf,
+  CAPTION_BODY_SIZE,
   CAPTION_LABEL_WIDTH_MM,
   CAPTION_PAGE_HEIGHT_MM,
   CAPTION_PAGE_WIDTH_MM,
+  CAPTION_TITLE_SIZE,
   packWallCaptionPages,
 } from "../lib/wall-caption-labels";
 
@@ -13,6 +15,25 @@ describe("wall caption label sheets", () => {
     expect(CAPTION_LABEL_WIDTH_MM).toBe(210);
     expect(CAPTION_PAGE_WIDTH_MM).toBe(210);
     expect(CAPTION_PAGE_HEIGHT_MM).toBe(297);
+  });
+
+  it("sets a 24 pt title and 12 pt body", () => {
+    expect(CAPTION_TITLE_SIZE).toBe(24);
+    expect(CAPTION_BODY_SIZE).toBe(12);
+    const pdf = buildWallCaptionLabelsPdf([
+      {
+        title: "Cliff Island",
+        slug: "cliff-island",
+        location_tag: "Cosy Corner",
+        description: "This rocky island is a favourite of cliff jumpers in summer.",
+        audio_transcript: "This rock island is just across the channel from an outcrop.",
+        visibility: "public",
+      },
+    ]);
+    const text = pdf.toString("latin1");
+    expect(text).toContain("/F1 24 Tf");
+    expect(text).toContain("/F1 12 Tf");
+    expect(text).toContain("/F2 12 Tf");
   });
 
   it("writes title, description, and transcript, and omits empty transcript copy", () => {

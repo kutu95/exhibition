@@ -21,12 +21,12 @@ const SECTION_GAP_MM = 7;
 const TRANSCRIPT_GAP_MM = 2;
 const CUT_GAP_MM = 5;
 
-const TITLE_SIZE = 18;
-const TITLE_LEADING = 22;
-const BODY_SIZE = 11;
-const BODY_LEADING = 15;
-const KICKER_SIZE = 8;
-const KICKER_LEADING = 11;
+export const CAPTION_TITLE_SIZE = 24;
+export const CAPTION_BODY_SIZE = 12;
+const TITLE_LEADING = 28;
+const BODY_LEADING = 16;
+const KICKER_SIZE = 9;
+const KICKER_LEADING = 12;
 
 const mm = (value: number): number => value * MM_TO_PT;
 
@@ -259,9 +259,9 @@ const linesHeightPt = (lineCount: number, leading: number): number =>
   lineCount <= 0 ? 0 : lineCount * leading;
 
 const layoutCaption = (product: WallCaptionLabelProduct): LaidOutCaption => {
-  const titleLines = wrapTimes(product.title, TITLE_SIZE, TEXT_WIDTH_PT);
-  const descriptionLines = wrapTimes(product.description ?? "", BODY_SIZE, TEXT_WIDTH_PT);
-  const transcriptLines = wrapTimes(product.audio_transcript ?? "", BODY_SIZE, TEXT_WIDTH_PT);
+  const titleLines = wrapTimes(product.title, CAPTION_TITLE_SIZE, TEXT_WIDTH_PT);
+  const descriptionLines = wrapTimes(product.description ?? "", CAPTION_BODY_SIZE, TEXT_WIDTH_PT);
+  const transcriptLines = wrapTimes(product.audio_transcript ?? "", CAPTION_BODY_SIZE, TEXT_WIDTH_PT);
 
   let heightPt = mm(LABEL_PAD_Y_MM) * 2 + linesHeightPt(titleLines.length, TITLE_LEADING);
   if (descriptionLines.length > 0) {
@@ -341,16 +341,16 @@ const drawCutLine = (y: number): string => {
 const drawCaption = (caption: LaidOutCaption, topMm: number): string => {
   const topY = PAGE_HEIGHT_PT - mm(topMm);
   const bottomY = topY - mm(caption.heightMm);
-  let baseline = topY - mm(LABEL_PAD_Y_MM) - TITLE_SIZE;
+  let baseline = topY - mm(LABEL_PAD_Y_MM) - CAPTION_TITLE_SIZE;
 
   const blocks: string[] = ["BT"];
-  const title = drawTextLines(caption.titleLines, TITLE_SIZE, TITLE_LEADING, baseline, "/F1");
+  const title = drawTextLines(caption.titleLines, CAPTION_TITLE_SIZE, TITLE_LEADING, baseline, "/F1");
   blocks.push(...title.commands);
   baseline = title.lastBaseline;
 
   if (caption.descriptionLines.length > 0) {
     baseline -= mm(SECTION_GAP_MM);
-    const description = drawTextLines(caption.descriptionLines, BODY_SIZE, BODY_LEADING, baseline, "/F1");
+    const description = drawTextLines(caption.descriptionLines, CAPTION_BODY_SIZE, BODY_LEADING, baseline, "/F1");
     blocks.push(...description.commands);
     baseline = description.lastBaseline;
   }
@@ -363,7 +363,7 @@ const drawCaption = (caption: LaidOutCaption, topMm: number): string => {
       `1 0 0 1 ${pdfNumber(mm(TEXT_INSET_MM))} ${pdfNumber(baseline)} Tm (Transcript) Tj`,
     );
     baseline -= KICKER_LEADING + mm(TRANSCRIPT_GAP_MM);
-    const transcript = drawTextLines(caption.transcriptLines, BODY_SIZE, BODY_LEADING, baseline, "/F2");
+    const transcript = drawTextLines(caption.transcriptLines, CAPTION_BODY_SIZE, BODY_LEADING, baseline, "/F2");
     blocks.push(...transcript.commands);
   }
 
