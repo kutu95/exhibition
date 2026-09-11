@@ -21,6 +21,6 @@ export const invoiceSeller = {
   email: siteContact.email,
   phone: siteContact.phoneDisplay,
   /** Fallback if `INVOICE_ABN` is unset. Digits only or spaced ABN. */
-  abn: "",
+  abn: "44 798 260 963",
   gstRegistered: false,
 } as const;
