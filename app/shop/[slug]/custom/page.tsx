@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { CustomPrintClient } from "../../../../components/CustomPrintClient";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../../../lib/admin-auth";
 import { isProductVisibleInCatalog, mapProductRow } from "../../../../lib/catalog-products";
+import { isWallSource } from "../../../../lib/exhibition-links";
 import { getMasterFileDimensions } from "../../../../lib/master-files";
 import { buildMetadata } from "../../../../lib/metadata";
 import { ORDER_EDIT_ITEM_PARAM, ORDER_EDIT_ORDER_PARAM } from "../../../../lib/order-item-edit-params";
@@ -140,6 +141,7 @@ export default async function CustomPrintPage({ params, searchParams }: PageProp
         rthCanvasRates: pricing.rthCanvasRates,
       }}
       isAdmin={isAdmin}
+      fromWall={isWallSource(firstParam(query.src))}
       editOrderId={firstParam(query[ORDER_EDIT_ORDER_PARAM])}
       editItemId={firstParam(query[ORDER_EDIT_ITEM_PARAM])}
     />

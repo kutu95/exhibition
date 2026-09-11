@@ -72,6 +72,20 @@ const formatShopDimensions = (widthMm: number, heightMm: number): string => {
   return `${Math.round(widthMm / 10)} × ${Math.round(heightMm / 10)} cm · ${wIn} × ${hIn} in`;
 };
 
+const customPrintPath = (
+  slug: string,
+  options: { fromWall: boolean; orderItemEdit: { orderId: string; itemId: string } | null },
+): string => {
+  const params = new URLSearchParams(
+    options.orderItemEdit
+      ? buildOrderItemEditQuery(options.orderItemEdit.orderId, options.orderItemEdit.itemId)
+      : "",
+  );
+  if (options.fromWall) params.set("src", "wall");
+  const query = params.toString();
+  return `/shop/${slug}/custom${query ? `?${query}` : ""}`;
+};
+
 /** Price difference against the current selection, e.g. "+$25" or "−$8.50". */
 const formatPriceDelta = (cents: number): string => {
   const magnitude = Math.abs(cents);
@@ -563,26 +577,18 @@ export function ProductDetailClient({
           <div className={styles.wallBanner}>
             {viewOnly ? (
               <p>You&apos;re viewing the print on the wall.</p>
-            ) : purchasesAllowed ? (
-              <>
-                <p>
-                  You&apos;re viewing the print on the wall. Choose size and finish, then buy this print — or ask at the
-                  desk if you prefer to pay in person.
-                </p>
-                <p>
-                  Exhibition pickup is available at checkout. Prefer staff help? Ask at the desk.
-                </p>
-              </>
             ) : (
               <>
                 <p>
-                  You&apos;re viewing the print on the wall. Favourite it on your phone, then ask at the desk to purchase
-                  with card or cash.
+                  You&apos;re viewing the print on the wall. Prints are available for purchase by print on demand. They
+                  will be delivered.
                 </p>
-                <p>
-                  Online checkout is temporarily closed.{" "}
-                  <Link href="/contact">Contact</Link> for enquiries after your visit.
-                </p>
+                {purchasesAllowed ? null : (
+                  <p>
+                    Online checkout is temporarily closed.{" "}
+                    <Link href="/contact">Contact</Link> for enquiries after your visit.
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -655,15 +661,8 @@ export function ProductDetailClient({
                   1
                 </span>
                 <span className={styles.stepTitle}>Size</span>
-                {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" && !fromWall ? (
-                  <Link
-                    className={styles.stepAside}
-                    href={
-                      orderItemEdit
-                        ? `/shop/${product.slug}/custom?${buildOrderItemEditQuery(orderItemEdit.orderId, orderItemEdit.itemId)}`
-                        : `/shop/${product.slug}/custom`
-                    }
-                  >
+                {SHOW_CUSTOM_PRINT_PAGE && product.product_type === "print" ? (
+                  <Link className={styles.stepAside} href={customPrintPath(product.slug, { fromWall, orderItemEdit })}>
                     Custom size
                   </Link>
                 ) : null}

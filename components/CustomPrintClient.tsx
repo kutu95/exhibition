@@ -57,6 +57,7 @@ type CustomPrintClientProps = {
   rates: CustomOfferRates;
   /** When true (admin session cookie), show studio order and prepare/download TIFF. */
   isAdmin?: boolean;
+  fromWall?: boolean;
   editOrderId?: string | null;
   editItemId?: string | null;
 };
@@ -91,6 +92,7 @@ export function CustomPrintClient({
   editionSize,
   rates,
   isAdmin = false,
+  fromWall = false,
   editOrderId = null,
   editItemId = null,
 }: CustomPrintClientProps) {
@@ -429,8 +431,10 @@ export function CustomPrintClient({
         <Link
           href={
             isEditingOrderItem && editOrderId && editItemId
-              ? `/shop/${product.slug}?${buildOrderItemEditQuery(editOrderId, editItemId)}`
-              : `/shop/${product.slug}`
+              ? `/shop/${product.slug}?${buildOrderItemEditQuery(editOrderId, editItemId, fromWall ? { src: "wall" } : undefined)}`
+              : fromWall
+                ? `/shop/${product.slug}?src=wall`
+                : `/shop/${product.slug}`
           }
         >
           ← Back to standard sizes

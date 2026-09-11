@@ -220,7 +220,7 @@
 
 .stepAside {
   margin-left: auto;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
   letter-spacing: 0.02em;
   text-transform: none;
   text-decoration: underline;
@@ -489,6 +489,8 @@
   border: 1px solid rgba(16, 64, 40, 0.28);
   margin: 0 0 1rem;
   padding: 0.75rem 0.85rem;
+  font-size: 1.12rem;
+  line-height: 1.5;
 }
 
 .wallBanner p {
@@ -539,9 +541,9 @@
   margin: 0.55rem 0 0.85rem;
   color: #2a2a2a;
   font-family: var(--font-heading);
-  font-size: clamp(1.05rem, 1.6vw, 1.15rem);
+  font-size: 1.28rem;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .shareRow {
@@ -561,5 +563,9 @@
 
   .back {
     grid-column: 1 / -1;
+  }
+
+  .description {
+    font-size: 1.18rem;
   }
 }
