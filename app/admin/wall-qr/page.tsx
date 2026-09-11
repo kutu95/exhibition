@@ -1,3 +1,4 @@
+import { parseWallLabelSlugs } from "../../../lib/wall-qr-label-layout";
 import { fetchAdminJson } from "../_lib/fetch-admin";
 import { WallQrLabelsClient, type WallQrProduct } from "../../../components/admin/WallQrLabelsClient";
 
@@ -10,8 +11,15 @@ type ProductListItem = {
   visibility?: "public" | "vault";
 };
 
-export default async function AdminWallQrPage() {
-  const products = await fetchAdminJson<ProductListItem[]>("/api/admin/products");
+type PageProps = {
+  searchParams: Promise<{ slugs?: string | string[] }>;
+};
+
+export default async function AdminWallQrPage({ searchParams }: PageProps) {
+  const [{ slugs }, products] = await Promise.all([
+    searchParams,
+    fetchAdminJson<ProductListItem[]>("/api/admin/products"),
+  ]);
   const labels: WallQrProduct[] = products
     .filter((product) => product.product_type === "print" && product.is_available && product.slug)
     .map((product) => ({
@@ -21,5 +29,5 @@ export default async function AdminWallQrPage() {
       visibility: product.visibility ?? "public",
     }));
 
-  return <WallQrLabelsClient products={labels} />;
+  return <WallQrLabelsClient products={labels} initialSlugs={parseWallLabelSlugs(slugs)} />;
 }

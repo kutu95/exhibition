@@ -72,8 +72,8 @@ export function ProductWallQrCodes({ slug, title, variants = [] }: ProductWallQr
           <button className={styles.button} type="button" onClick={() => void navigator.clipboard.writeText(wallUrl)}>
             Copy link
           </button>
-          <a className={styles.link} href="/admin/wall-qr">
-            Print all labels
+          <a className={styles.link} href={`/admin/wall-qr?slugs=${encodeURIComponent(slug)}`}>
+            Print labels
           </a>
           <a className={styles.link} href={onSiteHref}>
             Open in on-site sale

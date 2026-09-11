@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { verifyAdminSession } from "../../../../lib/admin-auth";
 import { handleRouteError } from "../../../../lib/api-route-errors";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
+import { applyWallLabelProductFilters } from "../../../../lib/wall-qr-label-layout";
 import { buildWallQrLabelsPdf, type WallQrLabelProduct } from "../../../../lib/wall-qr-labels";
 
 export const runtime = "nodejs";
@@ -33,16 +34,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const includeVault = new URL(request.url).searchParams.get("vault") !== "0";
-    const products: WallQrLabelProduct[] = ((data ?? []) as ProductRow[])
-      .filter((product) => product.is_available !== false)
-      .filter((product) => includeVault || product.visibility !== "vault")
-      .map((product) => ({
-        title: product.title?.trim() ?? "",
-        slug: product.slug?.trim() ?? "",
-        location_tag: product.location_tag,
-        visibility: product.visibility ?? "public",
-      }));
+    const products: WallQrLabelProduct[] = applyWallLabelProductFilters(
+      ((data ?? []) as ProductRow[])
+        .filter((product) => product.is_available !== false)
+        .map((product) => ({
+          title: product.title?.trim() ?? "",
+          slug: product.slug?.trim() ?? "",
+          location_tag: product.location_tag,
+          visibility: product.visibility ?? "public",
+        })),
+      new URL(request.url).searchParams,
+    );
 
     const pdf = buildWallQrLabelsPdf(products);
     const date = new Date().toISOString().slice(0, 10);

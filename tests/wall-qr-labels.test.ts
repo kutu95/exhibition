@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { buildWallProductUrl } from "../lib/exhibition-links";
 import {
+  applyWallLabelProductFilters,
+  filterWallLabelProductsBySlugs,
+  groupWallQrProductsByLocation,
+  parseWallLabelSlugs,
+  wallLabelDownloadQuery,
+} from "../lib/wall-qr-label-layout";
+import {
   buildWallQrLabelsPdf,
   sortWallQrProducts,
   wallQrSheetPageCount,
@@ -45,5 +52,62 @@ describe("wall QR label sheets", () => {
     expect(text).toContain("Each square is 5 cm by 5 cm");
     expect(text).toContain("/Count 2");
     expect(buildWallProductUrl("cliff-island")).toContain("src=wall");
+  });
+
+  it("parses selected slugs and keeps full sets when none are specified", () => {
+    expect(parseWallLabelSlugs(" cliff-island, angel-of-contos cliff-island ")).toEqual([
+      "cliff-island",
+      "angel-of-contos",
+    ]);
+    expect(parseWallLabelSlugs(["a", "b,a"])).toEqual(["a", "b"]);
+    expect(parseWallLabelSlugs("")).toEqual([]);
+
+    const products = [
+      { title: "Cliff Island", slug: "cliff-island", location_tag: "Cosy Corner" },
+      { title: "Angel of Contos", slug: "angel-of-contos", location_tag: "Contos" },
+    ];
+    expect(filterWallLabelProductsBySlugs(products, []).map((product) => product.slug)).toEqual([
+      "cliff-island",
+      "angel-of-contos",
+    ]);
+    expect(filterWallLabelProductsBySlugs(products, ["angel-of-contos"]).map((product) => product.slug)).toEqual([
+      "angel-of-contos",
+    ]);
+  });
+
+  it("applies vault and slug query filters together", () => {
+    const products = [
+      { title: "Cliff Island", slug: "cliff-island", location_tag: "Cosy Corner", visibility: "public" as const },
+      { title: "Angel of Contos", slug: "angel-of-contos", location_tag: "Contos", visibility: "vault" as const },
+    ];
+    expect(
+      applyWallLabelProductFilters(products, new URLSearchParams("slugs=angel-of-contos")).map((product) => product.slug),
+    ).toEqual(["angel-of-contos"]);
+    expect(
+      applyWallLabelProductFilters(products, new URLSearchParams("vault=0&slugs=angel-of-contos,cliff-island")).map(
+        (product) => product.slug,
+      ),
+    ).toEqual(["cliff-island"]);
+  });
+
+  it("groups sorted photographs by location", () => {
+    expect(
+      groupWallQrProductsByLocation(
+        sortWallQrProducts([
+          { title: "B", slug: "b", location_tag: "Redgate Beach" },
+          { title: "A", slug: "a", location_tag: "Contos" },
+          { title: "C", slug: "c", location_tag: "Contos" },
+        ]),
+      ).map((group) => [group.location, group.products.map((product) => product.slug)]),
+    ).toEqual([
+      ["Contos", ["a", "c"]],
+      ["Redgate Beach", ["b"]],
+    ]);
+  });
+
+  it("omits slugs from download URLs when the full set is selected", () => {
+    expect(wallLabelDownloadQuery({ includeVault: true, slugs: ["a", "b"], totalCount: 10 })).toBe("?slugs=a%2Cb");
+    expect(wallLabelDownloadQuery({ includeVault: false, slugs: ["a", "b"], totalCount: 2 })).toBe("?vault=0");
+    expect(wallLabelDownloadQuery({ includeVault: true, slugs: ["a", "b"], totalCount: 2 })).toBe("");
   });
 });

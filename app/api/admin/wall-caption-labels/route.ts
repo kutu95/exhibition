@@ -4,6 +4,7 @@ import { verifyAdminSession } from "../../../../lib/admin-auth";
 import { handleRouteError } from "../../../../lib/api-route-errors";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
 import { buildWallCaptionLabelsPdf, type WallCaptionLabelProduct } from "../../../../lib/wall-caption-labels";
+import { applyWallLabelProductFilters } from "../../../../lib/wall-qr-label-layout";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,19 +39,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const includeVault = new URL(request.url).searchParams.get("vault") !== "0";
-    const products: WallCaptionLabelProduct[] = ((data ?? []) as ProductRow[])
-      .filter((product) => product.is_available !== false)
-      .filter((product) => includeVault || product.visibility !== "vault")
-      .map((product) => ({
-        title: product.title?.trim() ?? "",
-        slug: product.slug?.trim() ?? "",
-        location_tag: product.location_tag,
-        description: product.description,
-        audio_transcript: product.audio_transcript,
-        credit_attribution: product.credit_attribution,
-        visibility: product.visibility ?? "public",
-      }));
+    const products: WallCaptionLabelProduct[] = applyWallLabelProductFilters(
+      ((data ?? []) as ProductRow[])
+        .filter((product) => product.is_available !== false)
+        .map((product) => ({
+          title: product.title?.trim() ?? "",
+          slug: product.slug?.trim() ?? "",
+          location_tag: product.location_tag,
+          description: product.description,
+          audio_transcript: product.audio_transcript,
+          credit_attribution: product.credit_attribution,
+          visibility: product.visibility ?? "public",
+        })),
+      new URL(request.url).searchParams,
+    );
 
     const pdf = buildWallCaptionLabelsPdf(products);
     return new NextResponse(new Uint8Array(pdf), {
