@@ -1,45 +1,29 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
+import { useCart } from "../CartProvider";
+import type { CartItem } from "../../lib/cart";
+import { describeVariantForBuyer } from "../../lib/print-offer";
 import { formatAUD } from "../../lib/utils/currency";
 import styles from "./OnSiteSaleClient.module.css";
 
 const PENDING_SALE_KEY = "exhibition-onsite-pending-sale";
 
-type ProductListItem = {
-  id: string;
-  title: string;
-  slug: string;
-  is_available: boolean;
-  product_type: string;
-};
-
-type VariantRow = {
-  id: string;
-  variant_label: string;
-  price_aud: number;
-  is_active: boolean;
-};
-
-type ProductDetail = {
-  id: string;
-  title: string;
-  slug: string;
-  product_variants: VariantRow[];
-};
-
 type FulfilmentMode = "exhibition_pickup" | "ship" | "taken_today";
 type PaymentMethod = "square" | "cash" | "manual";
 
-type PendingSale = {
+type PendingSaleItem = {
   variant_id: string;
   quantity: number;
-  product_title: string;
-  variant_label: string;
-  price_aud: number;
+  frame_colour?: string | null;
+};
+
+type PendingSale = {
+  items: PendingSaleItem[];
   customer_email: string;
   customer_name: string;
   allow_placeholder_customer: boolean;
@@ -58,17 +42,17 @@ type OnSiteSaleClientProps = {
   squareConfigured: boolean;
 };
 
+const cartLinesForApi = (items: CartItem[]): PendingSaleItem[] =>
+  items.map((item) => ({
+    variant_id: item.variant_id,
+    quantity: item.quantity,
+    ...(item.frame_colour ? { frame_colour: item.frame_colour } : {}),
+  }));
+
 export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const prefillProductId = searchParams.get("product") ?? "";
-  const prefillVariantId = searchParams.get("variant") ?? "";
+  const { items, subtotalAud, clear } = useCart();
 
-  const [products, setProducts] = useState<ProductListItem[]>([]);
-  const [productId, setProductId] = useState(prefillProductId);
-  const [productDetail, setProductDetail] = useState<ProductDetail | null>(null);
-  const [variantId, setVariantId] = useState(prefillVariantId);
-  const [quantity, setQuantity] = useState(1);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [allowPlaceholder, setAllowPlaceholder] = useState(false);
@@ -82,76 +66,26 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const response = await fetch("/api/admin/products");
-        if (!response.ok) throw new Error("Failed to load products.");
-        const data = (await response.json()) as ProductListItem[];
-        setProducts(
-          data.filter((product) => product.product_type === "print" && product.is_available),
-        );
-      } catch (err) {
-        console.error(err);
-        setLoadError("Could not load products.");
-      }
-    })();
-  }, []);
-
-  const loadProduct = useCallback(async (id: string) => {
-    if (!id) {
-      setProductDetail(null);
-      return;
+  const squareNote = useMemo(() => {
+    if (items.length === 0) return "Exhibition on-site sale";
+    const titles = items.map((item) => item.product_title);
+    const unique = [...new Set(titles)];
+    if (unique.length === 1) {
+      return items.length === 1
+        ? `${unique[0]} · ${items[0]?.variant_label ?? ""}`
+        : `${unique[0]} × ${items.length}`;
     }
-    const response = await fetch(`/api/admin/products/${id}`);
-    if (!response.ok) {
-      throw new Error("Failed to load product detail.");
-    }
-    const data = (await response.json()) as ProductDetail;
-    setProductDetail(data);
-    const active = (data.product_variants ?? []).filter((variant) => variant.is_active);
-    if (prefillVariantId && active.some((variant) => variant.id === prefillVariantId)) {
-      setVariantId(prefillVariantId);
-    } else if (active[0]) {
-      setVariantId((current) =>
-        current && active.some((variant) => variant.id === current) ? current : active[0].id,
-      );
-    }
-  }, [prefillVariantId]);
-
-  useEffect(() => {
-    if (!productId) {
-      setProductDetail(null);
-      return;
-    }
-    void loadProduct(productId).catch((err) => {
-      console.error(err);
-      setError("Could not load product variants.");
-    });
-  }, [loadProduct, productId]);
-
-  const selectedVariant = useMemo(
-    () => productDetail?.product_variants.find((variant) => variant.id === variantId) ?? null,
-    [productDetail, variantId],
-  );
-
-  const activeVariants = useMemo(
-    () => (productDetail?.product_variants ?? []).filter((variant) => variant.is_active),
-    [productDetail],
-  );
-
-  const totalAud = selectedVariant ? selectedVariant.price_aud * quantity : 0;
+    return `On-site sale (${items.length} prints)`;
+  }, [items]);
 
   const buildPayload = (paymentMethod: PaymentMethod, squareId?: string) => {
-    if (!selectedVariant || !productDetail) {
-      throw new Error("Select a product and variant.");
+    if (items.length === 0) {
+      throw new Error("Add prints from the shop first.");
     }
     return {
       mode: "on_site" as const,
-      variant_id: selectedVariant.id,
-      quantity,
+      items: cartLinesForApi(items),
       customer_email: allowPlaceholder ? undefined : customerEmail.trim() || undefined,
       customer_name: allowPlaceholder ? undefined : customerName.trim() || undefined,
       allow_placeholder_customer: allowPlaceholder,
@@ -185,6 +119,7 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
       if (!response.ok) {
         throw new Error(body?.error ?? "Could not create order.");
       }
+      clear();
       setSuccess(`Order ${body?.order_number ?? ""} created.`);
       if (body?.order_id) {
         router.push(`/admin/orders/${body.order_id}`);
@@ -197,8 +132,8 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
   };
 
   const chargeWithSquare = async () => {
-    if (!selectedVariant || !productDetail) {
-      setError("Select a product and variant.");
+    if (items.length === 0) {
+      setError("Add prints from the shop first.");
       return;
     }
     if (!squareConfigured) {
@@ -220,11 +155,7 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
         : `onsite-${Date.now()}`;
 
     const pending: PendingSale = {
-      variant_id: selectedVariant.id,
-      quantity,
-      product_title: productDetail.title,
-      variant_label: selectedVariant.variant_label,
-      price_aud: selectedVariant.price_aud,
+      items: cartLinesForApi(items),
       customer_email: customerEmail.trim(),
       customer_name: customerName.trim(),
       allow_placeholder_customer: allowPlaceholder,
@@ -240,8 +171,8 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount_cents: totalAud,
-          note: `${productDetail.title} · ${selectedVariant.variant_label}`,
+          amount_cents: subtotalAud,
+          note: squareNote,
           client_transaction_id: clientTransactionId,
         }),
       });
@@ -257,18 +188,29 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
     }
   };
 
+  const hasCart = items.length > 0;
+
   return (
     <div className={styles.wrap}>
       <header className={styles.header}>
         <div>
           <h1>On-site sale</h1>
           <p className={styles.muted}>
-            Desk sales for wall prints — Square reader, cash, or record a payment already taken.
+            Add prints in the shop (sizes, frames, custom sizing), then take Square, cash, or record a
+            payment already taken.
           </p>
         </div>
-        <Link className={styles.link} href="/admin/fulfilment">
-          Fulfilment
-        </Link>
+        <div className={styles.headerLinks}>
+          <Link className={styles.link} href="/shop">
+            Shop
+          </Link>
+          <Link className={styles.link} href="/cart">
+            Cart
+          </Link>
+          <Link className={styles.link} href="/admin/fulfilment">
+            Fulfilment
+          </Link>
+        </div>
       </header>
 
       {!squareConfigured ? (
@@ -283,58 +225,57 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
         </p>
       )}
 
-      {loadError ? <p className={styles.error}>{loadError}</p> : null}
-
       <section className={styles.panel}>
-        <h2>Print</h2>
-        <label className={styles.field}>
-          Product
-          <select
-            value={productId}
-            onChange={(event) => {
-              setProductId(event.target.value);
-              setVariantId("");
-            }}
-          >
-            <option value="">Select product…</option>
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.title}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={styles.field}>
-          Size / finish
-          <select
-            value={variantId}
-            onChange={(event) => setVariantId(event.target.value)}
-            disabled={!activeVariants.length}
-          >
-            <option value="">Select variant…</option>
-            {activeVariants.map((variant) => (
-              <option key={variant.id} value={variant.id}>
-                {variant.variant_label} — {formatAUD(variant.price_aud)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={styles.fieldNarrow}>
-          Qty
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={quantity}
-            onChange={(event) => setQuantity(Number.parseInt(event.target.value || "1", 10) || 1)}
-          />
-        </label>
-
-        <p className={styles.total}>
-          Total <strong>{formatAUD(totalAud)}</strong>
-        </p>
+        <h2>Cart</h2>
+        {hasCart ? (
+          <>
+            <ul className={styles.cartList}>
+              {items.map((item) => (
+                <li key={`${item.variant_id}-${item.frame_colour ?? ""}`} className={styles.cartRow}>
+                  <div className={styles.thumb}>
+                    <Image
+                      src={item.image_url}
+                      alt={item.product_title}
+                      fill
+                      sizes="72px"
+                      className={styles.thumbImage}
+                    />
+                  </div>
+                  <div>
+                    <p className={styles.cartTitle}>{item.product_title}</p>
+                    <p className={styles.cartMeta}>
+                      {describeVariantForBuyer({ variant_label: item.variant_label }, item.frame_colour) ??
+                        item.variant_label}
+                    </p>
+                    <p className={styles.cartMeta}>
+                      Qty {item.quantity} · {formatAUD(item.price_aud * item.quantity)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className={styles.total}>
+              Total <strong>{formatAUD(subtotalAud)}</strong>
+            </p>
+            <p className={styles.muted}>
+              <Link className={styles.link} href="/cart">
+                Edit cart
+              </Link>
+              {" · "}
+              <Link className={styles.link} href="/shop">
+                Add another print
+              </Link>
+            </p>
+          </>
+        ) : (
+          <p className={styles.muted}>
+            The cart is empty.{" "}
+            <Link className={styles.link} href="/shop">
+              Add prints from the shop
+            </Link>
+            , including custom sizes, then return here to take payment.
+          </p>
+        )}
       </section>
 
       <section className={styles.panel}>
@@ -421,7 +362,7 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
           <button
             className={styles.primary}
             type="button"
-            disabled={busy || !selectedVariant}
+            disabled={busy || !hasCart}
             onClick={() => void chargeWithSquare()}
           >
             {busy ? "Working…" : "Charge with Square reader"}
@@ -429,7 +370,7 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
           <button
             className={styles.secondary}
             type="button"
-            disabled={busy || !selectedVariant}
+            disabled={busy || !hasCart}
             onClick={() => void createOrder("cash")}
           >
             Record cash payment
@@ -448,7 +389,7 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
           <button
             className={styles.secondary}
             type="button"
-            disabled={busy || !selectedVariant || !squarePaymentId.trim()}
+            disabled={busy || !hasCart || !squarePaymentId.trim()}
             onClick={() => void createOrder("square", squarePaymentId.trim())}
           >
             Mark paid after Square
@@ -456,7 +397,7 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
           <button
             className={styles.ghost}
             type="button"
-            disabled={busy || !selectedVariant}
+            disabled={busy || !hasCart}
             onClick={() => void createOrder("manual")}
           >
             Already paid (manual note)
@@ -471,4 +412,4 @@ export function OnSiteSaleClient({ squareConfigured }: OnSiteSaleClientProps) {
 }
 
 export { PENDING_SALE_KEY };
-export type { PendingSale };
+export type { PendingSale, PendingSaleItem };

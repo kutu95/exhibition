@@ -3,9 +3,11 @@
 Dual path for wall prints during Open Studios:
 
 1. **Visitor phone** — wall QR opens `/shop/{slug}?src=wall` (optional `&variant=`). When purchases are allowed, **Buy this print** starts Stripe Checkout with Exhibition pickup / ship options.
-2. **Staff desk** — `/admin/on-site` records cash or charges via Square Point of Sale + reader, then creates a paid exhibition order (fulfilment unchanged).
+2. **Staff desk** — browse and configure prints in the public shop (galleries, images, sizes, frames, custom sizing), add them to the cart, then `/admin/on-site` takes Square / cash / already-paid and creates a paid exhibition order (fulfilment unchanged).
 
 Online/remote payments remain Stripe. Card-present on site uses Square.
+
+Logged-in admin can **Add to cart** even while `PURCHASES_LAN_ONLY` blocks public Stripe checkout. Take payment at the desk; do not send the customer through Stripe unless they will type a card.
 
 ## Wall QR
 
@@ -13,7 +15,7 @@ Online/remote payments remain Stripe. Card-present on site uses Square.
 - Always includes `src=wall`
 - Optionally select the hung size so the visitor lands on that variant
 - Reprint labels after deploying this change
-- **Open in on-site sale** deep-links staff into the desk console for that product
+- **Open in on-site sale** opens the public product page so staff can choose size/finish (or custom size), add to cart, then pay at `/admin/on-site`
 
 ## Smoke test (before lifting `PURCHASES_LAN_ONLY`)
 
@@ -22,9 +24,10 @@ Do **not** flip `PURCHASES_LAN_ONLY` in production until these pass.
 ### A. Wall UX (public host, gate still on)
 
 1. Open a wall URL: `https://exhibition.margies.app/shop/{slug}?src=wall`
-2. Confirm green wall banner tells visitors to ask at the desk (no Buy button)
+2. Confirm green wall banner tells visitors to ask at the desk (no Buy button for visitors)
 3. Favourite still works
 4. Plausible (or network) shows `View Product` with `source=wall`
+5. Signed-in admin still sees **Add to cart** and can reach desk checkout
 
 ### B. Visitor self-serve Stripe (LAN or temporary gate off)
 
@@ -40,11 +43,13 @@ Do **not** flip `PURCHASES_LAN_ONLY` in production until these pass.
 1. Apply migration `20260809_orders_square_payment_id.sql` on the exhibition schema
 2. Set `SQUARE_APPLICATION_ID` and allowlist `{NEXT_PUBLIC_SITE_URL}/admin/on-site/square-return` in Square Developer Console
 3. Install Square Point of Sale on the staff phone/tablet; pair the reader; sign in
-4. `/admin/on-site` → select print → customer → **Charge with Square reader**
-5. Complete card on reader → return creates paid order with `square_payment_id`
-6. Fallback: charge in Square app manually → paste receipt id → **Mark paid after Square**
-7. **Record cash payment** creates paid order without Square
-8. Confirm fulfilment row / edition assignment
+4. Sign in as admin → **Shop** → pick prints (gallery filter, images, size/paper/frame or custom size) → **Add to cart**
+5. Cart → **Take payment at desk** (or Admin → On-site sale)
+6. Confirm cart lines, customer, fulfilment → **Charge with Square reader**
+7. Complete card on reader → return creates paid order with `square_payment_id`
+8. Fallback: charge in Square app manually → paste receipt id → **Mark paid after Square**
+9. **Record cash payment** creates paid order without Square
+10. Confirm fulfilment row / edition assignment; cart is cleared
 
 ### D. Open public sales
 
@@ -59,6 +64,6 @@ When A–C are good:
 
 | Variable | Purpose |
 |----------|---------|
-| `PURCHASES_LAN_ONLY` | When true, public host cannot checkout (desk/Square still works via admin) |
+| `PURCHASES_LAN_ONLY` | When true, public host cannot Stripe-checkout (desk/Square still works via admin; admin can still add to cart) |
 | `SQUARE_APPLICATION_ID` | Square POS API application id |
 | `NEXT_PUBLIC_SITE_URL` | Used for wall QR origin and Square callback URL |

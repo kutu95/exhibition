@@ -7,9 +7,31 @@ import { useEffect, useState } from "react";
 import {
   PENDING_SALE_KEY,
   type PendingSale,
+  type PendingSaleItem,
 } from "../../../../components/admin/OnSiteSaleClient";
+import { clearCart } from "../../../../lib/cart";
 import { parseSquarePosCallback } from "../../../../lib/square-pos";
 import styles from "../../../../components/admin/OnSiteSaleClient.module.css";
+
+type LegacyPendingSale = PendingSale & {
+  variant_id?: string;
+  quantity?: number;
+  frame_colour?: string | null;
+};
+
+const pendingItems = (pending: LegacyPendingSale): PendingSaleItem[] => {
+  if (pending.items?.length) return pending.items;
+  if (pending.variant_id) {
+    return [
+      {
+        variant_id: pending.variant_id,
+        quantity: pending.quantity ?? 1,
+        ...(pending.frame_colour ? { frame_colour: pending.frame_colour } : {}),
+      },
+    ];
+  }
+  return [];
+};
 
 export function SquareReturnClient() {
   const router = useRouter();
@@ -35,11 +57,18 @@ export function SquareReturnClient() {
         return;
       }
 
-      let pending: PendingSale;
+      let pending: LegacyPendingSale;
       try {
-        pending = JSON.parse(raw) as PendingSale;
+        pending = JSON.parse(raw) as LegacyPendingSale;
       } catch {
         setError("Could not read pending sale details.");
+        return;
+      }
+
+      const items = pendingItems(pending);
+      if (items.length === 0) {
+        setError("Pending sale had no line items. Use On-site sale → Mark paid after Square.");
+        setMessage("Missing cart.");
         return;
       }
 
@@ -53,8 +82,7 @@ export function SquareReturnClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "on_site",
-          variant_id: pending.variant_id,
-          quantity: pending.quantity,
+          items,
           customer_email: pending.allow_placeholder_customer
             ? undefined
             : pending.customer_email || undefined,
@@ -87,6 +115,7 @@ export function SquareReturnClient() {
       }
 
       sessionStorage.removeItem(PENDING_SALE_KEY);
+      clearCart();
       setMessage(`Order ${body?.order_number ?? ""} created.`);
       if (body?.order_id) {
         router.replace(`/admin/orders/${body.order_id}`);

@@ -4,6 +4,8 @@ import { z } from "zod";
 import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { assignEditionsToOrder } from "../../../../../lib/edition-assignment";
 import { sendOrderConfirmationEmail } from "../../../../../lib/emails/order-confirmation";
+import { MIXED_PROVIDER_MESSAGE, singleFulfilmentProvider } from "../../../../../lib/fulfilment";
+import { resolveManualOrderLines } from "../../../../../lib/manual-order-items";
 import { requireOpenStudioOrder } from "../../../../../lib/open-studio-orders";
 import {
   STUDIO_CUSTOMER,
@@ -23,10 +25,18 @@ const shippingAddressSchema = z.object({
   method: z.enum(["exhibition_pickup", "ship", "taken_today"]).optional(),
 });
 
-const manualOrderSchema = z.object({
-  mode: z.enum(["test", "on_site", "studio"]).default("test"),
+const lineItemSchema = z.object({
   variant_id: z.string().uuid(),
   quantity: z.coerce.number().int().positive().max(10).default(1),
+  frame_colour: z.string().max(40).nullable().optional(),
+});
+
+const manualOrderSchema = z.object({
+  mode: z.enum(["test", "on_site", "studio"]).default("test"),
+  variant_id: z.string().uuid().optional(),
+  quantity: z.coerce.number().int().positive().max(10).default(1),
+  frame_colour: z.string().max(40).nullable().optional(),
+  items: z.array(lineItemSchema).min(1).max(20).optional(),
   customer_email: z.string().email().optional(),
   customer_name: z.string().trim().max(120).optional(),
   allow_placeholder_customer: z.boolean().optional(),
@@ -149,6 +159,12 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
+  const resolvedLines = resolveManualOrderLines(payload);
+  if (!resolvedLines.ok) {
+    return NextResponse.json({ error: resolvedLines.error }, { status: 400 });
+  }
+  const lines = resolvedLines.lines;
+
   const paymentMethod =
     payload.payment_method ??
     (payload.mode === "test" || payload.mode === "studio" ? "manual" : undefined);
@@ -182,35 +198,49 @@ export async function POST(request: Request) {
     }
   }
 
-  const { data: variant, error: variantError } = await supabaseAdmin
+  const variantIds = [...new Set(lines.map((line) => line.variant_id))];
+  const { data: variants, error: variantError } = await supabaseAdmin
     .from("product_variants")
     .select(
       "id, variant_label, price_aud, is_active, edition_size, fulfilment_provider, products!inner(title, is_available, product_type)",
     )
-    .eq("id", payload.variant_id)
-    .single();
+    .in("id", variantIds);
 
-  if (variantError || !variant) {
+  if (variantError) {
+    console.error("Manual order variant lookup failed", variantError);
+    return NextResponse.json({ error: "Could not load variants." }, { status: 500 });
+  }
+
+  const variantRows = (variants ?? []) as unknown as VariantRow[];
+  const variantMap = new Map(variantRows.map((variant) => [variant.id, variant]));
+  if (variantMap.size !== variantIds.length) {
     return NextResponse.json({ error: "Variant not found." }, { status: 404 });
   }
 
-  const variantRow = variant as unknown as VariantRow;
-  const product = getProduct(variantRow.products);
-  if (!product) {
-    return NextResponse.json({ error: "Variant is not currently available." }, { status: 400 });
-  }
-
-  if (product.product_type !== "print") {
-    return NextResponse.json({ error: "Manual / on-site sales are only enabled for print variants." }, { status: 400 });
-  }
-
   const isStudio = payload.mode === "studio";
-  if (!isStudio && (!variantRow.is_active || !product.is_available)) {
-    return NextResponse.json({ error: "Variant is not currently available." }, { status: 400 });
+
+  for (const line of lines) {
+    const variantRow = variantMap.get(line.variant_id);
+    if (!variantRow) {
+      return NextResponse.json({ error: "Variant not found." }, { status: 404 });
+    }
+    const product = getProduct(variantRow.products);
+    if (!product) {
+      return NextResponse.json({ error: "Variant is not currently available." }, { status: 400 });
+    }
+    if (product.product_type !== "print") {
+      return NextResponse.json({ error: "Manual / on-site sales are only enabled for print variants." }, { status: 400 });
+    }
+    if (!isStudio && (!variantRow.is_active || !product.is_available)) {
+      return NextResponse.json({ error: "Variant is not currently available." }, { status: 400 });
+    }
   }
 
-  const unitPrice = isStudio ? 0 : variantRow.price_aud;
-  const subtotal = unitPrice * payload.quantity;
+  const providerCheck = singleFulfilmentProvider(variantRows);
+  if (!providerCheck.ok) {
+    return NextResponse.json({ error: MIXED_PROVIDER_MESSAGE }, { status: 400 });
+  }
+
   const customerEmail =
     payload.customer_email?.trim() ||
     (isStudio
@@ -241,10 +271,22 @@ export async function POST(request: Request) {
       ? `On-site sale (${paymentMethod ?? "manual"}).`
       : "Created via admin fulfilment test (no Stripe).";
 
+  const subtotal = lines.reduce((sum, line) => {
+    const variantRow = variantMap.get(line.variant_id);
+    const unitPrice = isStudio ? 0 : (variantRow?.price_aud ?? 0);
+    return sum + unitPrice * line.quantity;
+  }, 0);
+
   if (payload.existing_order_id) {
     if (!isStudio) {
       return NextResponse.json(
         { error: "Only studio prints can be added to an existing studio order." },
+        { status: 400 },
+      );
+    }
+    if (lines.length !== 1) {
+      return NextResponse.json(
+        { error: "Add one studio print at a time to an existing studio order." },
         { status: 400 },
       );
     }
@@ -275,17 +317,21 @@ export async function POST(request: Request) {
     // Studio batches are collected for one lab (Blue Wren). Older variants still
     // carry posterfactory vs pixelperfect labels; those must not block adding a print.
 
+    const line = lines[0]!;
+    const variantRow = variantMap.get(line.variant_id)!;
+
     const { data: createdItems, error: itemError } = await supabaseAdmin
       .from("order_items")
       .insert({
         order_id: existing.id,
-        variant_id: payload.variant_id,
-        quantity: payload.quantity,
-        unit_price_aud: unitPrice,
+        variant_id: line.variant_id,
+        quantity: line.quantity,
+        unit_price_aud: 0,
         edition_number_assigned: null,
         fulfilment_status: fulfilmentStatus,
         fulfilment_notes: fulfilmentNotes,
         fulfilment_provider: variantRow.fulfilment_provider,
+        frame_colour: line.frame_colour,
       })
       .select("id, variant_id, quantity, unit_price_aud, edition_number_assigned");
 
@@ -340,7 +386,7 @@ export async function POST(request: Request) {
       shipping_aud: 0,
       total_aud: subtotal,
       notes: paymentNote(payload),
-      fulfilment_provider: variantRow.fulfilment_provider,
+      fulfilment_provider: providerCheck.provider,
     })
     .select("id, order_number, customer_email, customer_name, total_aud, subtotal_aud, shipping_aud, status, notes, created_at, updated_at, stripe_payment_intent_id, stripe_checkout_session_id, square_payment_id, shipping_address")
     .single();
@@ -350,18 +396,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not create manual order." }, { status: 500 });
   }
 
-  const { data: createdItems, error: itemError } = await supabaseAdmin
-    .from("order_items")
-    .insert({
+  const orderItemsInsert = lines.map((line) => {
+    const variantRow = variantMap.get(line.variant_id)!;
+    return {
       order_id: createdOrder.id,
-      variant_id: payload.variant_id,
-      quantity: payload.quantity,
-      unit_price_aud: unitPrice,
-      edition_number_assigned: null,
+      variant_id: line.variant_id,
+      quantity: line.quantity,
+      unit_price_aud: isStudio ? 0 : variantRow.price_aud,
+      edition_number_assigned: null as number | null,
       fulfilment_status: fulfilmentStatus,
       fulfilment_notes: fulfilmentNotes,
       fulfilment_provider: variantRow.fulfilment_provider,
-    })
+      frame_colour: line.frame_colour,
+    };
+  });
+
+  const { data: createdItems, error: itemError } = await supabaseAdmin
+    .from("order_items")
+    .insert(orderItemsInsert)
     .select("id, variant_id, quantity, unit_price_aud, edition_number_assigned");
 
   if (itemError || !createdItems?.[0]) {
@@ -402,14 +454,18 @@ export async function POST(request: Request) {
     try {
       await sendOrderConfirmationEmail({
         order: createdOrder as Order,
-        items: (assignedItems ?? []).map((item) => ({
-          title: product.title,
-          variant_label: variantRow.variant_label,
-          quantity: item.quantity,
-          unit_price_aud: item.unit_price_aud,
-          edition_number_assigned: item.edition_number_assigned,
-          edition_size: variantRow.edition_size,
-        })),
+        items: (assignedItems ?? []).map((item) => {
+          const variantRow = variantMap.get(item.variant_id);
+          const product = variantRow ? getProduct(variantRow.products) : null;
+          return {
+            title: product?.title ?? "Print",
+            variant_label: variantRow?.variant_label ?? "",
+            quantity: item.quantity,
+            unit_price_aud: item.unit_price_aud,
+            edition_number_assigned: item.edition_number_assigned,
+            edition_size: variantRow?.edition_size ?? null,
+          };
+        }),
       });
     } catch (emailError) {
       console.error("On-site order confirmation email failed", emailError);

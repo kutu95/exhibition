@@ -134,6 +134,12 @@
   text-decoration: underline;
 }
 
+.deskCheckout {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
 .continue {
   text-align: center;
   text-decoration: underline;

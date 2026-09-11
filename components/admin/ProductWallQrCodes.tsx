@@ -17,7 +17,7 @@ type ProductWallQrCodesProps = {
   variants?: WallVariantOption[];
 };
 
-export function ProductWallQrCodes({ slug, title, productId, variants = [] }: ProductWallQrCodesProps) {
+export function ProductWallQrCodes({ slug, title, variants = [] }: ProductWallQrCodesProps) {
   const activeVariants = useMemo(
     () => variants.filter((variant) => variant.id.trim() && variant.label.trim()),
     [variants],
@@ -35,11 +35,9 @@ export function ProductWallQrCodes({ slug, title, productId, variants = [] }: Pr
 
   const wallUrl = buildWallProductUrl(slug, hungVariantId || undefined);
   const qrSrc = `/api/qr?size=512&data=${encodeURIComponent(wallUrl)}`;
-  const onSiteHref = productId
-    ? `/admin/on-site?product=${encodeURIComponent(productId)}${
-        hungVariantId ? `&variant=${encodeURIComponent(hungVariantId)}` : ""
-      }`
-    : "/admin/on-site";
+  const onSiteHref = hungVariantId
+    ? `/shop/${encodeURIComponent(slug)}?variant=${encodeURIComponent(hungVariantId)}`
+    : `/shop/${encodeURIComponent(slug)}`;
 
   return (
     <section className={styles.panel}>

@@ -261,8 +261,10 @@ export function CustomPrintClient({
     frame_colour: isFramed ? frameColour : null,
   });
 
+  const canAddToCart = purchasesAllowed || isAdmin;
+
   const handleAddToCart = async () => {
-    if (!purchasesAllowed || !quote) return;
+    if (!canAddToCart || !quote) return;
     setBusy("cart");
     setError(null);
     try {
@@ -765,34 +767,45 @@ export function CustomPrintClient({
             ) : (
               <>
                 {purchasesAllowed ? (
-                  <>
-                    <DiscountCodeField compact subtotalAud={quote?.retailCents} />
-                    <button
-                      className={`button-solid ${styles.button}`}
-                      type="button"
-                      disabled={!quote || busy !== null}
-                      onClick={() => void handleAddToCart()}
-                    >
-                      {busy === "cart" ? "Adding…" : "Add to cart"}
-                    </button>
-                    <button
-                      className={`button-outline ${styles.button}`}
-                      type="button"
-                      disabled={!quote || busy !== null}
-                      onClick={() => void handleBuyNow()}
-                    >
-                      {busy === "buy"
-                        ? "Redirecting…"
-                        : itemCount > 0
-                          ? `Buy now (${itemCount + 1} prints)`
-                          : "Buy now"}
-                    </button>
-                  </>
-                ) : (
+                  <DiscountCodeField compact subtotalAud={quote?.retailCents} />
+                ) : null}
+                {canAddToCart ? (
+                  <button
+                    className={`button-solid ${styles.button}`}
+                    type="button"
+                    disabled={!quote || busy !== null}
+                    onClick={() => void handleAddToCart()}
+                  >
+                    {busy === "cart" ? "Adding…" : "Add to cart"}
+                  </button>
+                ) : null}
+                {purchasesAllowed ? (
+                  <button
+                    className={`button-outline ${styles.button}`}
+                    type="button"
+                    disabled={!quote || busy !== null}
+                    onClick={() => void handleBuyNow()}
+                  >
+                    {busy === "buy"
+                      ? "Redirecting…"
+                      : itemCount > 0
+                        ? `Buy now (${itemCount + 1} prints)`
+                        : "Buy now"}
+                  </button>
+                ) : null}
+                {!purchasesAllowed && !isAdmin ? (
                   <p className={styles.muted}>
                     {PURCHASES_DISABLED_MESSAGE} <Link href="/contact">Contact</Link>
                   </p>
-                )}
+                ) : null}
+                {isAdmin ? (
+                  <p className={styles.adminHint}>
+                    In-shop sale: add to cart, then take payment at the desk.{" "}
+                    <Link href="/cart">View cart</Link>
+                    {" · "}
+                    <Link href="/admin/on-site">Desk checkout</Link>
+                  </p>
+                ) : null}
                 {isAdmin ? (
                   <div className={styles.adminPrint}>
                     <button

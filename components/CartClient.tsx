@@ -13,7 +13,11 @@ import { describeVariantForBuyer } from "../lib/print-offer";
 import { PURCHASES_DISABLED_MESSAGE } from "../lib/purchases-access";
 import { formatAUD } from "../lib/utils/currency";
 
-export function CartClient() {
+type CartClientProps = {
+  isAdmin?: boolean;
+};
+
+export function CartClient({ isAdmin = false }: CartClientProps) {
   const { items, itemCount, subtotalAud, updateQuantity, removeItem } = useCart();
   const purchasesAllowed = usePurchasesAllowed();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -116,13 +120,23 @@ export function CartClient() {
           <strong>Subtotal</strong>
           <span>{formatAUD(subtotalAud)}</span>
         </p>
-        <DiscountCodeField subtotalAud={subtotalAud} />
+        {purchasesAllowed ? <DiscountCodeField subtotalAud={subtotalAud} /> : null}
         <p className={styles.note}>Shipping calculated at checkout. Free within Australia.</p>
+        {isAdmin ? (
+          <Link className={`button-solid ${styles.deskCheckout}`} href="/admin/on-site">
+            Take payment at desk
+          </Link>
+        ) : null}
         {purchasesAllowed ? (
-          <button className="button-solid" type="button" onClick={handleCheckout} disabled={isCheckingOut}>
-            {isCheckingOut ? "Redirecting..." : "Checkout"}
+          <button
+            className={isAdmin ? "button-outline" : "button-solid"}
+            type="button"
+            onClick={handleCheckout}
+            disabled={isCheckingOut}
+          >
+            {isCheckingOut ? "Redirecting..." : isAdmin ? "Checkout with Stripe" : "Checkout"}
           </button>
-        ) : (
+        ) : isAdmin ? null : (
           <p className={styles.purchaseNotice}>
             {PURCHASES_DISABLED_MESSAGE}{" "}
             <Link href="/contact">Contact</Link>

@@ -333,8 +333,10 @@ export function ProductDetailClient({
     };
   };
 
+  const canAddToCart = purchasesAllowed || (isAdmin && product.product_type === "print");
+
   const handleAddToCart = () => {
-    if (!purchasesAllowed) return;
+    if (!canAddToCart) return;
     const item = cartLine();
     if (!item || !selectedVariant) return;
     setError(null);
@@ -578,7 +580,7 @@ export function ProductDetailClient({
         {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
         <div className={styles.titleRow}>
           <h1 className={styles.title}>{product.title}</h1>
-          {isAdmin ? (
+            {isAdmin && product.product_type === "print" ? (
             <Link
               href={`/admin/products/${product.id}/edit`}
               className={styles.adminEditLink}
@@ -885,46 +887,58 @@ export function ProductDetailClient({
               <DiscountCodeField compact={fromWall} subtotalAud={selectedVariant?.price_aud} />
             ) : null}
             <div className={styles.buyActions}>
-              {purchasesAllowed ? (
-                fromWall ? (
-                  <button
-                    className={`button-solid ${styles.buyButton}`}
-                    type="button"
-                    onClick={handleBuyThisPrint}
-                    disabled={isCheckingOut}
-                  >
-                    {isCheckingOut ? "Redirecting..." : "Buy this print"}
-                  </button>
-                ) : (
-                  <>
-                    <button className={`button-solid ${styles.buyButton}`} type="button" onClick={handleAddToCart}>
-                      Add to cart
-                    </button>
-                    <button
-                      className={`button-outline ${styles.buyButton}`}
-                      type="button"
-                      onClick={handleBuyNow}
-                      disabled={isCheckingOut}
-                    >
-                      {isCheckingOut
-                        ? "Redirecting..."
-                        : itemCount > 0
-                          ? `Buy now (${itemCount + 1} prints)`
-                          : "Buy now"}
-                    </button>
-                  </>
-                )
+              {purchasesAllowed && fromWall ? (
+                <button
+                  className={`button-solid ${styles.buyButton}`}
+                  type="button"
+                  onClick={handleBuyThisPrint}
+                  disabled={isCheckingOut}
+                >
+                  {isCheckingOut ? "Redirecting..." : "Buy this print"}
+                </button>
+              ) : null}
+              {canAddToCart && (!fromWall || isAdmin) ? (
+                <button
+                  className={`${purchasesAllowed && fromWall ? "button-outline" : "button-solid"} ${styles.buyButton}`}
+                  type="button"
+                  onClick={handleAddToCart}
+                >
+                  Add to cart
+                </button>
+              ) : null}
+              {purchasesAllowed && !fromWall ? (
+                <button
+                  className={`button-outline ${styles.buyButton}`}
+                  type="button"
+                  onClick={handleBuyNow}
+                  disabled={isCheckingOut}
+                >
+                  {isCheckingOut
+                    ? "Redirecting..."
+                    : itemCount > 0
+                      ? `Buy now (${itemCount + 1} prints)`
+                      : "Buy now"}
+                </button>
               ) : null}
             </div>
 
-            {!purchasesAllowed && !fromWall ? (
+            {isAdmin && product.product_type === "print" ? (
+              <p className={styles.cartFeedback}>
+                In-shop sale: add to cart, then take payment at the desk.{" "}
+                <Link href="/cart">View cart</Link>
+                {" · "}
+                <Link href="/admin/on-site">Desk checkout</Link>
+              </p>
+            ) : null}
+
+            {!purchasesAllowed && !isAdmin && !fromWall ? (
               <p className={styles.purchaseNotice}>
                 {PURCHASES_DISABLED_MESSAGE}{" "}
                 <Link href="/contact">Contact</Link>
               </p>
             ) : null}
 
-            {purchasesAllowed && !fromWall && itemCount > 0 ? (
+            {canAddToCart && !fromWall && itemCount > 0 && !isAdmin ? (
               <p className={styles.cartFeedback}>
                 {itemCount === 1 ? "1 print" : `${itemCount} prints`} already in your cart.{" "}
                 <Link href="/cart">View cart</Link>

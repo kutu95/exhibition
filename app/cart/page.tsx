@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 import { CartClient } from "../../components/CartClient";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../lib/admin-auth";
 import { buildMetadata } from "../../lib/metadata";
 
 export const metadata: Metadata = buildMetadata({
@@ -10,12 +12,19 @@ export const metadata: Metadata = buildMetadata({
   noIndex: true,
 });
 
-export default function CartPage() {
+export default async function CartPage() {
+  const cookieStore = await cookies();
+  const isAdmin = await verifyAdminSessionToken(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+
   return (
     <div className="section container">
       <h1>Cart</h1>
-      <p>Add prints from the shop, then checkout when you’re ready.</p>
-      <CartClient />
+      <p>
+        {isAdmin
+          ? "Add prints from the shop, then take payment at the desk or check out with Stripe."
+          : "Add prints from the shop, then checkout when you’re ready."}
+      </p>
+      <CartClient isAdmin={isAdmin} />
     </div>
   );
 }

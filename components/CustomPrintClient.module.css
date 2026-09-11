@@ -398,11 +398,9 @@
   border-top: 1px solid rgba(10, 22, 40, 0.15);
 }
 
-.adminHint {
-  margin: 0;
-  color: #666;
-  font-size: 0.8rem;
-  line-height: 1.35;
+.adminHint a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .studioOrderSuccess {
