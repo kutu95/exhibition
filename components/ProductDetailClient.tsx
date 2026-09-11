@@ -525,7 +525,7 @@ export function ProductDetailClient({
             imageRatio
               ? {
                   aspectRatio: `${imageRatio}`,
-                  maxWidth: `min(100%, calc(min(70vh, 52rem) * ${imageRatio}))`,
+                  maxWidth: `min(100%, calc(var(--image-max-h) * ${imageRatio}))`,
                 }
               : undefined
           }
@@ -536,7 +536,7 @@ export function ProductDetailClient({
             fill
             priority
             className={styles.mainImage}
-            sizes="(max-width: 950px) 100vw, 60vw"
+            sizes="(max-width: 1023px) 100vw, 55vw"
             onLoad={(event) => {
               const img = event.currentTarget;
               if (img.naturalWidth > 0 && img.naturalHeight > 0) {
@@ -574,27 +574,7 @@ export function ProductDetailClient({
         ) : null}
       </div>
 
-      <aside className={`${styles.sidebar} ${viewOnly ? styles.viewOnlySidebar : ""}`}>
-        {fromWall ? (
-          <div className={styles.wallBanner}>
-            {viewOnly ? (
-              <p>You&apos;re viewing the print on the wall.</p>
-            ) : (
-              <>
-                <p>
-                  You&apos;re viewing the print on the wall. Prints are available for purchase by print on demand. They
-                  will be delivered.
-                </p>
-                {purchasesAllowed ? null : (
-                  <p>
-                    Online checkout is temporarily closed.{" "}
-                    <Link href="/contact">Contact</Link> for enquiries after your visit.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        ) : null}
+      <div className={styles.story}>
         {product.location_tag ? <p className="eyebrow">{product.location_tag}</p> : null}
         <div className={styles.titleRow}>
           <h1 className={styles.title}>{product.title}</h1>
@@ -635,9 +615,35 @@ export function ProductDetailClient({
           />
         ) : null}
         {viewOnly ? null : maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
+        {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
+      </div>
+
+      {viewOnly && !fromWall ? null : (
+      <div className={styles.purchaseStack}>
+        {fromWall ? (
+          <div className={styles.wallBanner}>
+            {viewOnly ? (
+              <p>You&apos;re viewing the print on the wall.</p>
+            ) : (
+              <>
+                <p>
+                  You&apos;re viewing the print on the wall. Prints are available for purchase by print on demand. They
+                  will be delivered.
+                </p>
+                {purchasesAllowed ? null : (
+                  <p>
+                    Online checkout is temporarily closed.{" "}
+                    <Link href="/contact">Contact</Link> for enquiries after your visit.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        ) : null}
 
         {viewOnly ? null : (
-          <>
+      <aside className={styles.purchase} aria-label="Choose a print">
+        <p className={styles.purchaseTitle} aria-hidden="true">{product.title}</p>
         <div className={styles.priceSticky}>
           <div className={styles.priceRow}>
             <p className={styles.price}>
@@ -857,7 +863,7 @@ export function ProductDetailClient({
             <p className={styles.studioOrderHint}>
               Updating this print on the existing order. Choose size, paper, and frame, then save.
             </p>
-            <div className={`${styles.buyActions} ${styles.buyActionsWall}`}>
+            <div className={styles.buyActions}>
               <button
                 className={`button-solid ${styles.buyButton}`}
                 type="button"
@@ -878,7 +884,7 @@ export function ProductDetailClient({
             {purchasesAllowed ? (
               <DiscountCodeField compact={fromWall} subtotalAud={selectedVariant?.price_aud} />
             ) : null}
-            <div className={`${styles.buyActions} ${fromWall ? styles.buyActionsWall : ""}`}>
+            <div className={styles.buyActions}>
               {purchasesAllowed ? (
                 fromWall ? (
                   <button
@@ -951,14 +957,11 @@ export function ProductDetailClient({
         )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
-          </>
-        )}
-
-        {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
-        {viewOnly ? null : (
-          <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
-        )}
+        <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
       </aside>
+        )}
+      </div>
+      )}
       <StudioOrderDestinationDialog
         open={studioOrderDialogOpen}
         title="Order for studio"

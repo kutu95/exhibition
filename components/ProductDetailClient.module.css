@@ -1,10 +1,24 @@
 .wrap {
   display: grid;
-  gap: 2rem;
+  gap: 1.5rem;
+  grid-template-areas:
+    "back"
+    "gallery"
+    "banner"
+    "story"
+    "buy";
+}
+
+:global(.section).wrap {
+  /* Reclaim the global .section padding (3rem / 5rem from 900px) so a fold
+     landscape or short laptop actually has room for the photograph. */
+  padding-top: 1.25rem;
+  padding-bottom: 2.5rem;
 }
 
 .back {
-  margin: 0 0 -0.75rem;
+  grid-area: back;
+  margin: 0;
 }
 
 .back a {
@@ -14,6 +28,7 @@
 }
 
 .gallery {
+  grid-area: gallery;
   display: grid;
   gap: 1rem;
   min-width: 0;
@@ -22,13 +37,39 @@
   overflow: visible;
 }
 
+.story {
+  grid-area: story;
+  min-width: 0;
+}
+
+.purchaseStack {
+  display: contents;
+}
+
+.purchase {
+  grid-area: buy;
+  border: 1px solid rgba(10, 22, 40, 0.2);
+  padding: 1.15rem;
+  padding-bottom: 5.25rem;
+  align-self: start;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  background: var(--color-cream);
+}
+
+.purchaseTitle {
+  display: none;
+}
+
 .mainImageWrap {
   /* Until the image loads and reports its ratio, hold a neutral 3:2 frame.
      Once loaded, inline aspect-ratio + max-width shrink the frame to the
      photograph itself, so there is no dead space above or below. */
+  --image-max-h: min(62dvh, 36rem);
   aspect-ratio: 3 / 2;
   width: 100%;
-  max-height: min(70vh, 52rem);
+  max-height: var(--image-max-h);
   max-width: 100%;
   min-width: 0;
   margin: 0 auto;
@@ -80,19 +121,6 @@
 
 .thumbActive {
   border-color: var(--color-rust);
-}
-
-.sidebar {
-  border: 1px solid rgba(10, 22, 40, 0.2);
-  padding: 1.3rem;
-  align-self: start;
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-}
-
-.viewOnlySidebar .shareRow {
-  margin-top: 1.15rem;
 }
 
 .titleRow {
@@ -444,14 +472,16 @@
   gap: 0.65rem;
 }
 
-/* Single-column layout has no room to spare, so keep the buy action in reach. */
-@media (max-width: 949px) {
+/* Keep Buy on screen while the visitor reads the story on a phone. */
+@media (max-width: 1023px) {
   .buyActions {
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: 0;
-    z-index: 3;
-    margin-top: 1rem;
-    padding: 0.75rem 0 calc(0.25rem + env(safe-area-inset-bottom, 0px));
+    z-index: 20;
+    margin: 0;
+    padding: 0.7rem 1.5rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
     background: var(--color-cream);
     border-top: 1px solid rgba(10, 22, 40, 0.12);
   }
@@ -485,12 +515,13 @@
 }
 
 .wallBanner {
+  grid-area: banner;
   background: rgba(16, 64, 40, 0.08);
   border: 1px solid rgba(16, 64, 40, 0.28);
-  margin: 0 0 1rem;
-  padding: 0.75rem 0.85rem;
-  font-size: 1.12rem;
-  line-height: 1.5;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
 .wallBanner p {
@@ -503,16 +534,6 @@
 
 .wallBanner a {
   text-decoration: underline;
-}
-
-.buyActionsWall {
-  position: sticky;
-  bottom: 0;
-  z-index: 3;
-  margin-top: 1rem;
-  padding: 0.75rem 0 calc(0.25rem + env(safe-area-inset-bottom, 0px));
-  background: var(--color-cream);
-  border-top: 1px solid rgba(10, 22, 40, 0.12);
 }
 
 .error {
@@ -538,34 +559,113 @@
 }
 
 .description {
-  margin: 0.55rem 0 0.85rem;
+  margin: 0.35rem 0 0.85rem;
+  max-width: 40rem;
   color: #2a2a2a;
   font-family: var(--font-heading);
-  font-size: 1.28rem;
+  font-size: 1.22rem;
   font-weight: 400;
   line-height: 1.55;
 }
 
 .shareRow {
-  margin: 0.6rem 0;
+  margin: 0.85rem 0 0;
 }
 
 .meta {
+  margin: 0.85rem 0 0;
   color: var(--color-rust);
   font-size: 0.87rem;
 }
 
-@media (min-width: 950px) {
-  .wrap {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+@media (min-width: 1024px) {
+  .wrap:has(.purchaseStack) {
+    gap: 1.35rem 2rem;
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+    grid-template-areas:
+      "back buy"
+      "gallery buy"
+      "story buy";
     align-items: start;
   }
 
-  .back {
-    grid-column: 1 / -1;
+  :global(.section).wrap:has(.purchaseStack) {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+  }
+
+  .purchaseStack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    grid-area: buy;
+    align-self: start;
+    position: sticky;
+    top: calc(var(--header-h) + 0.5rem);
+    max-height: calc(100dvh - var(--header-h) - 1.25rem);
+    overflow: hidden;
+    border: 1px solid rgba(10, 22, 40, 0.2);
+    padding: 1.25rem;
+    background: var(--color-cream);
+  }
+
+  .wallBanner {
+    grid-area: auto;
+    flex: 0 0 auto;
+  }
+
+  .purchase {
+    grid-area: auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .purchaseTitle {
+    display: block;
+    margin: 0 0 0.35rem;
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    line-height: 1.15;
+  }
+
+  .priceSticky {
+    position: static;
+    top: auto;
+  }
+
+  .buyActions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    margin-top: auto;
+    padding: 0.75rem 0 0;
+    background: var(--color-cream);
+    border-top: 1px solid rgba(10, 22, 40, 0.12);
+  }
+
+  .title {
+    font-size: clamp(2.15rem, 3.2vw, 3.15rem);
   }
 
   .description {
-    font-size: 1.18rem;
+    font-size: 1.2rem;
+  }
+
+  .mainImageWrap {
+    --image-max-h: min(calc(100dvh - var(--header-h) - 5.5rem), 44rem);
+  }
+}
+
+@media (max-height: 760px) {
+  :global(.section).wrap {
+    padding-top: 0.85rem;
   }
 }
