@@ -7,6 +7,7 @@ import { verifyAdminSession } from "../../../../../lib/admin-auth";
 import { transcribeSpokenStory } from "../../../../../lib/audio-transcript";
 import { resolveCanonicalMediaPath } from "../../../../../lib/media-storage";
 import {
+  AUDIO_EXTENSION_TO_MIME,
   audioStemFromProduct,
   extensionForAudioUpload,
   formatAudioClock,
@@ -16,14 +17,6 @@ import {
 export const runtime = "nodejs";
 
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
-
-const mimeTypeForExtension: Record<string, string> = {
-  mp3: "audio/mpeg",
-  m4a: "audio/mp4",
-  ogg: "audio/ogg",
-  wav: "audio/wav",
-  webm: "audio/webm",
-};
 
 const parseDurationSeconds = (value: FormDataEntryValue | null): number | null => {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -81,7 +74,7 @@ export async function POST(request: Request) {
   const transcription = await transcribeSpokenStory({
     buffer,
     filename,
-    mimeType: mimeTypeForExtension[extension] ?? fileField.type ?? "application/octet-stream",
+    mimeType: AUDIO_EXTENSION_TO_MIME[extension] ?? fileField.type ?? "application/octet-stream",
   });
 
   const transcript = transcription.ok ? transcription.text : liveTranscript || null;

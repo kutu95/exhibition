@@ -36,6 +36,12 @@
   grid-column: 1 / -1;
 }
 
+.audioPlayer {
+  display: block;
+  max-width: 28rem;
+  width: 100%;
+}
+
 .span2 {
   grid-column: span 2;
 }

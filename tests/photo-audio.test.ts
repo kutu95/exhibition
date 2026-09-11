@@ -9,9 +9,11 @@ import {
   groupExistingAudioStories,
   hasPhotoAudioStory,
   isValidAudioUrl,
+  mimeTypeForAudioUrl,
   normalizeAudioFields,
   parseAudioDuration,
   productAudioUrl,
+  relativePathFromAudioUrl,
 } from "../lib/photo-audio";
 
 describe("isValidAudioUrl", () => {
@@ -80,6 +82,10 @@ describe("product audio filenames", () => {
     expect(extensionForAudioUpload({ name: "Take 3.MP3", type: "" })).toBe("mp3");
     expect(extensionForAudioUpload({ name: "recording", type: "audio/webm;codecs=opus" })).toBe("webm");
     expect(extensionForAudioUpload({ name: "notes.txt", type: "text/plain" })).toBeNull();
+    expect(relativePathFromAudioUrl("/audio/gnarabup-eye.wav")).toBe("audio/gnarabup-eye.wav");
+    expect(relativePathFromAudioUrl("/images/photo.mp3")).toBeNull();
+    expect(mimeTypeForAudioUrl("/audio/gnarabup-eye.wav")).toBe("audio/wav");
+    expect(mimeTypeForAudioUrl("/audio/hiding-in-plain-sight.mp3")).toBe("audio/mpeg");
   });
 });
 

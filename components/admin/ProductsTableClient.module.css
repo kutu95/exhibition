@@ -97,6 +97,45 @@
   vertical-align: middle;
 }
 
+.sortBtn {
+  align-items: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: inherit;
+  gap: 0.3rem;
+  padding: 0;
+  text-align: left;
+  user-select: none;
+}
+
+.sortBtn:hover {
+  text-decoration: underline;
+}
+
+.sortIndicator,
+.sortIndicatorActive {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.sortIndicator {
+  color: #aabbcc;
+  opacity: 0;
+}
+
+.sortBtn:hover .sortIndicator,
+.sortBtn:focus-visible .sortIndicator {
+  opacity: 1;
+}
+
+.sortIndicatorActive {
+  color: #111;
+}
+
 .tableWithThumbs {
   min-width: 1060px;
 }
@@ -127,6 +166,30 @@
   align-items: center;
   display: flex;
   gap: 0.55rem;
+}
+
+.audioTrigger {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(10, 22, 40, 0.35);
+  color: #0a1628;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 2rem;
+  justify-content: center;
+  padding: 0;
+  width: 2rem;
+}
+
+.audioTrigger:hover,
+.audioTriggerActive {
+  color: #8a3a1b;
+}
+
+.audioTriggerIcon {
+  height: 1.15rem;
+  width: 1.15rem;
 }
 
 .actions {

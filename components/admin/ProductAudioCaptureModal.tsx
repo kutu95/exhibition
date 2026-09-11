@@ -14,13 +14,22 @@ import {
 import { encodeMonoWav, mixToMono } from "../../lib/wav-encode";
 import styles from "./ProductAudioCaptureModal.module.css";
 
+export type ProductAudioFields = {
+  audioUrl: string;
+  audioDuration: string;
+  audioTranscript: string;
+};
+
 type ProductAudioCaptureModalProps = {
   open: boolean;
   slug: string;
   title: string;
   currentProductId?: string | null;
+  currentAudioUrl?: string;
+  currentAudioDuration?: string;
+  currentAudioTranscript?: string;
   onClose: () => void;
-  onApplied: (fields: { audioUrl: string; audioDuration: string; audioTranscript: string }) => void;
+  onApplied: (fields: ProductAudioFields) => void | Promise<void>;
 };
 
 type SpeechRecognitionLike = {
@@ -102,10 +111,15 @@ export function ProductAudioCaptureModal({
   slug,
   title,
   currentProductId = null,
+  currentAudioUrl = "",
+  currentAudioDuration = "",
+  currentAudioTranscript = "",
   onClose,
   onApplied,
 }: ProductAudioCaptureModalProps) {
   const stem = audioStemFromProduct(slug, title);
+  const attachedAudioUrl = currentAudioUrl.trim();
+  const hasCurrentAudio = Boolean(attachedAudioUrl);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -114,7 +128,8 @@ export function ProductAudioCaptureModal({
   const tickRef = useRef<number | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
-  const [mode, setMode] = useState<"new" | "existing">("new");
+  const [mode, setMode] = useState<"current" | "new" | "existing">("new");
+  const [currentTranscript, setCurrentTranscript] = useState(currentAudioTranscript);
   const [recording, setRecording] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -123,6 +138,7 @@ export function ProductAudioCaptureModal({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [stories, setStories] = useState<ExistingAudioStory[]>([]);
   const [storiesLoading, setStoriesLoading] = useState(false);
   const [storiesError, setStoriesError] = useState<string | null>(null);
@@ -161,12 +177,20 @@ export function ProductAudioCaptureModal({
     setError(null);
     setStatus(null);
     setSaving(false);
+    setTranscribing(false);
     setMode("new");
+    setCurrentTranscript("");
     setStoryQuery("");
     setSelectedStoryUrl(null);
     setStoriesError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- close resets capture state
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setCurrentTranscript(currentAudioTranscript);
+    setMode(attachedAudioUrl ? "current" : "new");
+  }, [attachedAudioUrl, currentAudioTranscript, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -204,11 +228,11 @@ export function ProductAudioCaptureModal({
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !saving) onClose();
+      if (event.key === "Escape" && !saving && !transcribing) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, open, saving]);
+  }, [onClose, open, saving, transcribing]);
 
   useEffect(
     () => () => {
@@ -235,11 +259,68 @@ export function ProductAudioCaptureModal({
     setMode("existing");
   };
 
+  const chooseCurrent = () => {
+    stopMedia();
+    resetPreview();
+    setSelectedStoryUrl(null);
+    setLiveTranscript("");
+    setError(null);
+    setStatus(null);
+    setMode("current");
+  };
+
   const chooseNew = () => {
     setSelectedStoryUrl(null);
     setError(null);
     setStatus(null);
     setMode("new");
+  };
+
+  const transcribeCurrent = async () => {
+    if (!attachedAudioUrl) {
+      setError("This photograph does not have audio yet.");
+      return;
+    }
+
+    setTranscribing(true);
+    setError(null);
+    setStatus("Transcribing the recording…");
+
+    try {
+      const response = await adminClientFetch("/api/admin/audio/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio_url: attachedAudioUrl }),
+        timeoutMs: ADMIN_CLIENT_FETCH_LONG_TIMEOUT_MS,
+      });
+      const payload = (await response.json().catch(() => null)) as { transcript?: string; error?: string } | null;
+      if (!response.ok || !payload?.transcript?.trim()) {
+        setError(payload?.error ?? "Could not transcribe this recording.");
+        setStatus(null);
+        return;
+      }
+
+      setCurrentTranscript(payload.transcript.trim());
+      setStatus("Transcript generated. Review it, then save.");
+    } catch (transcribeError) {
+      setError(adminClientFetchError(transcribeError));
+      setStatus(null);
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const applyFields = async (fields: ProductAudioFields, options?: { close?: boolean }) => {
+    setSaving(true);
+    setError(null);
+    try {
+      await Promise.resolve(onApplied(fields));
+      if (options?.close !== false) onClose();
+    } catch (applyError) {
+      setError(applyError instanceof Error ? applyError.message : adminClientFetchError(applyError));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const startRecording = async () => {
@@ -337,18 +418,30 @@ export function ProductAudioCaptureModal({
   };
 
   const saveAudio = async () => {
+    if (mode === "current") {
+      if (!attachedAudioUrl) {
+        setError("This photograph does not have audio yet.");
+        return;
+      }
+      await applyFields({
+        audioUrl: attachedAudioUrl,
+        audioDuration: currentAudioDuration,
+        audioTranscript: currentTranscript,
+      });
+      return;
+    }
+
     if (mode === "existing") {
       const story = stories.find((item) => item.audio_url === selectedStoryUrl);
       if (!story) {
         setError("Select an existing recording first.");
         return;
       }
-      onApplied({
+      await applyFields({
         audioUrl: story.audio_url,
         audioDuration: story.audio_duration ?? "",
         audioTranscript: story.audio_transcript ?? "",
       });
-      onClose();
       return;
     }
 
@@ -396,19 +489,20 @@ export function ProductAudioCaptureModal({
       }
 
       const transcript = payload.transcript?.trim() ?? "";
-      onApplied({
+      const applied: ProductAudioFields = {
         audioUrl: payload.url_path,
         audioDuration: payload.duration ?? (durationSeconds !== null ? formatAudioClock(durationSeconds) : ""),
         audioTranscript: transcript,
-      });
+      };
       if (!transcript && payload.transcript_error) {
+        await applyFields(applied, { close: false });
         setStatus(null);
         setError(
           `${payload.transcript_error} The file is saved on the product; add a transcript by hand if needed.`,
         );
         return;
       }
-      onClose();
+      await applyFields(applied);
     } catch (saveError) {
       setError(adminClientFetchError(saveError));
       setStatus(null);
@@ -419,19 +513,36 @@ export function ProductAudioCaptureModal({
 
   if (!open) return null;
 
+  const busy = saving || transcribing;
   const pendingExtension = pendingFile ? extensionForAudioUpload(pendingFile) : null;
   const targetName = stem ? `${stem}.${pendingExtension ?? "wav"}` : "add-a-title-first";
   const visibleStories = filterExistingAudioStories(stories, storyQuery);
   const selectedStory = stories.find((story) => story.audio_url === selectedStoryUrl) ?? null;
+  const currentTranscriptDirty =
+    currentTranscript.trim() !== (currentAudioTranscript ?? "").trim();
   const canUse =
-    mode === "existing" ? Boolean(selectedStory) : Boolean(pendingFile && stem);
+    mode === "current"
+      ? hasCurrentAudio && currentTranscriptDirty
+      : mode === "existing"
+        ? Boolean(selectedStory)
+        : Boolean(pendingFile && stem);
+  const primaryLabel =
+    transcribing
+      ? "Transcribing…"
+      : saving
+        ? "Saving…"
+        : mode === "current"
+          ? currentTranscriptDirty
+            ? "Save transcript"
+            : "Done"
+          : "Use this audio";
 
   return (
     <div
       className={styles.backdrop}
       role="presentation"
       onClick={() => {
-        if (!saving) onClose();
+        if (!busy) onClose();
       }}
     >
       <div
@@ -446,13 +557,18 @@ export function ProductAudioCaptureModal({
             <p className={styles.eyebrow}>Hear the story</p>
             <h2 id="product-audio-capture-title">Audio for this photograph</h2>
           </div>
-          <button type="button" className={styles.close} onClick={onClose} disabled={saving} aria-label="Close">
+          <button type="button" className={styles.close} onClick={onClose} disabled={busy} aria-label="Close">
             ×
           </button>
         </header>
 
         <p className={styles.filename}>
-          {mode === "existing" ? (
+          {mode === "current" ? (
+            <>
+              Listen to the recording already on this photograph, edit the transcript, generate a transcript from the
+              audio, or replace it with a new recording.
+            </>
+          ) : mode === "existing" ? (
             <>
               Choose a recording already used on another photograph. Both products keep the same file and transcript —
               this is not a copy.
@@ -468,8 +584,18 @@ export function ProductAudioCaptureModal({
         </p>
 
         <div className={styles.actions}>
+          {hasCurrentAudio ? (
+            <button
+              type="button"
+              className={mode === "current" ? styles.recordStart : styles.secondary}
+              onClick={chooseCurrent}
+              disabled={busy || recording}
+            >
+              Listen to current audio
+            </button>
+          ) : null}
           {recording ? (
-            <button type="button" className={styles.recordStop} onClick={stopRecording} disabled={saving}>
+            <button type="button" className={styles.recordStop} onClick={stopRecording} disabled={busy}>
               Stop recording · {formatAudioClock(elapsedSeconds)}
             </button>
           ) : (
@@ -480,7 +606,7 @@ export function ProductAudioCaptureModal({
                 chooseNew();
                 void startRecording();
               }}
-              disabled={saving || !stem}
+              disabled={busy || !stem}
             >
               Record audio
             </button>
@@ -489,7 +615,7 @@ export function ProductAudioCaptureModal({
             type="button"
             className={styles.secondary}
             onClick={() => fileInputRef.current?.click()}
-            disabled={saving || recording || !stem}
+            disabled={busy || recording || !stem}
           >
             Upload a file
           </button>
@@ -497,7 +623,7 @@ export function ProductAudioCaptureModal({
             type="button"
             className={mode === "existing" ? styles.recordStart : styles.secondary}
             onClick={chooseExisting}
-            disabled={saving || recording}
+            disabled={busy || recording}
           >
             Use existing audio
           </button>
@@ -513,7 +639,44 @@ export function ProductAudioCaptureModal({
           />
         </div>
 
-        {mode === "existing" ? (
+        {mode === "current" ? (
+          <div className={styles.preview}>
+            <p className={styles.previewLabel}>
+              {audioFilenameFromUrl(attachedAudioUrl)}
+              {currentAudioDuration ? ` · ${currentAudioDuration}` : ""}
+            </p>
+            <audio key={attachedAudioUrl} controls preload="metadata" src={attachedAudioUrl}>
+              Your browser cannot play this recording.
+            </audio>
+            <div className={styles.transcript}>
+              <div className={styles.transcriptHeader}>
+                <span>Transcript</span>
+                <button
+                  type="button"
+                  className={styles.secondary}
+                  onClick={() => void transcribeCurrent()}
+                  disabled={busy}
+                >
+                  {transcribing
+                    ? "Transcribing…"
+                    : currentTranscript.trim()
+                      ? "Re-transcribe from audio"
+                      : "Generate transcript"}
+                </button>
+              </div>
+              <textarea
+                value={currentTranscript}
+                onChange={(event) => setCurrentTranscript(event.target.value)}
+                rows={6}
+                placeholder="Indexable transcript of the spoken story"
+                disabled={busy}
+              />
+            </div>
+            {!currentTranscript.trim() && !transcribing ? (
+              <p className={styles.hint}>This recording has no transcript yet. Generate one from the audio, or type it here.</p>
+            ) : null}
+          </div>
+        ) : mode === "existing" ? (
           <div className={styles.existing}>
             <label className={styles.search}>
               Search photographs or filename
@@ -608,11 +771,22 @@ export function ProductAudioCaptureModal({
         {status && !error ? <p className={styles.status}>{status}</p> : null}
 
         <div className={styles.footer}>
-          <button type="button" className={styles.secondary} onClick={onClose} disabled={saving}>
+          <button type="button" className={styles.secondary} onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <button type="button" className={styles.primary} onClick={() => void saveAudio()} disabled={saving || !canUse}>
-            {saving ? "Saving…" : "Use this audio"}
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={() => {
+              if (mode === "current" && !currentTranscriptDirty) {
+                onClose();
+                return;
+              }
+              void saveAudio();
+            }}
+            disabled={busy || (mode !== "current" && !canUse)}
+          >
+            {primaryLabel}
           </button>
         </div>
       </div>

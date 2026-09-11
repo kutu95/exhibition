@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { adminClientFetch } from "../../lib/admin-client-fetch";
 import type { Gallery } from "../../lib/galleries";
+import { ProductAudioCaptureModal } from "./ProductAudioCaptureModal";
 import { ProductOrdersButton } from "./ProductOrdersButton";
 import styles from "./ProductsTableClient.module.css";
 
 type ProductListItem = {
   id: string;
+  slug: string;
   title: string;
   product_type: string;
   location_tag: string | null;
@@ -20,6 +23,9 @@ type ProductListItem = {
   visibility?: "public" | "vault";
   image_url: string | null;
   image_alt: string | null;
+  audio_url: string | null;
+  audio_duration: string | null;
+  audio_transcript: string | null;
 };
 
 type ProductsTableClientProps = {
@@ -31,16 +37,78 @@ const PUBLIC_FILTER = "public";
 const ALL_FILTER = "all";
 const THUMBNAILS_STORAGE_KEY = "admin-products-show-thumbnails";
 
+type SortKey =
+  | "title"
+  | "product_type"
+  | "location_tag"
+  | "gallery"
+  | "variants_count"
+  | "is_featured"
+  | "is_available";
+type SortDir = "asc" | "desc";
+
 type GalleryGroup = {
   key: string;
   title: string;
   products: ProductListItem[];
 };
 
+const SORT_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+function galleryLabel(product: ProductListItem, galleryNameById: Map<string, string>): string {
+  return product.gallery_id
+    ? galleryNameById.get(product.gallery_id) ?? "Private gallery"
+    : "Public gallery";
+}
+
+function compareProducts(
+  a: ProductListItem,
+  b: ProductListItem,
+  sortKey: SortKey,
+  sortDir: SortDir,
+  galleryNameById: Map<string, string>,
+): number {
+  const direction = sortDir === "asc" ? 1 : -1;
+  let result = 0;
+
+  switch (sortKey) {
+    case "title":
+      result = SORT_COLLATOR.compare(a.title, b.title);
+      break;
+    case "product_type":
+      result = SORT_COLLATOR.compare(a.product_type, b.product_type);
+      break;
+    case "location_tag":
+      result = SORT_COLLATOR.compare(a.location_tag ?? "", b.location_tag ?? "");
+      break;
+    case "gallery":
+      result = SORT_COLLATOR.compare(galleryLabel(a, galleryNameById), galleryLabel(b, galleryNameById));
+      break;
+    case "variants_count":
+      result = a.variants_count - b.variants_count;
+      break;
+    case "is_featured":
+      result = Number(a.is_featured) - Number(b.is_featured);
+      break;
+    case "is_available":
+      result = Number(a.is_available) - Number(b.is_available);
+      break;
+  }
+
+  if (result === 0 && sortKey !== "title") {
+    result = SORT_COLLATOR.compare(a.title, b.title);
+  }
+
+  return result * direction;
+}
+
 export function ProductsTableClient({ products, galleries }: ProductsTableClientProps) {
   const router = useRouter();
   const [filter, setFilter] = useState(ALL_FILTER);
   const [showThumbnails, setShowThumbnails] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [audioTarget, setAudioTarget] = useState<ProductListItem | null>(null);
   const galleryNameById = useMemo(
     () => new Map(galleries.map((gallery) => [gallery.id, gallery.name])),
     [galleries],
@@ -107,11 +175,56 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
       result.push({ key: PUBLIC_FILTER, title: "Public gallery", products: publicProducts });
     }
     result.push(...privateGroups, ...orphanGroups);
-    return result;
-  }, [filteredProducts, galleries, galleryNameById]);
+
+    if (!sortKey) return result;
+
+    const sortedGroups = result.map((group) => ({
+      ...group,
+      products: [...group.products].sort((a, b) =>
+        compareProducts(a, b, sortKey, sortDir, galleryNameById),
+      ),
+    }));
+
+    if (sortKey === "gallery") {
+      sortedGroups.sort((a, b) => SORT_COLLATOR.compare(a.title, b.title) * (sortDir === "asc" ? 1 : -1));
+    }
+
+    return sortedGroups;
+  }, [filteredProducts, galleries, galleryNameById, sortKey, sortDir]);
+
+  const toggleSort = (column: SortKey) => {
+    if (sortKey === column) {
+      setSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(column);
+    setSortDir("asc");
+  };
 
   const toggleAvailable = async (id: string) => {
     await fetch(`/api/admin/products/${id}/toggle-available`, { method: "PATCH" });
+    router.refresh();
+  };
+
+  const persistProductAudio = async (fields: {
+    audioUrl: string;
+    audioDuration: string;
+    audioTranscript: string;
+  }) => {
+    if (!audioTarget) return;
+    const response = await adminClientFetch(`/api/admin/products/${audioTarget.id}/audio`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        audio_url: fields.audioUrl,
+        audio_duration: fields.audioDuration,
+        audio_transcript: fields.audioTranscript,
+      }),
+    });
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!response.ok) {
+      throw new Error(payload?.error ?? "Could not save audio.");
+    }
     router.refresh();
   };
 
@@ -169,13 +282,37 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
                 <thead>
                   <tr>
                     {showThumbnails ? <th className={styles.imageCol}>Image</th> : null}
-                    <th>Title</th>
-                    <th>Type</th>
-                    <th>Location</th>
-                    <th>Gallery</th>
-                    <th>Variants</th>
-                    <th>Featured</th>
-                    <th>Available</th>
+                    <SortableHeader label="Title" column="title" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Type" column="product_type" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader
+                      label="Location"
+                      column="location_tag"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                    />
+                    <SortableHeader label="Gallery" column="gallery" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader
+                      label="Variants"
+                      column="variants_count"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                    />
+                    <SortableHeader
+                      label="Featured"
+                      column="is_featured"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                    />
+                    <SortableHeader
+                      label="Available"
+                      column="is_available"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={toggleSort}
+                    />
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -201,6 +338,7 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
                       <td>
                         <div className={styles.titleCell}>
                           <ProductOrdersButton productId={product.id} productTitle={product.title} />
+                          <AudioShortcutButton product={product} onOpen={() => setAudioTarget(product)} />
                           {product.title}
                         </div>
                       </td>
@@ -230,6 +368,96 @@ export function ProductsTableClient({ products, galleries }: ProductsTableClient
           </section>
         ))
       )}
+      <ProductAudioCaptureModal
+        open={Boolean(audioTarget)}
+        slug={audioTarget?.slug ?? ""}
+        title={audioTarget?.title ?? ""}
+        currentProductId={audioTarget?.id ?? null}
+        currentAudioUrl={audioTarget?.audio_url ?? ""}
+        currentAudioDuration={audioTarget?.audio_duration ?? ""}
+        currentAudioTranscript={audioTarget?.audio_transcript ?? ""}
+        onClose={() => setAudioTarget(null)}
+        onApplied={persistProductAudio}
+      />
     </div>
+  );
+}
+
+function SortableHeader({
+  label,
+  column,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  column: SortKey;
+  sortKey: SortKey | null;
+  sortDir: SortDir;
+  onSort: (column: SortKey) => void;
+}) {
+  const active = sortKey === column;
+  const nextDir = !active || sortDir === "desc" ? "ascending" : "descending";
+
+  return (
+    <th aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        type="button"
+        className={styles.sortBtn}
+        onClick={() => onSort(column)}
+        aria-label={`Sort by ${label}, ${nextDir}`}
+      >
+        {label}
+        <span className={active ? styles.sortIndicatorActive : styles.sortIndicator} aria-hidden="true">
+          {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
+function AudioShortcutButton({
+  product,
+  onOpen,
+}: {
+  product: ProductListItem;
+  onOpen: () => void;
+}) {
+  const hasAudio = Boolean(product.audio_url?.trim());
+
+  return (
+    <button
+      type="button"
+      className={hasAudio ? `${styles.audioTrigger} ${styles.audioTriggerActive}` : styles.audioTrigger}
+      aria-label={hasAudio ? `Listen to audio for ${product.title}` : `Add audio for ${product.title}`}
+      title={hasAudio ? "Listen to or edit audio" : "Add audio"}
+      onClick={onOpen}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.audioTriggerIcon}>
+        <path
+          d="M4.5 9.25h3.1L12 5.8v12.4l-4.4-3.45H4.5z"
+          fill={hasAudio ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M16.2 9.1a3.6 3.6 0 0 1 0 5.8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        {hasAudio ? (
+          <path
+            d="M18.4 6.8a6.4 6.4 0 0 1 0 10.4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        ) : null}
+      </svg>
+    </button>
   );
 }

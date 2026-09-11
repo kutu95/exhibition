@@ -4,6 +4,7 @@ import type { Gallery } from "../../../lib/galleries";
 
 type ProductListItem = {
   id: string;
+  slug: string;
   title: string;
   product_type: string;
   location_tag: string | null;
@@ -14,6 +15,9 @@ type ProductListItem = {
   visibility?: "public" | "vault";
   image_url: string | null;
   image_alt: string | null;
+  audio_url: string | null;
+  audio_duration: string | null;
+  audio_transcript: string | null;
 };
 
 export default async function AdminProductsPage() {

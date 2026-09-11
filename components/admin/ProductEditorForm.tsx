@@ -854,13 +854,20 @@ export function ProductEditorForm({
             <p className={styles.hint}>
               Hear the story — optional spoken recording. Leave blank for photographs without audio.
             </p>
+            {audioUrl.trim() ? (
+              <div className={styles.spanFull}>
+                <audio className={styles.audioPlayer} controls preload="metadata" src={audioUrl}>
+                  Your browser cannot play this recording.
+                </audio>
+              </div>
+            ) : null}
             <div className={styles.spanFull}>
               <button
                 className={styles.btnSecondary}
                 type="button"
                 onClick={() => setAudioCaptureOpen(true)}
               >
-                {audioUrl.trim() ? "Replace audio" : "Record, upload, or reuse audio"}
+                {audioUrl.trim() ? "Listen or replace audio" : "Record, upload, or reuse audio"}
               </button>
             </div>
             <label>
@@ -1297,6 +1304,9 @@ export function ProductEditorForm({
         slug={slug}
         title={title}
         currentProductId={initialData?.id ?? null}
+        currentAudioUrl={audioUrl}
+        currentAudioDuration={audioDuration}
+        currentAudioTranscript={audioTranscript}
         onClose={() => setAudioCaptureOpen(false)}
         onApplied={(fields) => {
           setAudioUrl(fields.audioUrl);

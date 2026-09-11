@@ -20,6 +20,14 @@ const AUDIO_MIME_TO_EXTENSION: Record<string, AudioExtension> = {
   "audio/webm": "webm",
 };
 
+export const AUDIO_EXTENSION_TO_MIME: Record<AudioExtension, string> = {
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  ogg: "audio/ogg",
+  wav: "audio/wav",
+  webm: "audio/webm",
+};
+
 const isAudioExtension = (value: string): value is AudioExtension =>
   (AUDIO_EXTENSIONS as readonly string[]).includes(value);
 
@@ -121,6 +129,17 @@ export const audioFilenameFromUrl = (url: string): string => {
   const trimmed = url.trim();
   const filename = trimmed.split("/").pop();
   return filename && filename.length > 0 ? filename : trimmed;
+};
+
+export const relativePathFromAudioUrl = (url: string): string | null => {
+  const trimmed = url.trim();
+  if (!isValidAudioUrl(trimmed)) return null;
+  return trimmed.replace(/^\/+/, "");
+};
+
+export const mimeTypeForAudioUrl = (url: string): string => {
+  const extension = audioFilenameFromUrl(url).split(".").pop()?.toLowerCase() ?? "";
+  return isAudioExtension(extension) ? AUDIO_EXTENSION_TO_MIME[extension] : "application/octet-stream";
 };
 
 type AudioStorySource = {
