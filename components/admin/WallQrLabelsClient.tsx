@@ -39,7 +39,8 @@ export function WallQrLabelsClient({ products }: WallQrLabelsClientProps) {
         <p className={styles.hint}>
           Download the QR PDF and print at <strong>100% / Actual size</strong> (turn off “fit to page”). Each square is
           exactly 5&nbsp;cm. The title under the square is only for matching — trim it off if you want the QR alone on
-          the wall. Title labels are a separate PDF: title only, cut on the crop marks.
+          the wall. Title labels are a separate PDF: title only, cut on the crop marks. Caption labels are full A4
+          width, with title, description, and transcript where there is one — cut on the dashed lines.
         </p>
         <div className={styles.actions}>
           <a
@@ -53,6 +54,12 @@ export function WallQrLabelsClient({ products }: WallQrLabelsClientProps) {
             href={includePrivate ? "/api/admin/wall-title-labels" : "/api/admin/wall-title-labels?vault=0"}
           >
             Download title labels
+          </a>
+          <a
+            className={styles.secondary}
+            href={includePrivate ? "/api/admin/wall-caption-labels" : "/api/admin/wall-caption-labels?vault=0"}
+          >
+            Download caption labels
           </a>
           <button className={styles.secondary} type="button" onClick={() => window.print()}>
             Print this page
