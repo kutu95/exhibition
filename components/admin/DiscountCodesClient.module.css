@@ -1,0 +1,130 @@
+.intro {
+  max-width: 42rem;
+  color: #444;
+  line-height: 1.5;
+}
+
+.today {
+  border: 1px solid rgba(16, 64, 40, 0.28);
+  background: rgba(16, 64, 40, 0.08);
+  padding: 0.85rem 1rem;
+  margin: 1rem 0;
+}
+
+.today p {
+  margin: 0.25rem 0 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.08em;
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.1rem 0 1.4rem;
+  max-width: 42rem;
+}
+
+.fields {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .fields {
+    grid-template-columns: 10rem 1fr 7rem;
+    align-items: end;
+  }
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.field input,
+.field select {
+  border: 1px solid #ccc;
+  font: inherit;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.55rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.primary,
+.secondary,
+.danger {
+  border: 1px solid #111;
+  font: inherit;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.primary {
+  background: #111;
+  color: #fff;
+}
+
+.secondary,
+.danger {
+  background: transparent;
+  color: #111;
+}
+
+.danger {
+  color: #8b3a2a;
+  border-color: #8b3a2a;
+}
+
+.error {
+  color: #8b3a2a;
+  margin: 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #d8d8d8;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #ececec;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+}
+
+.todayRow {
+  background: rgba(16, 64, 40, 0.08);
+}
+
+.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
+}
+
+.rowActions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.rowActions button {
+  border: 1px solid #111;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}

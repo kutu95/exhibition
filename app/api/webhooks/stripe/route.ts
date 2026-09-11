@@ -175,6 +175,17 @@ const upsertPaidOrderFromSession = async (
   const providerCheck = singleFulfilmentProvider(variantRows);
   const fulfilmentProvider = providerCheck.ok ? providerCheck.provider : null;
 
+  const discountCode = session.metadata?.discount_code?.trim() || null;
+  const discountPercentRaw = Number.parseInt(session.metadata?.discount_percent ?? "", 10);
+  const discountPercent = Number.isFinite(discountPercentRaw) && discountPercentRaw > 0 ? discountPercentRaw : null;
+  const stripeDiscount = session.total_details?.amount_discount ?? 0;
+  const discountAmount =
+    stripeDiscount > 0
+      ? stripeDiscount
+      : discountPercent && session.amount_subtotal
+        ? Math.round((session.amount_subtotal * discountPercent) / 100)
+        : null;
+
   const orderInsert = {
     stripe_payment_intent_id: paymentIntentId,
     stripe_checkout_session_id: session.id,
@@ -186,6 +197,9 @@ const upsertPaidOrderFromSession = async (
     shipping_aud: session.shipping_cost?.amount_total ?? 0,
     total_aud: session.amount_total ?? 0,
     notes: session.metadata?.source ? `source=${session.metadata.source}` : null,
+    discount_code: discountCode,
+    discount_percent: discountPercent,
+    discount_amount_aud: discountCode ? discountAmount : null,
     fulfilment_provider: fulfilmentProvider,
   };
 

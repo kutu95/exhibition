@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCart } from "./CartProvider";
+import { DiscountCodeField, readDiscountCodeForCheckout } from "./DiscountCodeField";
 import { type FrameColourId, FramedPreview } from "./FramedPreview";
 import { FavouriteButton } from "./FavouriteButton";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
@@ -295,7 +296,10 @@ export function CustomPrintClient({
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: checkoutItems }),
+        body: JSON.stringify({
+          items: checkoutItems,
+          ...(readDiscountCodeForCheckout() ? { discount_code: readDiscountCodeForCheckout() } : {}),
+        }),
       });
       const data = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !data.url) {
@@ -762,6 +766,7 @@ export function CustomPrintClient({
               <>
                 {purchasesAllowed ? (
                   <>
+                    <DiscountCodeField compact subtotalAud={quote?.retailCents} />
                     <button
                       className={`button-solid ${styles.button}`}
                       type="button"

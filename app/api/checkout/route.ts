@@ -4,6 +4,12 @@ import { z } from "zod";
 
 import { isProductVisibleInCatalog } from "../../../lib/catalog-products";
 import { checkoutShippingOptions } from "../../../lib/checkout-shipping";
+import {
+  DISCOUNT_INVALID_MESSAGE,
+  discountAmountCents,
+  findValidDiscountCode,
+  normalizeDiscountCode,
+} from "../../../lib/discount-codes";
 import { MIXED_PROVIDER_MESSAGE, singleFulfilmentProvider } from "../../../lib/fulfilment";
 import { assignEditionsToOrder } from "../../../lib/edition-assignment";
 import {
@@ -11,6 +17,7 @@ import {
   PURCHASES_DISABLED_MESSAGE,
 } from "../../../lib/purchases-access";
 import { stripe } from "../../../lib/stripe";
+import { stripeCouponIdForPercent } from "../../../lib/stripe-coupons";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 import { allowedGalleryIdSet, getCatalogAccessFromRequest } from "../../../lib/vault-access";
 
@@ -27,6 +34,7 @@ const checkoutSchema = z.object({
     )
     .min(1),
   source: z.enum(["wall"]).optional(),
+  discount_code: z.string().max(40).optional(),
 });
 
 type VariantRecord = {
@@ -119,11 +127,29 @@ export async function POST(request: Request) {
     }
     const fulfilmentProvider = providerCheck.provider;
 
+    const requestedCode = normalizeDiscountCode(parsed.data.discount_code);
+    let discount: Awaited<ReturnType<typeof findValidDiscountCode>> = null;
+    if (requestedCode) {
+      try {
+        discount = await findValidDiscountCode(requestedCode);
+      } catch (discountError) {
+        console.error("Discount lookup failed", discountError);
+        return NextResponse.json({ error: "Could not check that code. Please try again." }, { status: 500 });
+      }
+      if (!discount) {
+        return NextResponse.json({ error: DISCOUNT_INVALID_MESSAGE }, { status: 400 });
+      }
+    }
+
     if (isStripeBypassEnabled()) {
       const subtotal = requestedItems.reduce((sum, item) => {
         const variant = variantMap.get(item.variant_id);
         return sum + (variant ? variant.price_aud * item.quantity : 0);
       }, 0);
+      const discountAmount = discount
+        ? discountAmountCents(subtotal, discount.percent_off)
+        : 0;
+      const total = Math.max(0, subtotal - discountAmount);
 
       const { data: createdOrder, error: orderError } = await supabaseAdmin
         .from("orders")
@@ -142,7 +168,10 @@ export async function POST(request: Request) {
           },
           subtotal_aud: subtotal,
           shipping_aud: 0,
-          total_aud: subtotal,
+          total_aud: total,
+          discount_code: discount?.code ?? null,
+          discount_percent: discount?.percent_off ?? null,
+          discount_amount_aud: discount ? discountAmount : null,
           fulfilment_provider: fulfilmentProvider,
           notes: checkoutSource
             ? `Order created with CHECKOUT_BYPASS_STRIPE enabled. source=${checkoutSource}`
@@ -226,10 +255,16 @@ export async function POST(request: Request) {
         allowed_countries: ["AU", "NZ", "GB", "US", "CA", "DE", "FR", "NL", "SG", "JP"],
       },
       shipping_options: checkoutShippingOptions(fulfilmentProvider),
+      ...(discount
+        ? { discounts: [{ coupon: await stripeCouponIdForPercent(discount.percent_off) }] }
+        : {}),
       metadata: {
         variant_ids: JSON.stringify(requestedItems),
         ...(checkoutSource ? { source: checkoutSource } : {}),
         ...(fulfilmentProvider ? { fulfilment_provider: fulfilmentProvider } : {}),
+        ...(discount
+          ? { discount_code: discount.code, discount_percent: String(discount.percent_off) }
+          : {}),
       },
     });
 

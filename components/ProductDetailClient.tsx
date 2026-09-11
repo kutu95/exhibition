@@ -8,6 +8,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useCart } from "./CartProvider";
 import { FavouriteButton } from "./FavouriteButton";
 import { PhotoAudioStory } from "./PhotoAudioStory";
+import { DiscountCodeField, readDiscountCodeForCheckout } from "./DiscountCodeField";
 import { StudioOrderDestinationDialog, loadOpenStudioOrders } from "./StudioOrderDestinationDialog";
 import {
   type FrameColourId,
@@ -371,6 +372,7 @@ export function ProductDetailClient({
         body: JSON.stringify({
           items: checkoutItems,
           ...(fromWall ? { source: "wall" } : {}),
+          ...(readDiscountCodeForCheckout() ? { discount_code: readDiscountCodeForCheckout() } : {}),
         }),
       });
 
@@ -873,6 +875,9 @@ export function ProductDetailClient({
           </div>
         ) : (
           <>
+            {purchasesAllowed ? (
+              <DiscountCodeField compact={fromWall} subtotalAud={selectedVariant?.price_aud} />
+            ) : null}
             <div className={`${styles.buyActions} ${fromWall ? styles.buyActionsWall : ""}`}>
               {purchasesAllowed ? (
                 fromWall ? (

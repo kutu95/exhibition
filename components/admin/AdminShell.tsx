@@ -16,6 +16,7 @@ const navSections: NavSection[] = [
       { href: "/admin", label: "Dashboard" },
       { href: "/admin/orders", label: "Orders" },
       { href: "/admin/on-site", label: "On-site sale" },
+      { href: "/admin/discount-codes", label: "Discount codes" },
       { href: "/admin/fulfilment", label: "Fulfilment" },
     ],
   },

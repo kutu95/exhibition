@@ -24,6 +24,9 @@ type OrderRecord = {
   shipping_aud: number;
   total_aud: number | null;
   notes: string | null;
+  discount_code?: string | null;
+  discount_percent?: number | null;
+  discount_amount_aud?: number | null;
 };
 
 type OrderItemRecord = {
@@ -322,6 +325,13 @@ export function OrderDetailClient({ order, items }: OrderDetailClientProps) {
           </p>
         ) : null}
         <p>Subtotal: {formatAUD(order.subtotal_aud ?? 0)}</p>
+        {order.discount_code ? (
+          <p>
+            Discount ({order.discount_code}
+            {order.discount_percent ? `, ${order.discount_percent}%` : ""}): −
+            {formatAUD(order.discount_amount_aud ?? 0)}
+          </p>
+        ) : null}
         <p>Shipping: {formatAUD(order.shipping_aud ?? 0)}</p>
         <p>
           <strong>Total: {formatAUD(order.total_aud ?? 0)}</strong>

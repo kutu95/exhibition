@@ -15,6 +15,9 @@ type OrderDetailPayload = {
     shipping_aud: number;
     total_aud: number | null;
     notes: string | null;
+    discount_code?: string | null;
+    discount_percent?: number | null;
+    discount_amount_aud?: number | null;
   };
   items: Array<{
     id: string;

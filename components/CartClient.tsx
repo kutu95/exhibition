@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useCart } from "./CartProvider";
+import { DiscountCodeField, readDiscountCodeForCheckout } from "./DiscountCodeField";
 import { usePurchasesAllowed } from "./PurchasesAccessProvider";
 import styles from "./CartClient.module.css";
 import { PlausibleEvents, trackEvent } from "../lib/plausible";
@@ -39,6 +40,7 @@ export function CartClient() {
             quantity: item.quantity,
             ...(item.frame_colour ? { frame_colour: item.frame_colour } : {}),
           })),
+          ...(readDiscountCodeForCheckout() ? { discount_code: readDiscountCodeForCheckout() } : {}),
         }),
       });
 
@@ -114,6 +116,7 @@ export function CartClient() {
           <strong>Subtotal</strong>
           <span>{formatAUD(subtotalAud)}</span>
         </p>
+        <DiscountCodeField subtotalAud={subtotalAud} />
         <p className={styles.note}>Shipping calculated at checkout. Free within Australia.</p>
         {purchasesAllowed ? (
           <button className="button-solid" type="button" onClick={handleCheckout} disabled={isCheckingOut}>
