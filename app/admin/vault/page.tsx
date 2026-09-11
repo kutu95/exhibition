@@ -16,8 +16,9 @@ export default async function AdminVaultPage() {
     <div>
       <h1>Private collections</h1>
       <p>
-        Review access requests and issue links that unlock one private gallery in the shop. Public visitors never see
-        vault products unless they open a valid link for that gallery.
+        Review access requests and issue links that unlock one private gallery in the shop. Public visitors can open a
+        product page to view the photograph, description, and audio, but size and ordering stay locked unless they have
+        a valid link for that gallery.
       </p>
       <VaultAdminClient initialRequests={requests} initialInvites={invites} initialGalleries={galleries} />
     </div>

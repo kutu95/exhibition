@@ -9,7 +9,11 @@ import { ProductDetailClient } from "../../../components/ProductDetailClient";
 import { RelatedPrints } from "../../../components/RelatedPrints";
 import { ShareButtons } from "../../../components/ShareButtons";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "../../../lib/admin-auth";
-import { isProductVisibleInCatalog, mapProductRow } from "../../../lib/catalog-products";
+import {
+  isVaultProductViewOnly,
+  mapProductRow,
+  toViewOnlyProductDetail,
+} from "../../../lib/catalog-products";
 import { isWallSource } from "../../../lib/exhibition-links";
 import { buildMetadata, siteConfig } from "../../../lib/metadata";
 import { getPlaceContext, getPrintEditorial } from "../../../lib/print-editorial";
@@ -89,11 +93,7 @@ const toCandidate = (row: RelatedRow): RelatedPrintCandidate => {
 };
 
 const getProductBySlug = cache(async (slug: string): Promise<ProductWithVariantsAndImages | null> => {
-  const [supabase, access] = await Promise.all([
-    createSupabaseServerClient(),
-    getCatalogAccess(),
-  ]);
-  const allowedGalleryIds = allowedGalleryIdSet(access);
+  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("products")
@@ -106,12 +106,19 @@ const getProductBySlug = cache(async (slug: string): Promise<ProductWithVariants
     return null;
   }
 
-  const product = mapProductRow(data as ProductRow);
-  if (!isProductVisibleInCatalog(product, allowedGalleryIds)) {
+  return mapProductRow(data as ProductRow);
+});
+
+const getProductPageContext = cache(async (slug: string) => {
+  const [product, access] = await Promise.all([getProductBySlug(slug), getCatalogAccess()]);
+  if (!product) {
     return null;
   }
 
-  return product;
+  return {
+    product,
+    viewOnly: isVaultProductViewOnly(product, allowedGalleryIdSet(access)),
+  };
 });
 
 async function getRelatedPrints(product: ProductWithVariantsAndImages): Promise<RelatedPrint[]> {
@@ -150,12 +157,13 @@ async function getRelatedPrints(product: ProductWithVariantsAndImages): Promise<
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const context = await getProductPageContext(slug);
 
-  if (!product) {
+  if (!context) {
     return buildMetadata({ title: "Print not found", noIndex: true });
   }
 
+  const { product, viewOnly } = context;
   const primaryImage =
     product.product_images.find((image) => image.is_primary) ?? product.product_images[0];
   const variantPrices = product.product_variants.map((variant) => variant.price_aud);
@@ -165,11 +173,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // Several catalogue descriptions are a single short sentence; pad them out to a
   // usable snippet length with the place and edition rather than shipping a 34-character
   // description Google will discard.
-  const priceSuffix = lowestPrice > 0 ? ` from $${(lowestPrice / 100).toFixed(0)} AUD` : "";
+  const priceSuffix = !viewOnly && lowestPrice > 0 ? ` from $${(lowestPrice / 100).toFixed(0)} AUD` : "";
   const description = [
     product.description?.trim(),
     place?.name ? `${place.name}.` : product.location_tag ? `${product.location_tag}.` : null,
-    `Limited edition archival print by John Bowskill${priceSuffix}.`,
+    viewOnly
+      ? "Photograph by John Bowskill."
+      : `Limited edition archival print by John Bowskill${priceSuffix}.`,
   ]
     .filter(Boolean)
     .join(" ")
@@ -181,7 +191,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     path: `/shop/${slug}`,
     ogImage: primaryImage?.image_url || siteConfig.ogImage.shop,
-    noIndex: !getPrintEditorial(slug),
+    noIndex: viewOnly || !getPrintEditorial(slug),
   });
 }
 
@@ -191,32 +201,41 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   const fromWall = isWallSource(firstQueryValue(query.src));
   // Resolve the product (and therefore the metadata that depends on it) before
   // flushing any HTML, so title/canonical land in <head> rather than after </head>.
-  const product = await getProductBySlug(slug);
+  const context = await getProductPageContext(slug);
 
-  if (!product) {
+  if (!context) {
     notFound();
   }
 
-  const editorial = fromWall ? null : getPrintEditorial(slug);
+  const { product, viewOnly } = context;
+  const editorial = fromWall || viewOnly ? null : getPrintEditorial(slug);
   const place = editorial ? getPlaceContext(slug) : null;
-  const [related, cookieStore] = await Promise.all([getRelatedPrints(product), cookies()]);
+  const [related, cookieStore] = await Promise.all([
+    viewOnly ? Promise.resolve([] as RelatedPrint[]) : getRelatedPrints(product),
+    cookies(),
+  ]);
   const isAdmin = await verifyAdminSessionToken(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
 
   return (
     <>
-      <JsonLd data={buildProduct(product)} />
-      <JsonLd data={buildPhotographWork(product, editorial?.caption ?? null, place?.name ?? null)} />
-      <JsonLd
-        data={buildBreadcrumb([
-          { name: "Home", path: "/" },
-          { name: "Shop", path: "/shop" },
-          { name: product.title, path: `/shop/${product.slug}` },
-        ])}
-      />
+      {viewOnly ? null : (
+        <>
+          <JsonLd data={buildProduct(product)} />
+          <JsonLd data={buildPhotographWork(product, editorial?.caption ?? null, place?.name ?? null)} />
+          <JsonLd
+            data={buildBreadcrumb([
+              { name: "Home", path: "/" },
+              { name: "Shop", path: "/shop" },
+              { name: product.title, path: `/shop/${product.slug}` },
+            ])}
+          />
+        </>
+      )}
       <Suspense fallback={<p className="section container">Loading print…</p>}>
         <ProductDetailClient
-          product={product}
+          product={viewOnly ? toViewOnlyProductDetail(product) : product}
           isAdmin={isAdmin}
+          viewOnly={viewOnly}
           shareButtons={
             <ShareButtons
               url={`${siteConfig.url}/shop/${product.slug}`}
@@ -227,7 +246,7 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
         />
       </Suspense>
       {editorial ? <PrintEditorial title={product.title} editorial={editorial} place={place} /> : null}
-      <RelatedPrints title={product.title} related={related} />
+      {viewOnly ? null : <RelatedPrints title={product.title} related={related} />}
     </>
   );
 }

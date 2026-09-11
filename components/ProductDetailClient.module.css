@@ -91,6 +91,10 @@
   min-width: 0;
 }
 
+.viewOnlySidebar .shareRow {
+  margin-top: 1.15rem;
+}
+
 .titleRow {
   display: flex;
   align-items: flex-start;

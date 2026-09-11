@@ -57,6 +57,7 @@ type ProductDetailClientProps = {
   product: ProductWithVariantsAndImages;
   shareButtons?: ReactNode;
   isAdmin?: boolean;
+  viewOnly?: boolean;
 };
 
 const POSTERFACTORY_FRAME_COLOURS: { id: FrameColourId; label: string }[] = [
@@ -80,7 +81,12 @@ const formatPriceDelta = (cents: number): string => {
 
 const LARGEST_OFFER_LONG_EDGE_MM = Math.max(...OFFER_SIZES.map((size) => size.longEdgeMm));
 
-export function ProductDetailClient({ product, shareButtons, isAdmin = false }: ProductDetailClientProps) {
+export function ProductDetailClient({
+  product,
+  shareButtons,
+  isAdmin = false,
+  viewOnly = false,
+}: ProductDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const primaryImage = product.product_images[0]?.image_url ?? "";
@@ -495,7 +501,7 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
       </p>
       <div className={styles.gallery}>
         <FramedPreview
-          frame={useOfferChooser && isFramedOfferClass(classId) ? "standard" : "none"}
+          frame={!viewOnly && useOfferChooser && isFramedOfferClass(classId) ? "standard" : "none"}
           longEdgeMm={OFFER_SIZES.find((size) => size.id === sizeId)?.longEdgeMm ?? 594}
           frameColour={frameColour}
           className={styles.mainImageWrap}
@@ -552,10 +558,12 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         ) : null}
       </div>
 
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${viewOnly ? styles.viewOnlySidebar : ""}`}>
         {fromWall ? (
           <div className={styles.wallBanner}>
-            {purchasesAllowed ? (
+            {viewOnly ? (
+              <p>You&apos;re viewing the print on the wall.</p>
+            ) : purchasesAllowed ? (
               <>
                 <p>
                   You&apos;re viewing the print on the wall. Choose size and finish, then buy this print — or ask at the
@@ -618,8 +626,10 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
             audioTranscript={product.audio_transcript}
           />
         ) : null}
-        {maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
+        {viewOnly ? null : maxEditionSize ? <p className={styles.edition}>Edition of {maxEditionSize}</p> : null}
 
+        {viewOnly ? null : (
+          <>
         <div className={styles.priceSticky}>
           <div className={styles.priceRow}>
             <p className={styles.price}>
@@ -937,9 +947,13 @@ export function ProductDetailClient({ product, shareButtons, isAdmin = false }: 
         )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
+          </>
+        )}
 
         {shareButtons ? <div className={styles.shareRow}>{shareButtons}</div> : null}
-        <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
+        {viewOnly ? null : (
+          <p className={styles.meta}>Made to order · Archival quality · Free shipping within Australia</p>
+        )}
       </aside>
       <StudioOrderDestinationDialog
         open={studioOrderDialogOpen}

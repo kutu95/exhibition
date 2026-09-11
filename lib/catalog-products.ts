@@ -111,6 +111,19 @@ export const isProductVisibleInCatalog = (
   return Boolean(product.gallery_id && allowedGalleryIds.has(product.gallery_id));
 };
 
+/** Vault product pages stay viewable without shop access; size and ordering stay locked. */
+export const isVaultProductViewOnly = (
+  product: Pick<Product, "visibility" | "gallery_id">,
+  allowedGalleryIds: ReadonlySet<string>,
+): boolean => product.visibility === "vault" && !isProductVisibleInCatalog(product, allowedGalleryIds);
+
+export const toViewOnlyProductDetail = (
+  product: ProductWithVariantsAndImages,
+): ProductWithVariantsAndImages => ({
+  ...product,
+  product_variants: [],
+});
+
 type FilterableQuery<T> = {
   eq: (column: string, value: string) => T;
   or: (filters: string) => T;
