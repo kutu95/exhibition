@@ -29,6 +29,10 @@ export function WallQrLabelsClient({ products, initialSlugs = [] }: WallQrLabels
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set(initialSlugs));
+  const [freehandHeading, setFreehandHeading] = useState("");
+  const [freehandDescription, setFreehandDescription] = useState("");
+  const [freehandError, setFreehandError] = useState<string | null>(null);
+  const [freehandBusy, setFreehandBusy] = useState(false);
 
   const available = useMemo(() => {
     const filtered = includePrivate ? products : products.filter((product) => product.visibility !== "vault");
@@ -89,6 +93,43 @@ export function WallQrLabelsClient({ products, initialSlugs = [] }: WallQrLabels
     });
   };
 
+  const downloadFreehandCaption = async () => {
+    const heading = freehandHeading.trim();
+    if (!heading) {
+      setFreehandError("Add a heading first.");
+      return;
+    }
+
+    setFreehandError(null);
+    setFreehandBusy(true);
+    try {
+      const response = await fetch("/api/admin/wall-caption-labels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ heading, description: freehandDescription }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        setFreehandError(body?.error ?? "Could not download the caption label.");
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "wall-caption-label.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setFreehandError("Could not download the caption label.");
+    } finally {
+      setFreehandBusy(false);
+    }
+  };
+
   return (
     <div>
       <div className={styles.screenOnly}>
@@ -101,8 +142,45 @@ export function WallQrLabelsClient({ products, initialSlugs = [] }: WallQrLabels
           Download the QR PDF and print at <strong>100% / Actual size</strong> (turn off “fit to page”). Each square is
           exactly 5&nbsp;cm. The title under the square is only for matching — trim it off if you want the QR alone on
           the wall. Title labels are a separate PDF: title only, cut on the crop marks. Caption labels are full A4
-          width, with title, description, and transcript where there is one — cut on the dashed lines.
+          width, with title, description, and transcript where there is one — cut on the dashed lines. Use the
+          freehand form for a one-off caption that is not tied to a photograph.
         </p>
+
+        <section className={styles.freehand} aria-label="Freehand caption label">
+          <h2 className={styles.freehandTitle}>Freehand caption label</h2>
+          <p className={styles.hint}>
+            Heading and description only — same A4 caption layout, without a photograph, transcript, or credit.
+          </p>
+          <div className={styles.freehandFields}>
+            <label className={`${styles.field} ${styles.fieldWide}`}>
+              Heading
+              <input
+                type="text"
+                value={freehandHeading}
+                onChange={(event) => setFreehandHeading(event.target.value)}
+                placeholder="Title on the wall"
+              />
+            </label>
+            <label className={`${styles.field} ${styles.fieldWide}`}>
+              Description
+              <textarea
+                value={freehandDescription}
+                onChange={(event) => setFreehandDescription(event.target.value)}
+                rows={5}
+                placeholder="Caption text"
+              />
+            </label>
+          </div>
+          {freehandError ? <p className={styles.error}>{freehandError}</p> : null}
+          <button
+            className={styles.secondary}
+            type="button"
+            onClick={() => void downloadFreehandCaption()}
+            disabled={freehandBusy || !freehandHeading.trim()}
+          >
+            {freehandBusy ? "Preparing…" : "Download freehand caption"}
+          </button>
+        </section>
 
         <div className={styles.filters}>
           <label className={styles.field}>

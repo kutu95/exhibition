@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildFreehandCaptionLabelPdf,
   buildWallCaptionLabelsPdf,
   CAPTION_BODY_SIZE,
   CAPTION_LABEL_WIDTH_MM,
@@ -101,6 +102,34 @@ describe("wall caption label sheets", () => {
       },
     ]);
     expect(pdf.toString("latin1")).not.toContain("Credit:");
+  });
+
+  it("prints a freehand caption from heading and description only", () => {
+    const pdf = buildFreehandCaptionLabelPdf({
+      heading: "The Georgette",
+      description: "A steamship wrecked off Calgardup in 1876.",
+    });
+    const text = pdf.toString("latin1");
+    expect(pdf.subarray(0, 8).toString("utf8")).toBe("%PDF-1.4");
+    expect(text).toContain("The Georgette");
+    expect(text).toContain("A steamship wrecked off Calgardup in 1876.");
+    expect(text).toContain("/F1 24 Tf");
+    expect(text).toContain("/F1 12 Tf");
+    expect(text).not.toContain("Transcript");
+    expect(text).not.toContain("Credit:");
+  });
+
+  it("allows a heading-only freehand caption", () => {
+    const pdf = buildFreehandCaptionLabelPdf({ heading: "Introduction" });
+    const text = pdf.toString("latin1");
+    expect(text).toContain("Introduction");
+    expect(text).not.toContain("/F1 12 Tf");
+  });
+
+  it("requires a heading for a freehand caption", () => {
+    expect(() => buildFreehandCaptionLabelPdf({ heading: "   ", description: "Body" })).toThrow(
+      "Heading is required",
+    );
   });
 });
 

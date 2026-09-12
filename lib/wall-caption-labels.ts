@@ -387,6 +387,28 @@ const drawCaption = (caption: LaidOutCaption, topMm: number): string => {
   return blocks.join("\n");
 };
 
+export const buildFreehandCaptionLabelPdf = (options: {
+  heading: string;
+  description?: string | null;
+}): Buffer => {
+  const heading = options.heading.trim();
+  if (!heading) {
+    throw new Error("Heading is required");
+  }
+
+  return buildWallCaptionLabelsPdf([
+    {
+      title: heading,
+      slug: "freehand",
+      location_tag: null,
+      description: options.description?.trim() || null,
+      audio_transcript: null,
+      credit_attribution: null,
+      visibility: "public",
+    },
+  ]);
+};
+
 export const buildWallCaptionLabelsPdf = (products: WallCaptionLabelProduct[]): Buffer => {
   const captions = sortWallQrProducts(products).map(layoutCaption);
   const pages = packWallCaptionPages(captions);

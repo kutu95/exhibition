@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { verifyAdminSession } from "../../../../lib/admin-auth";
 import { handleRouteError } from "../../../../lib/api-route-errors";
 import { supabaseAdmin } from "../../../../lib/supabase/admin";
-import { buildWallCaptionLabelsPdf, type WallCaptionLabelProduct } from "../../../../lib/wall-caption-labels";
+import {
+  buildFreehandCaptionLabelPdf,
+  buildWallCaptionLabelsPdf,
+  type WallCaptionLabelProduct,
+} from "../../../../lib/wall-caption-labels";
 import { applyWallLabelProductFilters } from "../../../../lib/wall-qr-label-layout";
 
 export const runtime = "nodejs";
@@ -64,5 +68,55 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     return handleRouteError(error, "Wall caption label PDF failed");
+  }
+}
+
+const readFreehandCaptionBody = async (
+  request: Request,
+): Promise<{ heading: string; description: string } | { error: string }> => {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return { error: "Invalid JSON" };
+  }
+
+  if (!body || typeof body !== "object") {
+    return { error: "Heading is required" };
+  }
+
+  const heading = "heading" in body && typeof body.heading === "string" ? body.heading.trim() : "";
+  const description =
+    "description" in body && typeof body.description === "string" ? body.description.trim() : "";
+
+  if (!heading) {
+    return { error: "Heading is required" };
+  }
+
+  return { heading, description };
+};
+
+export async function POST(request: Request) {
+  const isAuthed = await verifyAdminSession(request);
+  if (!isAuthed) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const parsed = await readFreehandCaptionBody(request);
+    if ("error" in parsed) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    const pdf = buildFreehandCaptionLabelPdf(parsed);
+    return new NextResponse(new Uint8Array(pdf), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="wall-caption-label.pdf"',
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    return handleRouteError(error, "Freehand caption label PDF failed");
   }
 }

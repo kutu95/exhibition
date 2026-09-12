@@ -35,11 +35,54 @@
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   border: 1px solid #cfcfcf;
   font: inherit;
   min-width: 16rem;
   padding: 0.4rem 0.55rem;
+}
+
+.field textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+.freehand {
+  border: 1px solid #ddd;
+  margin: 1rem 0 1.5rem;
+  max-width: 44rem;
+  padding: 0.9rem 0.9rem 1rem;
+}
+
+.freehandTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+}
+
+.freehandFields {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.fieldWide {
+  min-width: 0;
+  width: 100%;
+}
+
+.fieldWide input,
+.fieldWide textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
+.error {
+  color: #b01818;
+  font-size: 0.92rem;
+  margin: 0 0 0.75rem;
 }
 
 .actions,
