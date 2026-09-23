@@ -414,6 +414,16 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     };
   }, [items]);
 
+  const customerLabGroups = useMemo(
+    () =>
+      groupItemsByOrder(
+        items.filter(
+          (item) => !isStudioItem(item) && studioStatusesForLabEmail.has(item.fulfilment_status),
+        ),
+      ),
+    [items],
+  );
+
   const toggleSetValue = (current: Set<string>, value: string, enabled: boolean): Set<string> => {
     const next = new Set(current);
     if (enabled) next.add(value);
@@ -731,6 +741,39 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
       </div>
 
       <div className={styles.studioEmailBar}>
+        {customerLabGroups.length > 0 ? (
+          <>
+            <p>
+              Customer prints waiting for Blue Wren:{" "}
+              {customerLabGroups.map((group) => group.order_number).join(", ")}. Copy the email and paste it
+              to {LAB_ORDER_EMAIL} — they invoice; you pay separately.
+            </p>
+            {customerLabGroups.some((group) => group.items.some((item) => !hasLabDriveFile(item))) ? (
+              <p className={styles.error}>
+                Wait until each print has a Google Drive link before copying. This page refreshes every 20
+                seconds.
+              </p>
+            ) : null}
+            <div className={styles.actionRow}>
+              {customerLabGroups.map((group) => {
+                const pending = group.items.some((item) => !hasLabDriveFile(item));
+                return (
+                  <button
+                    key={group.order_number}
+                    className={styles.button}
+                    type="button"
+                    disabled={applyingOrder !== null || pending}
+                    onClick={() => void copyGroupLabEmail(group, true)}
+                  >
+                    Copy lab email — {group.order_number}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <p className={styles.muted}>No customer orders waiting for the lab (awaiting file or file ready).</p>
+        )}
         {studioLabEmail ? (
           <>
             <p className={styles.muted}>
@@ -821,6 +864,20 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                 </div>
                 <div className={styles.summaryBadges}>
                   {isStudioOrder ? <span className={styles.studioBadge}>Studio</span> : null}
+                  {!isStudioOrder ? (
+                    <button
+                      className={styles.button}
+                      type="button"
+                      disabled={isApplying}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void copyGroupLabEmail(group, true);
+                      }}
+                    >
+                      Copy lab email
+                    </button>
+                  ) : null}
                 </div>
               </summary>
 
