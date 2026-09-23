@@ -15,7 +15,7 @@ export default async function AdminFulfilmentPage() {
   return (
     <div>
       <h1>Fulfilment</h1>
-      <p>Process print orders, prepare Pixel Perfect submissions, and manage shipping updates.</p>
+      <p>Process print orders, email Blue Wren, and manage shipping updates.</p>
       <FulfilmentDashboardClient items={payload.items} fetchedAt={payload.fetched_at} />
     </div>
   );

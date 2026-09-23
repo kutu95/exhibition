@@ -573,14 +573,30 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
     }
   };
 
-  /** Rebuild one order's lab email after it has already been sent, leaving statuses alone. */
-  const copyGroupLabEmail = async (group: OrderGroup) => {
+  /**
+   * Copy the Blue Wren email for one order. For customer (and first-time) sends,
+   * offer to mark waiting prints as submitted after a successful copy.
+   */
+  const copyGroupLabEmail = async (group: OrderGroup, markSubmitted: boolean) => {
     if (group.items.length === 0) return;
+    const warning = missingFileWarning(group.items);
+    if (warning) {
+      window.alert(warning);
+      return;
+    }
     const email = buildLabOrderEmail(group.items.map(labOrderEmailItem));
-    await copyToClipboard(email.body, `Lab email for ${group.order_number}`, email.html);
+    const copied = await copyToClipboard(email.body, `Lab email for ${group.order_number}`, email.html);
+    if (!copied || !markSubmitted) return;
+    const waiting = group.items.filter((item) => studioStatusesForLabEmail.has(item.fulfilment_status));
+    if (waiting.length === 0) return;
+    const confirmed = window.confirm(
+      `Mark ${waiting.length} print${waiting.length === 1 ? "" : "s"} on ${group.order_number} as submitted to Blue Wren?`,
+    );
+    if (!confirmed) return;
+    await applyToItems(waiting, "submitted_to_lab", group.order_number);
   };
 
-  const markStudioGroupSubmitted = async (group: OrderGroup) => {
+  const markGroupSubmitted = async (group: OrderGroup) => {
     const waiting = group.items.filter((item) => studioStatusesForLabEmail.has(item.fulfilment_status));
     if (waiting.length === 0) return;
     const warning = missingFileWarning(waiting);
@@ -858,27 +874,31 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                   >
                     Mark delivered
                   </button>
+                  <button
+                    className={styles.buttonSecondary}
+                    type="button"
+                    disabled={isApplying}
+                    title={
+                      isStudioOrder
+                        ? "Rebuild this order's Blue Wren email. Nothing changes status."
+                        : `Copy a Blue Wren email for ${group.order_number}, then paste it to ${LAB_ORDER_EMAIL}.`
+                    }
+                    onClick={() => void copyGroupLabEmail(group, !isStudioOrder)}
+                  >
+                    {isStudioOrder ? "Regenerate lab email" : "Copy lab email"}
+                  </button>
+                  {group.items.some((item) => studioStatusesForLabEmail.has(item.fulfilment_status)) ? (
+                    <button
+                      className={styles.buttonSecondary}
+                      type="button"
+                      disabled={isApplying}
+                      onClick={() => void markGroupSubmitted(group)}
+                    >
+                      Mark submitted to lab
+                    </button>
+                  ) : null}
                   {isStudioOrder ? (
                     <>
-                      <button
-                        className={styles.buttonSecondary}
-                        type="button"
-                        disabled={isApplying}
-                        title="Rebuild this order's Blue Wren email. Nothing changes status."
-                        onClick={() => void copyGroupLabEmail(group)}
-                      >
-                        Regenerate lab email
-                      </button>
-                      {group.items.some((item) => studioStatusesForLabEmail.has(item.fulfilment_status)) ? (
-                        <button
-                          className={styles.buttonSecondary}
-                          type="button"
-                          disabled={isApplying}
-                          onClick={() => void markStudioGroupSubmitted(group)}
-                        >
-                          Mark submitted to lab
-                        </button>
-                      ) : null}
                       <select
                         className={styles.field}
                         value={moveTargets[group.order_number] ?? ""}
@@ -1065,9 +1085,7 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                                     </button>
                                     <span className={styles.muted}>
                                       {driveFileUrl(item)
-                                        ? isStudioItem(item)
-                                          ? " — TIFF is in this folder; filename is in the studio order email"
-                                          : " — TIFF is in this folder; enter the filename on the Pixel Perfect form"
+                                        ? " — TIFF is in this folder; filename is in the Blue Wren email"
                                         : " — automatic upload was unavailable; upload the prepared print file manually"}
                                     </span>
                                   </p>
@@ -1094,9 +1112,11 @@ export function FulfilmentDashboardClient({ items, fetchedAt }: FulfilmentDashbo
                               </p>
                             )}
 
-                            {isStudioItem(item) && studioStatusesForLabEmail.has(item.fulfilment_status) ? (
+                            {studioStatusesForLabEmail.has(item.fulfilment_status) ? (
                               <p className={styles.muted}>
-                                Included in the studio order email at the top of this page (all studio prints waiting for the lab).
+                                {isStudioItem(item)
+                                  ? "Included in the studio order email at the top of this page (all studio prints waiting for the lab)."
+                                  : `Copy lab email on this order, paste it to ${LAB_ORDER_EMAIL}, then mark submitted to lab.`}
                               </p>
                             ) : null}
 
