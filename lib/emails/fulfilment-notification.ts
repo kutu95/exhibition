@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 
+import { siteConfig } from "../metadata";
 import { firstNameFrom } from "./merge";
 import { renderEmailTemplate } from "./templates";
 
@@ -83,7 +84,7 @@ export const sendFulfilmentNotificationEmail = async ({
       </div>
       <p>Your print is shipping from Sydney. Please allow 3-7 business days for delivery within WA.</p>
       <p>If you have any questions, reply to this email or contact us at <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a> with your order number.</p>
-      <p style="margin-top: 24px; color: #4b5563;">The Georgette 150th · John Bowskill · exhibition.margies.app</p>
+      <p style="margin-top: 24px; color: #4b5563;">The Georgette 150th · John Bowskill · ${new URL(siteConfig.url).host}</p>
     </div>
   `;
   }

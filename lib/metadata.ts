@@ -1,14 +1,33 @@
 import type { Metadata } from "next";
 
 /** Public origin Google and social crawlers must see. Never localhost, LAN, or preview hosts. */
-export const PRODUCTION_SITE_URL = "https://exhibition.margies.app";
+export const CANONICAL_HOST = "margies.app";
+export const PRODUCTION_SITE_URL = `https://${CANONICAL_HOST}`;
+
+/** Serves the same app without a host redirect so printed wall QR codes keep working. */
+export const ALIAS_HOSTS = ["exhibition.margies.app"] as const;
+
+export const HOSTS_REDIRECT_TO_CANONICAL = new Set([
+  "www.margies.app",
+  "www.exhibition.margies.app",
+]);
+
+const PUBLIC_APP_HOSTS = new Set<string>([
+  CANONICAL_HOST,
+  ...ALIAS_HOSTS,
+  ...HOSTS_REDIRECT_TO_CANONICAL,
+]);
+
+export function isPublicAppHost(hostname: string): boolean {
+  return PUBLIC_APP_HOSTS.has(hostname.trim().toLowerCase());
+}
 
 function publicSiteUrl(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
   if (!raw) return PRODUCTION_SITE_URL;
   try {
     const parsed = new URL(raw);
-    if (parsed.protocol === "https:" && parsed.hostname.toLowerCase() === "exhibition.margies.app") {
+    if (parsed.protocol === "https:" && parsed.hostname.toLowerCase() === CANONICAL_HOST) {
       return `${parsed.protocol}//${parsed.hostname}`;
     }
   } catch {

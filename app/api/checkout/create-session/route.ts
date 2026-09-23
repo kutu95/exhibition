@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { isProductVisibleInCatalog } from "../../../../lib/catalog-products";
+import { PRODUCTION_SITE_URL } from "../../../../lib/metadata";
 import { queryPostgres } from "../../../../lib/postgres";
 import {
   arePurchasesAllowedForRequest,
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "sold_out" }, { status: 409 });
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://exhibition.margies.app";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? PRODUCTION_SITE_URL;
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [

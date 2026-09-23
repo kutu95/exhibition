@@ -1,7 +1,8 @@
 /**
  * Temporary gate: purchases and private-collections access only on the LAN.
  *
- * Detection is by Host header — the public site is always exhibition.margies.app
+ * Detection is by Host header — the public site is Cloudflare-fronted
+ * (margies.app / exhibition.margies.app).
  * (via Cloudflare). LAN access today is the SSH tunnel to localhost:3007, which
  * arrives as Host: localhost. A future direct LAN bind (192.168.x.x) is also
  * treated as allowed. Cloudflare-fronted traffic is never LAN, even from home Wi‑Fi.

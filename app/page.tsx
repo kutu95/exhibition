@@ -4,6 +4,7 @@ import Link from "next/link";
 import { EmailSignupForm } from "../components/EmailSignupForm";
 import { HeroVideo } from "../components/HeroVideo";
 import { JsonLd } from "../components/JsonLd";
+import { siteConfig } from "../lib/metadata";
 import { awaitPageMetadata, buildPageMetadata } from "../lib/seo-content";
 import {
   buildExhibitionEvent,
@@ -130,7 +131,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <p className={styles.copyright}>© 2026 · exhibition.margies.app</p>
+          <p className={styles.copyright}>© 2026 · {new URL(siteConfig.url).host}</p>
         </div>
       </section>
     </>

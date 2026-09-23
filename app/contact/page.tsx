@@ -37,7 +37,7 @@ export default function ContactPage() {
             name: siteContact.name,
             email: siteContact.email,
             telephone: siteContact.phoneTel,
-            url: "https://exhibition.margies.app/about-the-photographer",
+            url: `${siteConfig.url}/about-the-photographer`,
           },
         }}
       />

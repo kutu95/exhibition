@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 
 import { PublicShell } from "../components/PublicShell";
 import { buildMetadata, siteConfig } from "../lib/metadata";
+import { plausibleDataDomain } from "../lib/plausible";
 import { isPurchasesLanOnlyEnabled } from "../lib/purchases-access";
 import "./globals.css";
 
@@ -77,7 +78,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Script
           defer
-          data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
+          data-domain={plausibleDataDomain()}
           src={`${process.env.NEXT_PUBLIC_PLAUSIBLE_URL}/js/script.tagged-events.js`}
           strategy="afterInteractive"
         />

@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+import { siteConfig } from "../metadata";
+
 const resendApiKey = process.env.RESEND_API_KEY;
 const fromEmail = process.env.RESEND_FROM_EMAIL;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -47,7 +49,7 @@ export const sendVaultAccessEmail = async ({
             If the button does not work, copy and paste this address:<br />
             <span style="word-break: break-all;">${accessUrl}</span>
           </p>
-          <p style="margin-top: 24px; color: #4b5563;">The Georgette 150th · John Bowskill · exhibition.margies.app</p>
+          <p style="margin-top: 24px; color: #4b5563;">The Georgette 150th · John Bowskill · ${new URL(siteConfig.url).host}</p>
         </div>
       `,
     });

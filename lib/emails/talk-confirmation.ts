@@ -71,7 +71,7 @@ const fallbackTalkHtml = (input: SendTalkConfirmationInput): string => {
       <p>Please arrive a few minutes early so we can start on time. If you can no longer come, reply to this email so we can offer the seat to someone on the wait list.</p>
       <p>If you have any questions, contact us at <a href="mailto:${siteContact.email}">${siteContact.email}</a>.</p>
       <p>John Bowskill</p>
-      <p style="margin-top:24px;color:#4b5563;">The Georgette 150th · exhibition.margies.app</p>
+      <p style="margin-top:24px;color:#4b5563;">The Georgette 150th · ${new URL(siteConfig.url).host}</p>
     </div>
   `;
 };

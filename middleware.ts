@@ -2,23 +2,19 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "./lib/admin-auth";
+import {
+  CANONICAL_HOST,
+  HOSTS_REDIRECT_TO_CANONICAL,
+  isPublicAppHost,
+} from "./lib/metadata";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const CANONICAL_HOST = "exhibition.margies.app";
-const HOSTS_REDIRECT_TO_CANONICAL = new Set([
-  "www.exhibition.margies.app",
-]);
-
 function shouldForceHttps(request: NextRequest): boolean {
   const host = request.headers.get("host") ?? "";
   const hostname = host.split(":")[0]?.toLowerCase() ?? "";
-  if (
-    hostname !== CANONICAL_HOST &&
-    !HOSTS_REDIRECT_TO_CANONICAL.has(hostname) &&
-    !host.includes("exhibition.margies.app")
-  ) {
+  if (!isPublicAppHost(hostname)) {
     return false;
   }
 
@@ -46,7 +42,7 @@ export async function middleware(request: NextRequest) {
   const hostHeader = request.headers.get("host") ?? "";
   const hostname = hostHeader.split(":")[0]?.toLowerCase() ?? "";
 
-  // Canonical host: exhibition.margies.app
+  // www hosts 301 to margies.app. exhibition.margies.app stays as a live alias.
   if (HOSTS_REDIRECT_TO_CANONICAL.has(hostname)) {
     const canonical = new URL(
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
@@ -69,11 +65,11 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   // Prefer absolute Location for trailing-slash redirects (helps crawlers resolve canonical hosts).
   if (pathname.length > 1 && pathname.endsWith("/")) {
-    const canonical = new URL(
-      `${pathname.replace(/\/+$/, "")}${request.nextUrl.search}`,
-      `https://${CANONICAL_HOST}`,
-    );
-    if (hostname === CANONICAL_HOST || HOSTS_REDIRECT_TO_CANONICAL.has(hostname)) {
+    if (isPublicAppHost(hostname)) {
+      const canonical = new URL(
+        `${pathname.replace(/\/+$/, "")}${request.nextUrl.search}`,
+        `https://${hostname}`,
+      );
       return NextResponse.redirect(canonical, 308);
     }
   }

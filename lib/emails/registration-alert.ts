@@ -49,7 +49,7 @@ const sendAlert = async (subject: string, bodyHtml: string): Promise<void> => {
       html: `
         <div style="font-family: Arial, Helvetica, sans-serif; color: #111827; line-height: 1.5;">
           ${bodyHtml}
-          <p style="margin:24px 0 0;color:#4b5563;">The Georgette 150th · exhibition.margies.app</p>
+          <p style="margin:24px 0 0;color:#4b5563;">The Georgette 150th · ${new URL(siteConfig.url).host}</p>
         </div>
       `,
     });

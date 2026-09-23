@@ -109,7 +109,7 @@ export function SiteFooter({ exhibitionTitle, showCollectionsCta = true }: SiteF
       <div className={`container ${styles.bottom}`}>
         <p>
           Photographs by John Bowskill · Margaret River Region Open Studios 2026 ·{" "}
-          <Link href="/">exhibition.margies.app</Link>
+          <Link href="/">{new URL(siteConfig.url).host}</Link>
         </p>
       </div>
     </footer>

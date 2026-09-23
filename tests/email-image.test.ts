@@ -26,10 +26,11 @@ describe("localImagesFilename", () => {
     expect(localImagesFilename(`/images/${EMAIL_IMAGE_PREFIX}portrait.jpg`)).toBeNull();
   });
 
-  it("accepts same-origin absolute URLs", () => {
+  it("accepts same-origin absolute URLs on either public host", () => {
     expect(localImagesFilename("https://exhibition.margies.app/images/portrait.jpg")).toBe(
       "portrait.jpg",
     );
+    expect(localImagesFilename("https://margies.app/images/portrait.jpg")).toBe("portrait.jpg");
   });
 });
 

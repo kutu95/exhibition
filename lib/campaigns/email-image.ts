@@ -3,7 +3,7 @@ import path from "node:path";
 
 import sharp from "sharp";
 
-import { siteConfig } from "../metadata";
+import { isPublicAppHost } from "../metadata";
 import { resolveCanonicalMediaPath, resolveReadableMediaPath } from "../media-storage";
 import type { CampaignBlock } from "./blocks";
 
@@ -17,14 +17,6 @@ const localImageFilenamePattern = /^[a-z0-9-]+\.[a-z0-9]+$/i;
 /** Deduplicate concurrent derivative builds for the same master. */
 const inFlightDerivatives = new Map<string, Promise<string>>();
 
-const siteHost = (): string | null => {
-  try {
-    return new URL(siteConfig.url).host.toLowerCase();
-  } catch {
-    return null;
-  }
-};
-
 /**
  * Returns the `/images/{filename}` basename for same-origin local media, or null
  * when the URL is external / not an images path / already an email derivative.
@@ -37,8 +29,7 @@ export const localImagesFilename = (pathOrUrl: string): string | null => {
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const url = new URL(trimmed);
-      const host = siteHost();
-      if (!host || url.host.toLowerCase() !== host) {
+      if (!isPublicAppHost(url.hostname)) {
         return null;
       }
       pathname = url.pathname;

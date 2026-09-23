@@ -3,6 +3,7 @@ import { prepareCampaignBlocksForEmail } from "../campaigns/email-image";
 import { renderCampaignEmailHtml } from "../campaigns/render";
 import { WELCOME_CAMPAIGN_NAME } from "../campaigns/welcome-shared";
 import { sampleInvoiceDocumentHtml } from "../invoice";
+import { siteConfig } from "../metadata";
 import { supabaseAdmin } from "../supabase/admin";
 import type { EmailCampaign } from "../supabase/types";
 import { TALK_CONFIRMATION_CAMPAIGN_NAME } from "../talk-details";
@@ -232,7 +233,7 @@ export const previewEmailTemplate = async (slug: EmailTemplateSlug): Promise<{
       edition_line: sample.edition_line,
       tracking_number: sample.tracking_number,
     },
-    unsubscribeUrl: "https://exhibition.margies.app/unsubscribe",
+    unsubscribeUrl: `${siteConfig.url}/unsubscribe`,
     recipientFirstName: sample.first_name,
     invoiceHtml: sampleInvoiceDocumentHtml(),
   });

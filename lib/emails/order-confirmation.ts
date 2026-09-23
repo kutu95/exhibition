@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 
+import { siteConfig } from "../metadata";
 import type { Order } from "../supabase/types";
 import { formatAUD } from "../utils/currency";
 import {
@@ -93,7 +94,7 @@ const fallbackOrderHtml = (order: Order, items: OrderEmailLine[]): string => {
       <p>All prints are made to order on archival paper and signed and numbered by John Bowskill. Please allow 3-4 business days for production and despatch. You will receive a second email when your order has been shipped.</p>
       <p>If you have any questions, reply to this email or contact us at <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a> with your order number.</p>
       <p>The Georgette 150th is showing at Margaret River Region Open Studios from 12 to 27 September 2026. If you are visiting in person, prints purchased online can be collected at the exhibition — contact us to arrange this.</p>
-      <p style="margin-top: 24px; color: #4b5563;">The Georgette 150th · John Bowskill · exhibition.margies.app</p>
+      <p style="margin-top: 24px; color: #4b5563;">The Georgette 150th · John Bowskill · ${new URL(siteConfig.url).host}</p>
     </div>
   `;
 };

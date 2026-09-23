@@ -3,6 +3,21 @@ credentials-file: /home/[your-username]/.cloudflared/YOUR_TUNNEL_ID.json
 
 ingress:
   # Canonical app host
+  - hostname: margies.app
+    service: http://127.0.0.1:3007
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      httpHostHeader: margies.app
+
+  - hostname: www.margies.app
+    service: http://127.0.0.1:3007
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      httpHostHeader: www.margies.app
+
+  # Live alias — same app, no host redirect, so printed wall QR codes keep working.
   - hostname: exhibition.margies.app
     service: http://127.0.0.1:3007
     originRequest:
@@ -10,14 +25,11 @@ ingress:
       connectTimeout: 30s
       httpHostHeader: exhibition.margies.app
 
-  # Alias host — Next middleware 301s this to https://exhibition.margies.app
   - hostname: www.exhibition.margies.app
     service: http://127.0.0.1:3007
     originRequest:
       noTLSVerify: false
       connectTimeout: 30s
       httpHostHeader: www.exhibition.margies.app
-
-  # margies.app and www.margies.app are the portfolio site, not this app.
 
   - service: http_status:404
